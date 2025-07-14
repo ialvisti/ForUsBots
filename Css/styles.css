@@ -1,0 +1,413 @@
+
+:root {
+  --bg: #ffffff;
+  --fg: #333333;
+  --accent: #1f6feb;
+  --panel: #f9f9f9;
+  --hover: #e0e0e0;
+  --border: #cccccc;
+  --dark-panel: #2b2b2b;
+  --dark-fg: #ffffff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+}
+
+.navbar .logo img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.search-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.autocomplete-wrapper {
+  position: relative;
+  width: 60%;
+}
+
+.autocomplete-wrapper input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.autocomplete-items {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: none;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.autocomplete-items div {
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--fg);
+}
+
+.autocomplete-items div:hover {
+  background: var(--hover);
+}
+
+.search-container button {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+}
+
+.suggest-link a {
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: bold;
+  margin-left: 1rem;
+}
+
+main {
+  flex: 1;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#suggestions,
+#articlesListSection {
+  width: 80%;
+  margin-bottom: 2rem;
+}
+
+#suggestions h2,
+#articlesListSection h2 {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+#suggestedList li,
+#articlesList li {
+  background: var(--panel);
+  margin: 0.5rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  list-style: none;
+  text-align: center;
+}
+
+#suggestedList li a,
+#articlesList li a {
+  text-decoration: none;
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.article-content {
+  width: 100%;
+  text-align: center;
+}
+
+
+#dropdowns {
+  width: 100%;
+}
+
+.dropdown {
+  margin: 1rem 0;
+  width: 100%;
+
+  
+}
+
+.dropbtn {
+  width: 100%;
+  padding: 1.5rem;
+  background: var(--bg);
+  color: var(--accent);
+  border: solid rgba(20, 20, 20, 0.1);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.45s, color 0.45s;
+  
+}
+
+.dropbtn.active {
+  background-color: var(--accent);
+  color: var(--bg);
+}
+
+/* —— dropdown-content animado sin dejar hueco cuando está oculto —— */
+.dropdown-content {
+  /* siempre presente en el flujo para poder animar */
+  display: block;              
+  max-height: 0;               /* colapsado verticalmente */
+  padding: 0 1rem;             /* sólo padding horizontal fijo */
+  margin-top: 0;               /* sin margen antes de abrir */
+  border: none;                /* sin borde antes de abrir */
+  opacity: 0;                  /* invisible */
+  overflow: hidden;            /* oculta contenido colapsado */
+  width: 100%;
+  background: var(--panel);
+  text-align: left;
+
+  /* animamos altura, padding vertical, opacity y margen */
+  transition:
+    max-height 0.4s ease,
+    padding 0.4s ease,
+    opacity 0.6s ease,
+    margin-top 0.4s ease,
+    border 0.1s linear 0.1s;       /* el borde aparece al final */
+}
+
+.dropdown-content.show {
+  max-height: 1000px;          /* suficientemente grande para contenerlo */
+  padding: 1rem;               /* restauramos padding vertical */
+  margin-top: 0.25rem;         /* restauramos margen */
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  opacity: 1;                  /* visible */
+}
+
+
+/* Cajas de roles dinámicas con ancho completo */
+.role-box {
+
+  height: 80px;
+  width: 100%;
+  margin: 1rem 0;
+  background: var(--dark-panel);
+  color: var(--dark-fg);
+  border-radius: 4px;
+  padding: 1rem;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left: 20px;
+  padding-right: 100px;
+}
+
+.role-box h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.role-box .profiles {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.role-box .profiles img {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  
+}
+
+.footer {
+  background: var(--panel);
+  color: var(--fg);
+  text-align: center;
+  padding: 1rem;
+  margin-top: auto;
+}
+
+#rolesContainer{
+
+    width: 100%;
+}
+
+#desc{
+
+    text-align: left;
+}
+
+
+/* —— Tip de videojuego para título y subtítulo —— */
+.tip-box {
+
+    padding-top: 9px;
+    background: rgb(243, 255, 233);   /* gris oscuro semitransparente */
+    border: 2px solid rgb(210, 231, 193);
+    border-radius: 2px;
+    padding: 1.25rem;
+    width: 100%;;
+    margin: 1.5rem auto;
+    text-align: left;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  }
+  
+  .tip-box h3 {
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    color: black;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  }
+  
+  .tip-box p#desc {
+    line-height: 1.37;
+    margin-top: 0;
+    font-size: 15px;
+    color: black;
+    font-style:normal;
+  }
+  
+/* Agrupa los dropdowns por tema en article.html */
+#dropdowns h1 {
+  font-size: 1.7rem;
+  margin: 1.5rem 0 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+#dropdowns .dropdown {
+  margin: 0.5rem 0;
+}
+#dropdowns .dropbtn {
+  height: 70px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  color: var(--accent);
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 2px;
+  padding: 0.75rem;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--accent);
+  font-weight: 590;
+  font-size: 17px;
+  padding-left: 15px;
+  
+}
+
+/* Dentro de cada dropdown-content: tablas al 90% y centradas */
+.dropdown-content table {
+  width: 98%;
+  margin: 0.5rem auto;  /* un pequeño espacio arriba/abajo */
+  border-collapse: collapse;
+}
+
+/* Opcional: estilos básicos para tus tablas */
+.dropdown-content th,
+.dropdown-content td {
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  text-align: left;
+}
+
+/* Asegura que tus párrafos ocupen casi todo el ancho */
+.dropdown-content p {
+  width: 98%;
+  margin: 0.5rem auto;
+  line-height: 1.4;
+}
+
+/* Remove underline and set light blue color for all links */
+a {
+  text-decoration: none;
+  color: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────
+   Folder‐style Tabs (mejorados)
+───────────────────────────────────────────────────── */
+
+/* Contenedor general sin línea superior */
+.tab-frame {
+
+  border: none;
+  /*border: 1px solid var(--border);*/
+  border-top: none;          /* eliminamos línea superior */
+  border-radius: 0 0 4px 4px;
+  background: var(--panel);
+}
+
+/* Barra de solapas alineada a la izquierda */
+.tab-nav {
+  width: 100%;
+  margin-bottom: -0.85px;
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-left: 1px;          /* compensa el border-left */
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+/* Cada solapa */
+.tab-nav button {
+  position: relative;
+  top: -1px;                 /* encaja la solapa dentro del borde */
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  padding: 0.6rem 1rem;
+  margin-right: -1px;        /* solapa las pestañas entre sí */
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s, color 0.3s;
+  color: var(--fg);
+}
+
+/* Hover de solapa inactiva */
+.tab-nav button:hover:not(.active) {
+  background: var(--hover);
+}
+
+/* Solapa activa */
+.tab-nav button.active {
+  background: rgb(255, 251, 218);
+  color: var(--fg);
+  font-weight: bold;
+}
+
+/* Panel de contenido (único trazado con el contenedor) */
+.tab-panel {
+
+  background: var(--bg);
+  margin-top: 0px;
+  margin-left: 1px;
+  width: 100%;
+  border: 1px solid var(--border);
+  display: none;
+  padding: 1rem;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+

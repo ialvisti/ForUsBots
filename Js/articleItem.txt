@@ -1,0 +1,49 @@
+  {
+      id: '',
+      title: '',
+      desc: ``,
+      dropdownGroups: [
+        {
+          topic: 'Flowcharts',
+          items: [
+            {
+              title: 'Flowchart',
+              detail: `
+                <div style="width:100%; height:450px; margin:10px 0;">
+                  <iframe allowfullscreen frameborder="0"
+                          style="width:100%; height:100%;"
+                          src="https://lucid.app/documents/embedded/example2"
+                  ></iframe>
+                </div>
+              `
+            }
+          ]
+        },
+        {
+          topic: '',
+          items: [
+            {
+              title: '[1] Tabla de ejemplo',
+              detail: `
+                <p>Este es un párrafo <strong>HTML</strong> dentro del dropdown.</p>
+                <table>
+                  <thead><tr><th>Col A</th><th>Col B</th></tr></thead>
+                  <tbody>
+                    <tr><td>Dato 1</td><td>Dato 2</td></tr>
+                    <tr><td>Dato 3</td><td>Dato 4</td></tr>
+                  </tbody>
+                </table>
+              `
+            }
+          ]
+        }
+      ],
+      owners: [
+        { name: 'Ivan Alvis', img: 'Images/people/Ivan_Alvis.png' },
+        { name: 'Camilo Bello', img: 'Images/people/Camilo_Bello.jpeg' }
+      ],
+      experts: [
+        { name: 'Jeri Hanssman', img: 'owner1.jpg' }
+      ]
+      
+  },

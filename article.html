@@ -1,0 +1,63 @@
+<!-- article.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title id="articleTitle">Artículo</title>
+  <link rel="stylesheet" href="/Css/styles.css" />
+  <link rel="icon" href="Images/forusall_logo.png" type="image/x-icon">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="index.html"><img src="Images/forusall_logo.png" alt="Logo"></a>
+    </div>
+    <div class="search-container">
+      <div class="autocomplete-wrapper">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search articles..."
+          autocomplete="off"
+        >
+        <div id="autocomplete-list" class="autocomplete-items"></div>
+      </div>
+      <button id="searchBtn">Search</button>
+    </div>
+    <div class="suggest-link">
+      <a href="index.html#suggestions">Any suggestion?</a>
+    </div>
+  </nav>
+
+  <main class="article-content">
+
+    <br> <br>
+
+    <!-- Título -->
+    <h1 id="title" class="tip-box-h3"></h1>
+
+    <br>
+
+    <!-- Descripción -->
+    <div class="tip-box">
+      <p id="desc"></p>
+    </div>
+
+    <!-- Aquí se insertan los grupos dinámicos de pasos -->
+    <div id="dropdowns"></div>
+
+    <!-- Owners & Experts -->
+    <div id="rolesContainer"></div>
+  </main>
+
+  <footer class="footer">Powered by <b>ForUsAll</b></footer>
+
+  <!-- Cargamos el componente de busqueda para la Searchbar -->
+  <script src="Js/searchComponent.js" defer></script>
+  <!-- Cargamos la lista de articulos -->
+  <script src="Js/articlesData.js" defer></script>
+  <!-- Luego la lógica de los articulos -->
+  <script src="Js/articleScript.js" defer></script>
+</body>
+</html>
