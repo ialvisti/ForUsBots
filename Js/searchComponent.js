@@ -16,7 +16,7 @@ function initSearchComponent() {
     style.id = 'autocomplete-style';
     style.textContent = `
       .autocomplete-active {
-        background-color: #e0e0e0;
+        background-color: var(--hover);
         color: inherit;
       }
     `;
@@ -123,6 +123,3 @@ function handleKeyDown(e) {
     }
   }
 }
-
-// Exportar para su uso, si usas módulos:
-// export { initSearchComponent };

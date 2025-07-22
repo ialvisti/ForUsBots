@@ -270,6 +270,57 @@ const articles = [
             title: '[3] Participant Eligibility Check',
             detail: `
             
+              <p>Now that we validated our participant's identity, we must perform some checks in order to know if this participant is eligible for a distribution.</p>
+              <br>
+              <p>Confirm the following information on the <Strong>Admin Panel</Strong>:</p>
+              <P><Strong>•</Strong> &nbsp; Participant's age</p>
+              <P><Strong>•</Strong> &nbsp; Eligibility Status</p>
+              <P><Strong>•</Strong> &nbsp; Termination Date</p>
+              <br>
+              <p>Based on the information obtained from <Strong>Admin Panel</Strong>, pick the matching case from the table below.</p>
+              <br>
+              <table>
+                <colgroup>
+                  <col style="width:80%;">
+                  <col style="width:20%;">
+                </colgroup>
+                <!-- First Row: Headers -->
+                <tr style="background:var(--hover)">
+                  <th style="font-weight: bold;"><Strong>Case</Strong></th>
+                  <th style="font-weight: bold;s"><Strong>Procedure</Strong></th>
+                </tr>
+                <!-- Row 2 -->
+                <tr>
+                  <td>Participant's age is greater than <Strong>59.5</Strong></td>
+                  <td>Proceed with <a href="article.html?id=proc_distributions#phone_procedure_dp4">In-Service Distribution</a></td>
+                </tr>
+                <!-- Row 3 -->
+                <tr>
+                  <td>Company/Plan/Division Name</td>
+                  <td>" Could you please tell me which is the Name of the <Strong>Company</Strong> linked to your 401(k)? "</td>
+                </tr>
+                <!-- Row 4 -->
+                <tr>
+                  <td>Participant's Birth date</td>
+                  <td>" Please confirm me your <Strong>Date of Birth</Strong>. "</td>
+                </tr>
+                <!-- Row 5 -->
+                <tr>
+                  <td>Email on file</td>
+                  <td>" Please confirm me the <Strong>Email</Strong> linked to your account. "</td>
+                </tr>
+              </table>
+
+
+            `
+
+          },
+          {
+
+            id: 'phone_procedure_dp4',
+            title: '[4] In-Service Distribution',
+            detail: `
+            
               <p><u>Before</u> initiating any procedure with a participant:</p>
               <p><Strong>1.</Strong> Request and confirm:</p>
               <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; First and last name</p>
@@ -283,9 +334,9 @@ const articles = [
 
               <div class="tab-frame">
                 <div class="tab-nav">
-                  <button class="active">Tab 1</button>
-                  <button>Tab 2</button>
-                  <button>Tab 3</button>
+                  <button class="active">LT Trust</button>
+                  <button>Vanguard</button>
+                  <button>Others</button>
                 </div>
                 <div class="tab-panel active">
                   Contenido de Tab 1
@@ -309,7 +360,7 @@ const articles = [
           {
 
             id: 'phone_procedure_dp4',
-            title: '[4] Participant is Eligible',
+            title: '[5] Regular Distribution',
             detail: `
             
               <p><u>Before</u> initiating any procedure with a participant:</p>
@@ -351,7 +402,7 @@ const articles = [
           {
 
             id: 'phone_procedure_dp5',
-            title: '[5] Participant Is NOT Eligible',
+            title: '[6] Participant Is NOT Eligible',
             detail: `
             
               <p><u>Before</u> initiating any procedure with a participant:</p>

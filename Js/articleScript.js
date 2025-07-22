@@ -77,8 +77,8 @@ function renderArticle() {
       btn.addEventListener('click', () => {
         const isOpen = cont.classList.toggle('show');
         if (isOpen) {
-          btn.style.background = 'var(--accent)';
-          btn.style.color = 'var(--bg)';
+          btn.style.background = 'var(--button-text)';
+          btn.style.color = 'var(--button)';
         } else {
           btn.style.background = '';
           btn.style.color = '';
@@ -133,8 +133,8 @@ function openDropdownFromHash() {
 
   if (content && button && !content.classList.contains('show')) {
     content.classList.add('show');
-    button.style.background = 'var(--accent)';
-    button.style.color = 'var(--bg)';
+    button.style.background = 'var(--button-text)';
+    button.style.color = 'var(--button)';
 
     // scroll suave
     setTimeout(() => {

@@ -1,24 +1,52 @@
+/* FONTS USAGE 
+
+For titles use Petrona
+For Subtitles & regular text use Manrope
+
+*/
+
+/* Quita el borde de enfoque */
+input:focus {
+  outline: none;        /* elimina el outline por defecto */
+  box-shadow: none;     /* en algunos frameworks (Bootstrap, etc.) quitamos también la sombra */
+}
+
+/* Para navegadores WebKit (Chrome, Safari) en móviles: */
+input {
+  -webkit-tap-highlight-color: transparent; /* quita el resaltado al “tocar” */
+}
 
 :root {
-  --bg: #ffffff;
-  --fg: #333333;
-  --accent: #1f6feb;
-  --panel: #f9f9f9;
-  --hover: #e0e0e0;
-  --border: #cccccc;
-  --dark-panel: #2b2b2b;
-  --dark-fg: #ffffff;
+  /* Updated Happy Hues (light‐mode) palette */
+  --bg: #d4d8f0;            /* página fondo */
+  --fg: #232946;            /* texto principal y titulares */
+  --accent: #b8c1ec;        /* enlaces, iconos “main” */
+  --panel: #fffffe;         /* fondos de tarjetas/paneles */
+  --button: #b8c1ec;        /* botones */
+  --button-text: #232946;   /* texto en botones */
+  --hover: rgba(238, 187, 195, 0.3); /* hover suave */
+  --border: #121629;        /* bordes y trazos */
+  --dark-panel: #121629;    /* fondo cajas oscuras */
+  --dark-fg: #fffffe;       /* texto sobre cajas oscuras */
 }
+
+
+
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: Arial, sans-serif;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+strong {
+  font-family:Arial, Helvetica, sans-serif;
+  color: black;
+  font-weight: 5000;         /* un poco más de “negrita” */
 }
 
 .navbar {
@@ -26,9 +54,16 @@ body {
   display: flex;
   align-items: center;
   padding: 1rem;
+
+  /* Font, Manrope */
+  font-family: "Manrope", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
 }
 
 .navbar .logo img {
+  margin-left: 30px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -44,14 +79,14 @@ body {
 
 .autocomplete-wrapper {
   position: relative;
-  width: 60%;
+  width: 75%;
 }
 
 .autocomplete-wrapper input {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 2px;
 }
 
 .autocomplete-items {
@@ -62,6 +97,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--border);
   border-top: none;
+  border-bottom: none;
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
@@ -82,8 +118,20 @@ body {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  background: var(--accent);
-  color: #fff;
+  background: var(--button);
+  color: var(--button-text);
+  transition-duration: 0.3s;
+  height: 100%;
+}
+
+.search-container button:hover {
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--button-text);
+  color: var(--button);
+  transition-duration: 0.3s;
 }
 
 .suggest-link a {
@@ -109,13 +157,18 @@ main {
 
 #suggestions h2,
 #articlesListSection h2 {
+
+  font-family: "Abril Fatface", serif;
+  font-weight: 400;
+  font-style: normal;
+
   margin-bottom: 1rem;
   text-align: center;
 }
 
 #suggestedList li,
 #articlesList li {
-  background: var(--panel);
+  background: var(--button);
   margin: 0.5rem 0;
   padding: 1rem;
   border: 1px solid var(--border);
@@ -124,11 +177,17 @@ main {
   text-align: center;
 }
 
+
 #suggestedList li a,
 #articlesList li a {
+
+  font-family: "Manrope", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+
   text-decoration: none;
-  color: var(--accent);
-  font-weight: bold;
+  color: var(--button-text);
 }
 
 .article-content {
@@ -144,38 +203,41 @@ main {
 .dropdown {
   margin: 1rem 0;
   width: 100%;
-
-  
 }
 
 .dropbtn {
   width: 100%;
   padding: 1.5rem;
-  background: var(--bg);
-  color: var(--accent);
-  border: solid rgba(20, 20, 20, 0.1);
+  background: var(--button);
+  color: var(--button-text);
+  border: 1px solid var(--border);
   border-radius: 4px;
   cursor: pointer;
   text-align: left;
   transition: background-color 0.45s, color 0.45s;
-  
+
+  /*Font, Manrope*/
+  font-family: "Manrope", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
 }
 
 .dropbtn.active {
-  background-color: var(--accent);
-  color: var(--bg);
+  background-color: var(--button);
+  color: var(--button-text);
 }
 
 /* —— dropdown-content animado sin dejar hueco cuando está oculto —— */
 .dropdown-content {
   /* siempre presente en el flujo para poder animar */
   display: block;              
-  max-height: 0;               /* colapsado verticalmente */
-  padding: 0 1rem;             /* sólo padding horizontal fijo */
-  margin-top: 0;               /* sin margen antes de abrir */
-  border: none;                /* sin borde antes de abrir */
-  opacity: 0;                  /* invisible */
-  overflow: hidden;            /* oculta contenido colapsado */
+  max-height: 0;               
+  padding: 0 1rem;             
+  margin-top: 0;               
+  border: none;                
+  opacity: 0;                  
+  overflow: hidden;            
   width: 100%;
   background: var(--panel);
   text-align: left;
@@ -186,22 +248,27 @@ main {
     padding 0.4s ease,
     opacity 0.6s ease,
     margin-top 0.4s ease,
-    border 0.1s linear 0.1s;       /* el borde aparece al final */
+    border 0.1s linear 0.1s;       
+
+  /*Font, Manrope*/
+  font-family: "Manrope", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
 }
 
 .dropdown-content.show {
-  max-height: 1000px;          /* suficientemente grande para contenerlo */
-  padding: 1rem;               /* restauramos padding vertical */
-  margin-top: 0.25rem;         /* restauramos margen */
+  max-height: 1000px;          
+  padding: 1rem;               
+  margin-top: 0.25rem;         
   border: 1px solid var(--border);
   border-radius: 4px;
-  opacity: 1;                  /* visible */
+  opacity: 1;                  
 }
 
 
 /* Cajas de roles dinámicas con ancho completo */
 .role-box {
-
   height: 80px;
   width: 100%;
   margin: 1rem 0;
@@ -215,6 +282,12 @@ main {
   align-items: center;
   padding-left: 20px;
   padding-right: 100px;
+
+  /*Font, Manrope*/
+  font-family: "Manrope", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 1000;
+  font-style: normal;
 }
 
 .role-box h3 {
@@ -232,10 +305,15 @@ main {
   height: 65px;
   border-radius: 50%;
   border: 2px solid var(--accent);
-  
 }
 
 .footer {
+
+  font-family: "Manrope", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+
   background: var(--panel);
   color: var(--fg);
   text-align: center;
@@ -243,79 +321,85 @@ main {
   margin-top: auto;
 }
 
-#rolesContainer{
-
-    width: 100%;
+#rolesContainer {
+  width: 100%;
 }
 
-#desc{
-
-    text-align: left;
+#desc {
+  text-align: left;
 }
-
 
 /* —— Tip de videojuego para título y subtítulo —— */
 .tip-box {
+  padding-top: 9px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 2px;
+  padding: 1.25rem;
+  width: 100%;
+  margin: 1.5rem auto;
+  text-align: left;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
 
-    padding-top: 9px;
-    background: rgb(243, 255, 233);   /* gris oscuro semitransparente */
-    border: 2px solid rgb(210, 231, 193);
-    border-radius: 2px;
-    padding: 1.25rem;
-    width: 100%;;
-    margin: 1.5rem auto;
-    text-align: left;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-  }
-  
-  .tip-box h3 {
-    margin-bottom: 0.5rem;
-    font-size: 2rem;
-    color: black;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  }
-  
-  .tip-box p#desc {
-    line-height: 1.37;
-    margin-top: 0;
-    font-size: 15px;
-    color: black;
-    font-style:normal;
-  }
-  
+.tip-box h3 {
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  color: var(--fg);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.tip-box p#desc {
+  /*Font, Manrope*/
+  font-family: "Manrope", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 600;
+  font-style: normal;
+
+  line-height: 1.37;
+  margin-top: 0;
+  font-size: 15px;
+  color: var(--fg);
+  font-style: normal;
+}
+
 /* Agrupa los dropdowns por tema en article.html */
 #dropdowns h1 {
+  font-family: "Abril Fatface", serif;
+  font-weight: 400;
+  font-style: normal;
+
   font-size: 1.7rem;
   margin: 1.5rem 0 0.5rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.25rem;
 }
+
 #dropdowns .dropdown {
   margin: 0.5rem 0;
 }
+
 #dropdowns .dropbtn {
   height: 70px;
   width: 100%;
   text-align: left;
-  background: var(--bg);
-  color: var(--accent);
-  border: 1px solid rgba(0,0,0,0.1);
+  background: var(--button);
+  color: var(--button-text);
+  border: 1px solid var(--border);
   border-radius: 2px;
   padding: 0.75rem;
   cursor: pointer;
   text-decoration: none;
-  color: var(--accent);
   font-weight: 590;
   font-size: 17px;
   padding-left: 15px;
-  
 }
 
 /* Dentro de cada dropdown-content: tablas al 90% y centradas */
 .dropdown-content table {
   width: 98%;
-  margin: 0.5rem auto;  /* un pequeño espacio arriba/abajo */
+  margin: 0.5rem auto;
   border-collapse: collapse;
 }
 
@@ -346,10 +430,8 @@ a {
 
 /* Contenedor general sin línea superior */
 .tab-frame {
-
   border: none;
-  /*border: 1px solid var(--border);*/
-  border-top: none;          /* eliminamos línea superior */
+  border-top: none;
   border-radius: 0 0 4px 4px;
   background: var(--panel);
 }
@@ -360,7 +442,7 @@ a {
   margin-bottom: -0.85px;
   display: flex;
   border-bottom: 1px solid var(--border);
-  margin-left: 1px;          /* compensa el border-left */
+  margin-left: 1px;
   border-left: none;
   border-right: none;
   border-bottom: none;
@@ -369,13 +451,13 @@ a {
 /* Cada solapa */
 .tab-nav button {
   position: relative;
-  top: -1px;                 /* encaja la solapa dentro del borde */
+  top: -1px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-bottom: none;
   border-radius: 4px 4px 0 0;
   padding: 0.6rem 1rem;
-  margin-right: -1px;        /* solapa las pestañas entre sí */
+  margin-right: -1px;
   cursor: pointer;
   font-weight: 500;
   transition: background 0.3s, color 0.3s;
@@ -389,14 +471,13 @@ a {
 
 /* Solapa activa */
 .tab-nav button.active {
-  background: rgb(255, 251, 218);
+  background: var(--accent);
   color: var(--fg);
   font-weight: bold;
 }
 
 /* Panel de contenido (único trazado con el contenedor) */
 .tab-panel {
-
   background: var(--bg);
   margin-top: 0px;
   margin-left: 1px;
@@ -409,5 +490,3 @@ a {
 .tab-panel.active {
   display: block;
 }
-
-
