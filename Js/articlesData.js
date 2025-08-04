@@ -166,7 +166,7 @@ const articles = [
         items: [
           {
 
-            id: 'phone_procedure_dp1',
+            id: 'ppt_lookup_1',
             title: '[1] Participant Look Up',
             detail: `
             
@@ -191,7 +191,7 @@ const articles = [
           },
           {
 
-            id: 'phone_procedure_dp2',
+            id: 'ppt_verification_1',
             title: '[2] Participant Verification',
             detail: `
               <p>Once you’ve located the participant’s account, perform a formal account validation to verify that the person contacting us is the authorized account holder.</p>
@@ -266,7 +266,7 @@ const articles = [
           },
           {
 
-            id: 'phone_procedure_dp3',
+            id: 'ppt_eligibility_1',
             title: '[3] Participant Eligibility Check',
             detail: `
             
@@ -317,8 +317,8 @@ const articles = [
           },
           {
 
-            id: 'phone_procedure_dp4',
-            title: '[4] In-Service Distribution',
+            id: 'terminated_dtb_1',
+            title: '[4] Terminated Distribution',
             detail: `
             
               <p><u>Before</u> initiating any procedure with a participant:</p>
@@ -359,8 +359,176 @@ const articles = [
           },
           {
 
-            id: 'phone_procedure_dp4',
-            title: '[5] Regular Distribution',
+            id: 'in_service_dtb_1',
+            title: '[5] In-Service Distribution',
+            detail: `
+            
+              <p><u>Before</u> initiating any procedure with a participant:</p>
+              <p><Strong>1.</Strong> Request and confirm:</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; First and last name</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; Last four digits of their <Strong>SSN</Strong></p>
+              <p><Strong>2.</Strong> Locate their account in the <Strong>Admin Panel</Strong>.</p>
+              <br>
+              <p>If you cannot find the account immediately:</p>
+              <p><Strong>•</Strong> &nbsp; Ask for the name of the participant’s 401(k) <i>sponsoring company</i>.</p>
+              <p><Strong>•</Strong> &nbsp; Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>
+              <br>
+
+              <div class="tab-frame">
+                <div class="tab-nav">
+                  <button class="active">LT Trust</button>
+                  <button>Vanguard</button>
+                  <button>Others</button>
+                </div>
+                <div class="tab-panel active">
+                  Contenido de Tab 1
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 2
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 3
+                </div>
+              </div>
+
+              <br>
+              <p><i><Strong>Pro Tip: </Strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</i></p>
+
+
+
+            `
+
+          },
+          {
+
+            id: 'hardshit_dtb_1',
+            title: '[6] Hardship Request',
+            detail: `
+            
+              <p><u>Before</u> initiating any procedure with a participant:</p>
+              <p><Strong>1.</Strong> Request and confirm:</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; First and last name</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; Last four digits of their <Strong>SSN</Strong></p>
+              <p><Strong>2.</Strong> Locate their account in the <Strong>Admin Panel</Strong>.</p>
+              <br>
+              <p>If you cannot find the account immediately:</p>
+              <p><Strong>•</Strong> &nbsp; Ask for the name of the participant’s 401(k) <i>sponsoring company</i>.</p>
+              <p><Strong>•</Strong> &nbsp; Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>
+              <br>
+
+              <div class="tab-frame">
+                <div class="tab-nav">
+                  <button class="active">LT Trust</button>
+                  <button>Vanguard</button>
+                  <button>Others</button>
+                </div>
+                <div class="tab-panel active">
+                  Contenido de Tab 1
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 2
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 3
+                </div>
+              </div>
+
+              <br>
+              <p><i><Strong>Pro Tip: </Strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</i></p>
+
+
+
+            `
+
+          },
+          {
+
+            id: 'death_dtb_1',
+            title: '[7] Death Distribution',
+            detail: `
+            
+              <p><u>Before</u> initiating any procedure with a participant:</p>
+              <p><Strong>1.</Strong> Request and confirm:</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; First and last name</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; Last four digits of their <Strong>SSN</Strong></p>
+              <p><Strong>2.</Strong> Locate their account in the <Strong>Admin Panel</Strong>.</p>
+              <br>
+              <p>If you cannot find the account immediately:</p>
+              <p><Strong>•</Strong> &nbsp; Ask for the name of the participant’s 401(k) <i>sponsoring company</i>.</p>
+              <p><Strong>•</Strong> &nbsp; Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>
+              <br>
+
+              <div class="tab-frame">
+                <div class="tab-nav">
+                  <button class="active">LT Trust</button>
+                  <button>Vanguard</button>
+                  <button>Others</button>
+                </div>
+                <div class="tab-panel active">
+                  Contenido de Tab 1
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 2
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 3
+                </div>
+              </div>
+
+              <br>
+              <p><i><Strong>Pro Tip: </Strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</i></p>
+
+
+
+            `
+
+          },
+          {
+
+            id: 'qdro_dtb_1',
+            title: '[8] QDRO Distribution',
+            detail: `
+            
+              <p><u>Before</u> initiating any procedure with a participant:</p>
+              <p><Strong>1.</Strong> Request and confirm:</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; First and last name</p>
+              <p style="text-indent: 2em;"><Strong>•</Strong> &nbsp; Last four digits of their <Strong>SSN</Strong></p>
+              <p><Strong>2.</Strong> Locate their account in the <Strong>Admin Panel</Strong>.</p>
+              <br>
+              <p>If you cannot find the account immediately:</p>
+              <p><Strong>•</Strong> &nbsp; Ask for the name of the participant’s 401(k) <i>sponsoring company</i>.</p>
+              <p><Strong>•</Strong> &nbsp; Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>
+              <br>
+
+              <div class="tab-frame">
+                <div class="tab-nav">
+                  <button class="active">LT Trust</button>
+                  <button>Vanguard</button>
+                  <button>Others</button>
+                </div>
+                <div class="tab-panel active">
+                  Contenido de Tab 1
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 2
+                </div>
+                <div class="tab-panel">
+                  Contenido de Tab 3
+                </div>
+              </div>
+
+              <br>
+              <p><i><Strong>Pro Tip: </Strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</i></p>
+
+
+
+            `
+
+          },
+          {
+
+            id: 'eaca_refund_1',
+            title: '[9] EACA Refund',
             detail: `
             
               <p><u>Before</u> initiating any procedure with a participant:</p>
@@ -402,7 +570,7 @@ const articles = [
           {
 
             id: 'phone_procedure_dp5',
-            title: '[6] Participant Is NOT Eligible',
+            title: '[10] Participant Is NOT Eligible',
             detail: `
             
               <p><u>Before</u> initiating any procedure with a participant:</p>
