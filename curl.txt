@@ -1,0 +1,6 @@
+curl -sS -X POST http://localhost:10000/run-binary \
+  -H 'x-auth-token: dev-secret' \
+  -H 'x-filename: presentation.pdf' \
+  -H 'Content-Type: application/octet-stream' \
+  -H "x-meta: $META" \
+  --data-binary @presentation.pdf

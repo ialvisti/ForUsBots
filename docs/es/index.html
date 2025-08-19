@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>ForUsBots — API Docs (Dev)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="/docs/styles.css">
+  <link rel="icon" type="image/png" href="/docs/images/icon.png">
+</head>
+<body>
+  <header>
+    <div class="wrap header-row">
+      <h1>ForUsBots — API Docs (Dev)</h1>
+      <nav class="topnav">
+        <a href="#overview">Overview</a>
+        <a href="#base">Base URLs</a>
+        <a href="#auth">Auth</a>
+        <a href="#endpoints">Endpoints</a>
+        <a href="#schemas">Schemas</a>
+        <a href="#examples">Examples</a>
+        <a href="#env">Env</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#errors">Errors</a>
+        <a href="#openapi">OpenAPI</a>
+        <a href="/docs/api/es">API</a>
+
+        <span class="spacer"></span>
+        <div class="lang-switch">
+          <label for="lang-select" class="sr-only">Language</label>
+          <select id="lang-select" aria-label="Language">
+            <option value="en" selected>EN</option>
+            <option value="es">ES</option>
+          </select>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="overview">
+      <h2>Descripción general</h2>
+      <p>Este servicio automatiza la carga de documentos en el portal de empleadores de ForUsAll usando Playwright. Inicia sesión con credenciales del servidor, completa TOTP (6 dígitos/30s), llena el formulario de carga, envía el archivo y opcionalmente guarda capturas como evidencia. Una API HTTP recibe el archivo binario y metadatos mínimos.</p>
+      <p class="small">Versión: 1.0 • Actualizado: 2025-08-15</p>
+    </section>
+
+    <section id="base">
+      <h2>URLs base</h2>
+      <ul class="list">
+        <li><span class="chip">DEV</span> <code>http://localhost:10000</code></li>
+        <li><span class="chip">Render</span> Tu URL desplegada (p.ej. <code>https://file-upload-bot.onrender.com</code>)</li>
+      </ul>
+    </section>
+
+    <section id="auth">
+      <h2>Autenticación</h2>
+      <p>Todas las operaciones requieren el header <code>x-auth-token</code> igual a la variable de entorno del servidor <code>SHARED_TOKEN</code>. Token inválido/ausente → <code>401</code>.</p>
+      <pre><code>x-auth-token: dev-secret</code></pre>
+    </section>
+
+    <section id="endpoints">
+      <h2>Endpoints</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="small"><strong>GET /health</strong></div>
+          <p class="muted">Sonda de vida.</p>
+<pre><code>GET /health → 200
+{
+  "ok": true
+}</code></pre>
+        </div>
+        <div class="card">
+          <div class="small"><strong>POST /run-binary</strong></div>
+          <p class="muted">Sube un archivo (cuerpo binario) e instruye al bot cómo llenar el formulario.</p>
+          <ul class="list">
+            <li><strong>Headers</strong>: <code>x-auth-token</code> (req), <code>x-filename</code> (req), <code>x-meta</code> (JSON, req), <code>Content-Type</code> = <code>application/octet-stream</code> o <code>application/pdf</code></li>
+            <li><strong>Body</strong>: archivo binario crudo (máx. 50MB por defecto)</li>
+          </ul>
+<pre><code>POST /run-binary
+x-auth-token: dev-secret
+x-filename: presentation.pdf
+Content-Type: application/octet-stream
+x-meta: {"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}
+
+(cuerpo binario)</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="schemas">
+      <h2>Esquemas de Request & Response</h2>
+
+      <h3>x-meta (simplificado)</h3>
+<pre><code>{
+  "planId": number,                 // requerido
+  "formData": {                     // requerido
+    "section": string,              // p.ej. "CONTRACTS & AGREEMENTS"
+    "caption": string,              // p.ej. "Recordkeeper Agreement" u "Other"
+    "captionOtherText"?: string,    // requerido si caption === "Other"
+    "status": string,               // p.ej. "Audit Ready"
+    "effectiveDate": "YYYY-MM-DD"   // p.ej. "2025-05-02"
+  },
+  "options"?: {
+    "returnEvidenceBase64"?: boolean,
+    "saveEvidenceToTmp"?: boolean,
+    "confirmDelayMs"?: number,
+    "fastExit"?: boolean,
+    "snifferWindowMs"?: number,
+    "suppressSameUrlWarning"?: boolean,
+    "evidenceOnSuccess"?: boolean,
+    "skipPrevalidation"?: boolean
+  }
+}</code></pre>
+
+      <h3>Éxito</h3>
+<pre><code>200 OK
+{
+  "ok": true,
+  "message": "Archivo cargado",
+  "newUrl": "https://.../manage_fv_document?...",
+  "postSubmitResult": "url-change" | "http-2xx" | "success-selector" | "form-reset" | "same-url",
+  "defaultsVerified": true,
+  "warnings": [],
+  "evidence": {
+    "loginShotPath": "/tmp/evidence/....png",
+    "uploadShotPath": "/tmp/evidence/....png",
+    "loginShotBase64"?: "...",
+    "uploadShotBase64"?: "..."
+  }
+}</code></pre>
+
+      <h3>Errores</h3>
+<pre><code>400 Bad Request  -> x-meta inválido, campos faltantes, binario faltante
+401 Unauthorized -> x-auth-token inválido
+422 Unprocessable Entity -> regla de negocio rechazada (p.ej. no se permite 'Document Missing' si adjuntas un archivo)
+500 Internal Server Error -> error inesperado
+</code></pre>
+    </section>
+
+    <section id="examples">
+      <h2>Ejemplos cURL</h2>
+
+      <div class="card spacey">
+        <h3>Flujo feliz</h3>
+<pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
+
+curl -sS -X POST http://localhost:10000/run-binary \
+  -H 'x-auth-token: dev-secret' \
+  -H 'x-filename: presentation.pdf' \
+  -H 'Content-Type: application/octet-stream' \
+  -H "x-meta: $META" \
+  --data-binary @presentation.pdf</code></pre>
+      </div>
+
+      <div class="card spacey">
+        <h3>Caption = Other</h3>
+<pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Other","captionOtherText":"Título personalizado","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
+
+curl -sS -X POST http://localhost:10000/run-binary \
+  -H 'x-auth-token: dev-secret' \
+  -H 'x-filename: presentation.pdf' \
+  -H 'Content-Type: application/octet-stream' \
+  -H "x-meta: $META" \
+  --data-binary @presentation.pdf</code></pre>
+      </div>
+    </section>
+
+    <section id="env">
+      <h2>Variables de entorno & Defaults</h2>
+<pre><code># .env
+PORT=10000
+SHARED_TOKEN=dev-secret
+SITE_USER=...        # usuario del portal
+SITE_PASS=...        # contraseña del portal
+TOTP_SECRET=...      # base32, sin espacios
+HEADFUL=0            # 1 para ver el navegador
+SLOWMO=0             # ms por acción en headful
+CLOSE_KILL_MS=1500   # tiempo de cierre forzado</code></pre>
+      <p>Los selectores, URLs y opciones por defecto están codificados en el servidor; n8n solo envía <em>planId</em>, <em>formData</em>, el nombre y el cuerpo binario.</p>
+    </section>
+
+    <section id="evidence">
+      <h2>Evidencias</h2>
+      <p>Por defecto, las capturas se guardan en <code>/tmp/evidence</code>. En dev, también se sirven vía <code>GET /evidence/*</code>. En producción, considera deshabilitar acceso público.</p>
+    </section>
+
+    <section id="errors">
+      <h2>Errores & Warnings</h2>
+      <ul class="list">
+        <li><strong>422 validación</strong>: p. ej., estado <em>Document Missing</em> es rechazado si adjuntas un archivo.</li>
+        <li><strong>Warnings</strong> no son fatales: p. ej., <em>captionOtherText ignorado porque caption != "Other"</em>, o <em>No hubo navegación tras el submit</em> cuando el portal reutiliza la misma URL.</li>
+        <li>Alertas efímeras (JS <code>alert()</code>, toasts) se capturan vía diálogo y observadores del DOM.</li>
+      </ul>
+    </section>
+
+    <section id="openapi">
+      <h2>OpenAPI (YAML)</h2>
+      <p>Consulta <code><a href="/docs/openapi.yaml">/docs/openapi.yaml</a></code> para importar en Swagger/Postman.</p>
+    </section>
+
+    <section id="changelog">
+      <h2>Historial de cambios</h2>
+      <ul class="list">
+        <li><strong>2025-08-15</strong> — Agregado 422 de prevalidación; captura de alertas efímeras/diálogo; reorganización del código; docs estáticas.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+  (function(){
+    const sel = document.getElementById('lang-select');
+    if (!sel) return;
+    const isES = location.pathname.replace(/\/+$/,'').endsWith('/docs/es');
+    sel.value = isES ? 'es' : 'en';
+    sel.addEventListener('change', (e) => {
+      const v = e.target.value;
+      if (v === 'es') location.href = '/docs/es';
+      else location.href = '/docs';
+    });
+  })();
+  </script>
+</body>
+</html>

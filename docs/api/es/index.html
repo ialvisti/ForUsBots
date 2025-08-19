@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>ForUsBots — API Reference</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/png" href="/docs/images/icon.png" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <h1 class="title">ForUsBots — API Reference</h1>
+
+      <!-- NUEVO: barra superior con volver + idioma -->
+      <nav class="topnav">
+        <a id="back-link" class="toplink" href="/docs/es">Volver a Docs</a>
+        <span class="spacer"></span>
+        <label for="lang-select" class="sr-only">Idioma</label>
+        <div class="lang-switch">
+          <select id="lang-select" aria-label="Idioma">
+            <option value="en">EN</option>
+            <option value="es" selected>ES</option>
+          </select>
+        </div>
+      </nav>
+    </div>
+
+    <div class="wrap meta-row">
+      <div class="meta">
+        <a class="muted small" href="/docs/openapi.yaml">openapi.yaml</a>
+        <span class="badge">v1.0.0</span>
+        <span class="badge alt">OAS 3.0</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="lead">
+      Endpoints REST mínimos para el servicio que, mediante Playwright, inicia sesión en el
+      portal, completa el formulario de carga y envía un documento.
+    </p>
+
+    <!-- =================== TAG: default =================== -->
+    <h2 id="default" class="tag">default</h2>
+
+    <!-- GET /health -->
+    <details class="op get">
+      <summary>
+        <span class="method get">GET</span>
+        <span class="path">/health</span>
+        <span class="sum">Chequeo de salud</span>
+      </summary>
+      <div class="op-body">
+        <p class="muted">Chequeo de salud extendido con recursos del sistema.</p>
+
+        <h4>Parámetros</h4>
+        <div class="muted">Sin parámetros.</div>
+
+        <h4>Respuestas</h4>
+        <div class="resp">
+          <div class="code">200 <span class="muted">Respuesta exitosa</span></div>
+          <pre><code class="json">{
+  "ok": true
+}</code></pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- POST /run-binary -->
+    <details class="op post">
+      <summary>
+        <span class="method post">POST</span>
+        <span class="path">/run-binary</span>
+        <span class="sum">Subir archivo y ejecutar automatización</span>
+      </summary>
+      <div class="op-body">
+        <p class="muted">
+          Recibe un cuerpo binario crudo (PDF/Octet-Stream) más headers con metadatos.
+          El servidor realiza login, OTP, llena el formulario y envía el archivo.
+        </p>
+
+        <h4>Parámetros (Headers)</h4>
+        <table class="tbl">
+          <thead><tr><th>Nombre</th><th>Ubicación</th><th>Tipo</th><th>Requerido</th><th>Descripción</th></tr></thead>
+          <tbody>
+            <tr><td><code>x-auth-token</code></td><td>header</td><td>string</td><td>sí</td><td>Debe coincidir con la variable de entorno <code>SHARED_TOKEN</code>.</td></tr>
+            <tr><td><code>x-filename</code></td><td>header</td><td>string</td><td>sí</td><td>Nombre de archivo original (para escritura temporal).</td></tr>
+            <tr><td><code>x-meta</code></td><td>header</td><td>string (JSON)</td><td>sí</td><td>Ver esquema más abajo.</td></tr>
+            <tr><td><code>Content-Type</code></td><td>header</td><td>enum</td><td>sí</td><td><code>application/octet-stream</code> o <code>application/pdf</code>.</td></tr>
+          </tbody>
+        </table>
+
+        <h4>Request: <code>x-meta</code> (simplificado)</h4>
+        <pre><code class="json">{
+  "planId": 580,
+  "formData": {
+    "section": "CONTRACTS & AGREEMENTS",
+    "caption": "Recordkeeper Agreement",
+    "captionOtherText": "(requerido solo si caption = 'Other')",
+    "status": "Audit Ready",
+    "effectiveDate": "2025-05-02"
+  },
+  "options": {
+    "confirmDelayMs": 5000,
+    "fastExit": false,
+    "snifferWindowMs": 7000
+  }
+}</code></pre>
+
+        <h4>Respuestas</h4>
+
+        <div class="resp">
+          <div class="code">200 <span class="muted">Éxito</span></div>
+          <pre><code class="json">{
+  "ok": true,
+  "message": "Archivo cargado",
+  "newUrl": "https://.../manage_fv_document?...",
+  "postSubmitResult": "same-url",
+  "defaultsVerified": true,
+  "warnings": [],
+  "evidence": {
+    "loginShotPath": "/tmp/evidence/2025-08-15T03-01-33.460Z_login.png",
+    "uploadShotPath": "/tmp/evidence/2025-08-15T03-01-46.623Z_after_submit.png"
+  }
+}</code></pre>
+        </div>
+
+        <div class="resp">
+          <div class="code">400 <span class="muted">Solicitud incorrecta</span></div>
+          <pre><code class="json">{
+  "ok": false,
+  "errorType": "validation",
+  "error": "Campos faltantes o vacíos en x-meta",
+  "missing": ["formData.status"]
+}</code></pre>
+        </div>
+
+        <div class="resp">
+          <div class="code">401 <span class="muted">No autorizado</span></div>
+          <pre><code class="json">{
+  "ok": false,
+  "error": "unauthorized"
+}</code></pre>
+        </div>
+
+        <div class="resp">
+          <div class="code">422 <span class="muted">Entidad no procesable</span></div>
+          <pre><code class="json">{
+  "ok": false,
+  "errorType": "validation",
+  "error": "Status 'Document Missing' no es válido cuando se adjunta un archivo",
+  "hint": "Usa 'Audit Ready' u otro estado permitido por el portal"
+}</code></pre>
+        </div>
+
+        <div class="resp">
+          <div class="code">500 <span class="muted">Error interno del servidor</span></div>
+          <pre><code class="json">{
+  "ok": false,
+  "error": "Unexpected runtime error"
+}</code></pre>
+        </div>
+      </div>
+    </details>
+
+    <!-- =================== Schemas =================== -->
+    <h2 id="schemas" class="tag">Esquemas</h2>
+
+    <details class="schema">
+      <summary><strong>x-meta</strong></summary>
+      <pre><code class="json">{
+  "planId": number,
+  "formData": {
+    "section": string,
+    "caption": string,
+    "captionOtherText"?: string,
+    "status": string,
+    "effectiveDate": "YYYY-MM-DD"
+  },
+  "options"?: {
+    "returnEvidenceBase64"?: boolean,
+    "saveEvidenceToTmp"?: boolean,
+    "confirmDelayMs"?: number,
+    "fastExit"?: boolean,
+    "snifferWindowMs"?: number,
+    "suppressSameUrlWarning"?: boolean,
+    "evidenceOnSuccess"?: boolean,
+    "skipPrevalidation"?: boolean
+  }
+}</code></pre>
+    </details>
+
+    <details class="schema">
+      <summary><strong>Éxito</strong></summary>
+      <pre><code class="json">{
+  "ok": true,
+  "message": "Archivo cargado",
+  "newUrl": "string",
+  "postSubmitResult": "url-change|http-2xx|success-selector|form-reset|same-url",
+  "defaultsVerified": true,
+  "warnings": [ "string" ],
+  "evidence": {
+    "loginShotPath": "string",
+    "uploadShotPath": "string",
+    "loginShotBase64"?: "string",
+    "uploadShotBase64"?: "string"
+  }
+}</code></pre>
+    </details>
+
+    <details class="schema">
+      <summary><strong>Error</strong></summary>
+      <pre><code class="json">{
+  "ok": false,
+  "error": "string",
+  "errorType"?: "parse|validation|runtime",
+  "warnings"?: [ "string" ]
+}</code></pre>
+    </details>
+
+    <footer class="foot muted small">
+      Última actualización 2025-08-15 • Docs estáticas (sin “Try it out”)
+    </footer>
+  </main>
+
+  <script>
+    (function () {
+      var isES = location.pathname.replace(/\/+$/,'').endsWith('/docs/api/es');
+      var sel = document.getElementById('lang-select');
+      if (sel) {
+        sel.value = isES ? 'es' : 'en';
+        sel.addEventListener('change', function (e) {
+          var v = e.target.value;
+          location.href = v === 'es' ? '/docs/api/es' : '/docs/api';
+        });
+      }
+      var back = document.getElementById('back-link');
+      if (back) back.href = isES ? '/docs/es' : '/docs';
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,110 @@
+{
+  "name": "ForUs File Upload Bot — Local Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ManualTrigger1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "filePath": "/absolute/path/to/presentation.pdf",
+        "binaryPropertyName": "data"
+      },
+      "id": "ReadBinaryFile1",
+      "name": "Read Binary File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "number": [
+            { "name": "planId", "value": 580 }
+          ],
+          "string": [
+            { "name": "section", "value": "CONTRACTS & AGREEMENTS" },
+            { "name": "caption", "value": "Recordkeeper Agreement" },
+            { "name": "status", "value": "Audit Ready" },
+            { "name": "effectiveDate", "value": "2025-05-02" },
+            { "name": "captionOtherText", "value": "" },
+            { "name": "fileName", "value": "={{$binary.data.fileName || 'presentation.pdf'}}" },
+            { "name": "authToken", "value": "dev-secret" },
+            { "name": "baseUrl", "value": "http://localhost:10000" }
+          ]
+        }
+      },
+      "id": "SetParams1",
+      "name": "Set Params",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "return items.map(item => {\n  const { planId, section, caption, status, effectiveDate, captionOtherText } = item.json;\n  const formData = { section, caption, status, effectiveDate };\n  if (captionOtherText && String(captionOtherText).trim() !== '') {\n    formData.captionOtherText = captionOtherText;\n  }\n  item.json.meta = JSON.stringify({ planId: Number(planId), formData });\n  return item;\n});"
+      },
+      "id": "FunctionMakeMeta1",
+      "name": "Make x-meta JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.baseUrl + '/run-binary'}}",
+        "method": "POST",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "headerParametersUi": {
+          "parameter": [
+            { "name": "x-auth-token", "value": "={{$json.authToken}}"},
+            { "name": "x-filename", "value": "={{$json.fileName}}"},
+            { "name": "x-meta", "value": "={{$json.meta}}"},
+            { "name": "Content-Type", "value": "application/octet-stream"}
+          ]
+        },
+        "options": {
+          "followRedirect": true,
+          "responseFormat": "json",
+          "timeout": 900000
+        }
+      },
+      "id": "HttpRequest1",
+      "name": "POST /run-binary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1240, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "Main": [
+        [{ "node": "Read Binary File", "type": "main", "index": 0 }]
+      ]
+    },
+    "Read Binary File": {
+      "Main": [
+        [{ "node": "Set Params", "type": "main", "index": 0 }]
+      ]
+    },
+    "Set Params": {
+      "Main": [
+        [{ "node": "Make x-meta JSON", "type": "main", "index": 0 }]
+      ]
+    },
+    "Make x-meta JSON": {
+      "Main": [
+        [{ "node": "POST /run-binary", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "pinData": {}
+}
