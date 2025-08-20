@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: ForUsAll File Upload Bot API
+  title: ForUsBots API
   version: 2.2.0
 servers:
   - url: http://localhost:10000
@@ -8,25 +8,31 @@ paths:
   /forusbot/health:
     get:
       summary: Health check
-      responses: { '200': { description: OK } }
+      responses:
+        '200': { description: OK }
 
   /forusbot/status:
     get:
       summary: Global status snapshot
       description: |
-        Si `flags.statusPublic=false`, requiere header `x-auth-token`.
+        Si flags.statusPublic = false, requiere header x-auth-token.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: false
       responses:
         '200': { description: OK }
         '401': { description: Unauthorized }
 
   /forusbot/jobs:
     get:
-      summary: List jobs
+      summary: List jobs (queued/running/finished)
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
+          required: true
         - in: query
           name: state
           schema: { type: string, enum: [queued, running, succeeded, failed, canceled] }
@@ -35,12 +41,13 @@ paths:
           schema: { type: string }
         - in: query
           name: limit
-          schema: { type: integer, default: 50 }
+          schema: { type: integer, minimum: 1, maximum: 500 }
         - in: query
           name: offset
-          schema: { type: integer, default: 0 }
+          schema: { type: integer, minimum: 0 }
       responses:
         '200': { description: OK }
+        '401': { description: Unauthorized }
 
   /forusbot/jobs/{id}:
     get:
@@ -48,59 +55,63 @@ paths:
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
+          required: true
         - in: path
           name: id
           required: true
           schema: { type: string, format: uuid }
       responses:
         '200': { description: OK }
-        '404': { description: Not found }
-
+        '401': { description: Unauthorized }
+        '404': { description: Not Found }
     delete:
       summary: Cancel queued job
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
+          required: true
         - in: path
           name: id
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200': { description: OK }
-        '404': { description: Not found }
-        '409': { description: Running (cannot cancel) }
+        '200': { description: Cancelled / Not Cancelled }
+        '401': { description: Unauthorized }
+        '404': { description: Not Found }
+        '409': { description: Conflict (running) }
 
   /forusbot/locks:
     get:
-      summary: Get TOTP/login locks
+      summary: View login/TOTP locks
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
-      responses: { '200': { description: OK } }
+          required: true
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
 
   /forusbot/settings:
     get:
-      summary: Get settings
+      summary: Get runtime settings
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
-      responses: { '200': { description: OK } }
-
+          required: true
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
     patch:
-      summary: Patch settings
+      summary: Patch runtime settings
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
+          required: true
       requestBody:
         required: true
         content:
@@ -116,36 +127,46 @@ paths:
       responses:
         '200': { description: OK }
         '400': { description: Bad Request }
+        '401': { description: Unauthorized }
 
   /forusbot/metrics:
     get:
-      summary: Metrics (by bot and totals)
+      summary: Runtime metrics
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
-      responses: { '200': { description: OK } }
+          required: true
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
 
   /forusbot/version:
     get:
-      summary: Package name and version
+      summary: Package version
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
-      responses: { '200': { description: OK } }
+          required: true
+      responses:
+        '200': { description: OK }
+        '401': { description: Unauthorized }
 
   /forusbot/openapi:
     get:
-      summary: Serve this OpenAPI YAML
+      summary: Serve this OpenAPI (YAML)
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
-      responses: { '200': { description: OK } }
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            text/yaml: {}
+        '401': { description: Unauthorized }
 
   /forusbot/vault-file-upload:
     post:
@@ -153,23 +174,25 @@ paths:
       parameters:
         - in: header
           name: x-auth-token
-          required: true
           schema: { type: string }
+          required: true
         - in: header
           name: x-filename
-          required: true
           schema: { type: string }
+          required: true
         - in: header
           name: x-meta
-          required: true
           schema: { type: string }
+          required: true
       requestBody:
         required: true
         content:
-          application/octet-stream: { schema: { type: string, format: binary } }
-          application/pdf: { schema: { type: string, format: binary } }
+          application/octet-stream:
+            schema: { type: string, format: binary }
+          application/pdf:
+            schema: { type: string, format: binary }
       responses:
-        '202': { description: Accepted }
+        '202': { description: Accepted (returns jobId and estimate) }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
         '422': { description: Unprocessable Entity }

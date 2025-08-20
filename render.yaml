@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: forusbots
+    env: docker
+    plan: starter   # o 'free' / 'standard' según necesidad
+    autoDeploy: true
+    # Render detecta Dockerfile en el raíz por defecto:
+    dockerfilePath: ./Dockerfile
+
+    # Health check externo de Render (además del HEALTHCHECK de Docker)
+    healthCheckPath: /health
+    healthCheckTimeout: 100
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SHARED_TOKEN
+        sync: false   # crea un Secret en Render con este nombre
+      - key: SITE_USER
+        sync: false
+      - key: SITE_PASS
+        sync: false
+      - key: TOTP_SECRET
+        sync: false
+      - key: TOTP_STEP_SECONDS
+        value: 30
+      - key: MAX_CONCURRENCY
+        value: 3
+      - key: ESTIMATE_AVG_SECONDS
+        value: 120
+      - key: ESTIMATE_AVG_WINDOW
+        value: 10
+      - key: EVIDENCE_DIR
+        value: /tmp/evidence
