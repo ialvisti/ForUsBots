@@ -2,12 +2,10 @@ services:
   - type: web
     name: forusbots
     env: docker
-    plan: starter   # o 'free' / 'standard' según necesidad
+    plan: starter   # o 'free' / 'standard'
     autoDeploy: true
-    # Render detecta Dockerfile en el raíz por defecto:
     dockerfilePath: ./Dockerfile
 
-    # Health check externo de Render (además del HEALTHCHECK de Docker)
     healthCheckPath: /health
     healthCheckTimeout: 100
 
@@ -17,7 +15,7 @@ services:
       - key: PORT
         value: 10000
       - key: SHARED_TOKEN
-        sync: false   # crea un Secret en Render con este nombre
+        sync: false
       - key: SITE_USER
         sync: false
       - key: SITE_PASS
@@ -34,3 +32,6 @@ services:
         value: 10
       - key: EVIDENCE_DIR
         value: /tmp/evidence
+      # Fuerza headless en Render (tiene prioridad sobre HEADFUL)
+      - key: HEADLESS
+        value: 1

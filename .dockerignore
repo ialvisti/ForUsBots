@@ -1,10 +1,18 @@
+# Node
 node_modules
-npm-debug.log
-.git
-.gitignore
-.tmp
-tmp
-**/.DS_Store
-evidence
-/playwright-report
-/test-results
+npm-debug.log*
+yarn*.log
+pnpm-lock.yaml
+
+# Sistemas
+.DS_Store
+
+# Artefactos / evidencias locales
+evidence/
+tmp/
+**/*.log
+
+# Env locales: NO copiar al contenedor (Render usa env propios)
+.env
+.env.*
+!.env.example
