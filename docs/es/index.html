@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>ForUsBots — API Docs (Dev)</title>
+  <title>ForUsBots — API Docs</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="/docs/styles.css">
   <link rel="icon" type="image/png" href="/docs/images/icon.png">
@@ -10,7 +10,7 @@
 <body>
   <header>
     <div class="wrap header-row">
-      <h1>ForUsBots — API Docs (Dev)</h1>
+      <h1>ForUsBots — API Docs</h1>
       <nav class="topnav">
         <a href="#overview">Overview</a>
         <a href="#base">Base URLs</a>
@@ -39,65 +39,117 @@
   <main class="wrap">
     <section id="overview">
       <h2>Descripción general</h2>
-      <p>Este servicio automatiza la carga de documentos en el portal de empleadores de ForUsAll usando Playwright. Inicia sesión con credenciales del servidor, completa TOTP (6 dígitos/30s), llena el formulario de carga, envía el archivo y opcionalmente guarda capturas como evidencia. Una API HTTP recibe el archivo binario y metadatos mínimos.</p>
-      <p class="small">Versión: 1.0 • Actualizado: 2025-08-15</p>
+      <p>Este servicio automatiza acciones en portales (actualmente: carga de documentos en el portal de empleadores de ForUsAll) usando Playwright. El servidor inicia sesión (TOTP cuando aplique), completa el formulario, envía el archivo y puede guardar capturas como evidencia. La API recibe el binario y metadatos mínimos (<code>x-meta</code>) y responde <em>202 Accepted</em> con un <code>jobId</code>.</p>
+      <p class="small">Docs actualizadas: 2025-08-20</p>
     </section>
 
     <section id="base">
       <h2>URLs base</h2>
       <ul class="list">
         <li><span class="chip">DEV</span> <code>http://localhost:10000</code></li>
-        <li><span class="chip">Render</span> Tu URL desplegada (p.ej. <code>https://file-upload-bot.onrender.com</code>)</li>
+        <li><span class="chip">Render</span> <code>https://forusbots.onrender.com</code></li>
       </ul>
+      <p>Todas las rutas de la API están bajo el namespace <code>/forusbot</code>.</p>
     </section>
 
     <section id="auth">
       <h2>Autenticación</h2>
-      <p>Todas las operaciones requieren el header <code>x-auth-token</code> igual a la variable de entorno del servidor <code>SHARED_TOKEN</code>. Token inválido/ausente → <code>401</code>.</p>
+      <p>Las rutas protegidas requieren el header <code>x-auth-token</code> igual a la variable <code>SHARED_TOKEN</code> del servidor. Si falta o no coincide → <code>401</code>.</p>
       <pre><code>x-auth-token: dev-secret</code></pre>
+      <p class="small muted">Por defecto <code>/forusbot/status</code> es público; puedes exigir token cambiando <code>flags.statusPublic</code> con <code>PATCH /forusbot/settings</code>.</p>
     </section>
 
     <section id="endpoints">
       <h2>Endpoints</h2>
       <div class="grid grid-2">
         <div class="card">
-          <div class="small"><strong>GET /health</strong></div>
+          <div class="small"><strong>GET /forusbot/health</strong></div>
           <p class="muted">Sonda de vida.</p>
-<pre><code>GET /health → 200
-{
-  "ok": true
-}</code></pre>
+<pre><code>200 → {"ok":true}</code></pre>
         </div>
-        <div class="card">
-          <div class="small"><strong>POST /run-binary</strong></div>
-          <p class="muted">Sube un archivo (cuerpo binario) e instruye al bot cómo llenar el formulario.</p>
-          <ul class="list">
-            <li><strong>Headers</strong>: <code>x-auth-token</code> (req), <code>x-filename</code> (req), <code>x-meta</code> (JSON, req), <code>Content-Type</code> = <code>application/octet-stream</code> o <code>application/pdf</code></li>
-            <li><strong>Body</strong>: archivo binario crudo (máx. 50MB por defecto)</li>
-          </ul>
-<pre><code>POST /run-binary
-x-auth-token: dev-secret
-x-filename: presentation.pdf
-Content-Type: application/octet-stream
-x-meta: {"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}
 
-(cuerpo binario)</code></pre>
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/status</strong></div>
+          <p class="muted">Snapshot de ejecución: colas, capacidad y candados de login.</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>POST /forusbot/vault-file-upload</strong></div>
+          <p class="muted">Crea un job de carga (cuerpo binario). Devuelve <code>202</code> con <code>jobId</code> y ETA.</p>
+          <ul class="list">
+            <li><strong>Headers</strong>: <code>x-auth-token</code> (req), <code>x-filename</code> (req), <code>x-meta</code> (JSON, req), <code>Content-Type</code>=<code>application/octet-stream</code> o <code>application/pdf</code></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/jobs</strong></div>
+          <p class="muted">Lista de jobs con filtros (auth requerido).</p>
+<pre><code>/forusbot/jobs?state=queued&botId=forusall&limit=50&offset=0</code></pre>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/jobs/:id</strong></div>
+          <p class="muted">Detalle de un job (auth requerido).</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>DELETE /forusbot/jobs/:id</strong></div>
+          <p class="muted">Cancela un job en cola (auth requerido). Si ya está en ejecución → <code>409</code>.</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/locks</strong></div>
+          <p class="muted">Estado de candados de login/TOTP por usuario.</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/settings</strong></div>
+          <p class="muted">Lee settings (concurrencia y flags).</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>PATCH /forusbot/settings</strong></div>
+          <p class="muted">Actualiza settings. Campos útiles: <code>maxConcurrency</code>, <code>flags.statusPublic</code>.</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/metrics</strong></div>
+          <p class="muted">Promedios por bot, totales y muestras.</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/version</strong></div>
+          <p class="muted">Nombre/versión del paquete.</p>
+        </div>
+
+        <div class="card">
+          <div class="small"><strong>GET /forusbot/openapi</strong></div>
+          <p class="muted">YAML OpenAPI.</p>
         </div>
       </div>
     </section>
 
-    <section id="schemas">
-      <h2>Esquemas de Request & Response</h2>
+    <section id="jobs">
+      <h2>Jobs API — estados y campos</h2>
+      <ul class="list">
+        <li><strong>Estados</strong>: <code>queued</code>, <code>running</code>, <code>succeeded</code>, <code>failed</code>, <code>canceled</code>.</li>
+        <li><strong>Campos</strong>: <code>jobId</code>, <code>botId</code>, <code>meta</code>, <code>acceptedAt</code>, <code>startedAt</code>, <code>finishedAt</code>, <code>result</code>, <code>error</code>.</li>
+        <li><strong>Métricas de ejecución</strong>: en cola → <code>waitingSeconds</code> y <code>position</code>; ejecutando → <code>elapsedSeconds</code> y etapa; terminado → <code>totalSeconds</code>.</li>
+      </ul>
+    </section>
 
-      <h3>x-meta (simplificado)</h3>
+    <section id="schemas">
+      <h2>Esquemas</h2>
+
+      <h3>x-meta (compartido)</h3>
 <pre><code>{
-  "planId": number,                 // requerido
-  "formData": {                     // requerido
-    "section": string,              // p.ej. "CONTRACTS & AGREEMENTS"
-    "caption": string,              // p.ej. "Recordkeeper Agreement" u "Other"
-    "captionOtherText"?: string,    // requerido si caption === "Other"
-    "status": string,               // p.ej. "Audit Ready"
-    "effectiveDate": "YYYY-MM-DD"   // p.ej. "2025-05-02"
+  "planId": number,
+  "formData": {
+    "section": string,
+    "caption": string,
+    "captionOtherText"?: string,
+    "status": string,
+    "effectiveDate": "YYYY-MM-DD"
   },
   "options"?: {
     "returnEvidenceBase64"?: boolean,
@@ -111,40 +163,41 @@ x-meta: {"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"
   }
 }</code></pre>
 
-      <h3>Éxito</h3>
-<pre><code>200 OK
-{
+      <h3>202 Accepted (submit)</h3>
+<pre><code>{
   "ok": true,
-  "message": "Archivo cargado",
-  "newUrl": "https://.../manage_fv_document?...",
-  "postSubmitResult": "url-change" | "http-2xx" | "success-selector" | "form-reset" | "same-url",
-  "defaultsVerified": true,
-  "warnings": [],
-  "evidence": {
-    "loginShotPath": "/tmp/evidence/....png",
-    "uploadShotPath": "/tmp/evidence/....png",
-    "loginShotBase64"?: "...",
-    "uploadShotBase64"?: "..."
-  }
+  "jobId": "uuid",
+  "acceptedAt": "....",
+  "queuePosition": 3,
+  "estimate": { "method":"lanes+movingAvg", ... },
+  "capacitySnapshot": { ... }
 }</code></pre>
 
-      <h3>Errores</h3>
-<pre><code>400 Bad Request  -> x-meta inválido, campos faltantes, binario faltante
-401 Unauthorized -> x-auth-token inválido
-422 Unprocessable Entity -> regla de negocio rechazada (p.ej. no se permite 'Document Missing' si adjuntas un archivo)
-500 Internal Server Error -> error inesperado
-</code></pre>
+      <h3>Job (GET /jobs/:id)</h3>
+<pre><code>{
+  "ok": true,
+  "jobId": "...",
+  "state": "running|...|failed",
+  "error": null | "mensaje",
+  "result": null | {...},
+  "waitingSeconds"?: 4,
+  "position"?: 1,
+  "elapsedSeconds"?: 8,
+  "stage"?: "login|otp|...|done",
+  "stageSeconds"?: 2,
+  "totalSeconds"?: 117
+}</code></pre>
     </section>
 
     <section id="examples">
       <h2>Ejemplos cURL</h2>
 
       <div class="card spacey">
-        <h3>Flujo feliz</h3>
+        <h3>Crear job (202)</h3>
 <pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
 
-curl -sS -X POST http://localhost:10000/run-binary \
-  -H 'x-auth-token: dev-secret' \
+curl -sS -X POST https://TU_URL/forusbot/vault-file-upload \
+  -H 'x-auth-token: TU_TOKEN' \
   -H 'x-filename: presentation.pdf' \
   -H 'Content-Type: application/octet-stream' \
   -H "x-meta: $META" \
@@ -152,43 +205,64 @@ curl -sS -X POST http://localhost:10000/run-binary \
       </div>
 
       <div class="card spacey">
-        <h3>Caption = Other</h3>
-<pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Other","captionOtherText":"Título personalizado","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
+        <h3>Consultar un job</h3>
+<pre><code>curl -sS -H 'x-auth-token: TU_TOKEN' \
+  https://TU_URL/forusbot/jobs/JOB_ID</code></pre>
+      </div>
 
-curl -sS -X POST http://localhost:10000/run-binary \
-  -H 'x-auth-token: dev-secret' \
-  -H 'x-filename: presentation.pdf' \
-  -H 'Content-Type: application/octet-stream' \
-  -H "x-meta: $META" \
-  --data-binary @presentation.pdf</code></pre>
+      <div class="card spacey">
+        <h3>Listar jobs</h3>
+<pre><code>curl -sS -H 'x-auth-token: TU_TOKEN' \
+  'https://TU_URL/forusbot/jobs?state=queued&limit=20'</code></pre>
+      </div>
+
+      <div class="card spacey">
+        <h3>Cancelar un job en cola</h3>
+<pre><code>curl -sS -X DELETE -H 'x-auth-token: TU_TOKEN' \
+  https://TU_URL/forusbot/jobs/JOB_ID</code></pre>
       </div>
     </section>
 
     <section id="env">
-      <h2>Variables de entorno & Defaults</h2>
-<pre><code># .env
+      <h2>Variables de entorno</h2>
+<pre><code># Requeridas
 PORT=10000
 SHARED_TOKEN=dev-secret
-SITE_USER=...        # usuario del portal
-SITE_PASS=...        # contraseña del portal
-TOTP_SECRET=...      # base32, sin espacios
-HEADFUL=0            # 1 para ver el navegador
-SLOWMO=0             # ms por acción en headful
-CLOSE_KILL_MS=1500   # tiempo de cierre forzado</code></pre>
-      <p>Los selectores, URLs y opciones por defecto están codificados en el servidor; n8n solo envía <em>planId</em>, <em>formData</em>, el nombre y el cuerpo binario.</p>
+
+# Credenciales del portal
+SITE_USER=...
+SITE_PASS=...
+TOTP_SECRET=...        # Base32, sin espacios
+TOTP_STEP_SECONDS=30
+
+# Concurrencia & ETA
+MAX_CONCURRENCY=3
+ESTIMATE_AVG_SECONDS=120
+ESTIMATE_AVG_WINDOW=10
+
+# Evidencias
+EVIDENCE_DIR=/tmp/evidence
+
+# Playwright
+HEADFUL=0             # 0=headless (recomendado en la nube), 1=mostrar navegador
+SLOWMO=0              # ms por acción cuando HEADFUL=1
+CLOSE_KILL_MS=1500</code></pre>
+      <p class="small muted">El código usa <code>HEADFUL</code> (no <code>HEADLESS</code>). En producción usa <code>HEADFUL=0</code>.</p>
     </section>
 
     <section id="evidence">
       <h2>Evidencias</h2>
-      <p>Por defecto, las capturas se guardan en <code>/tmp/evidence</code>. En dev, también se sirven vía <code>GET /evidence/*</code>. En producción, considera deshabilitar acceso público.</p>
+      <p>Las capturas se guardan en <code>/tmp/evidence</code>. En dev se exponen vía <code>GET /evidence/*</code>. En producción puedes deshabilitar el acceso público.</p>
     </section>
 
     <section id="errors">
       <h2>Errores & Warnings</h2>
       <ul class="list">
-        <li><strong>422 validación</strong>: p. ej., estado <em>Document Missing</em> es rechazado si adjuntas un archivo.</li>
-        <li><strong>Warnings</strong> no son fatales: p. ej., <em>captionOtherText ignorado porque caption != "Other"</em>, o <em>No hubo navegación tras el submit</em> cuando el portal reutiliza la misma URL.</li>
-        <li>Alertas efímeras (JS <code>alert()</code>, toasts) se capturan vía diálogo y observadores del DOM.</li>
+        <li><strong>400 Bad Request</strong> — <code>x-meta</code> inválido o falta el archivo.</li>
+        <li><strong>401 Unauthorized</strong> — token inválido/ausente.</li>
+        <li><strong>409 Conflict</strong> — intento de cancelar un job que ya está corriendo.</li>
+        <li><strong>422 Unprocessable Entity</strong> — regla de negocio rechazada.</li>
+        <li><strong>500</strong> — error inesperado.</li>
       </ul>
     </section>
 
@@ -198,9 +272,9 @@ CLOSE_KILL_MS=1500   # tiempo de cierre forzado</code></pre>
     </section>
 
     <section id="changelog">
-      <h2>Historial de cambios</h2>
+      <h2>Historial</h2>
       <ul class="list">
-        <li><strong>2025-08-15</strong> — Agregado 422 de prevalidación; captura de alertas efímeras/diálogo; reorganización del código; docs estáticas.</li>
+        <li><strong>2025-08-20</strong> — Namespace <code>/forusbot</code>, nuevos endpoints: <code>/jobs</code> (listar/cancelar), <code>/settings</code> (GET/PATCH), <code>/locks</code>, <code>/metrics</code>, <code>/version</code>, <code>/openapi</code>; docs ajustadas para <code>HEADFUL</code>.</li>
       </ul>
     </section>
   </main>

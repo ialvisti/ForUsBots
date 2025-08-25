@@ -161,7 +161,23 @@ module.exports = async function controller(req, res) {
       return res.status(500).json({ ok: false, error: `No se pudo preparar el archivo: ${e.message}`, warnings });
     }
 
-    // 7) Construir META final con config fija del proveedor
+    // === NUEVO: resolver createdBy de forma robusta ===
+    //  - Preferimos lo que metió el middleware en metaIn.createdBy (server-trusted).
+    //  - Fallback a req.auth por si viniera vacío (defensivo).
+    const a = req.auth || {};
+    const u = (a && a.user) || {};
+    const createdBy =
+      (metaIn && typeof metaIn === 'object' && metaIn.createdBy && typeof metaIn.createdBy === 'object')
+        ? metaIn.createdBy
+        : {
+            name: u.name || null,
+            email: u.email || null,
+            id: u.id || null,
+            role: a.role || (a.isAdmin ? 'admin' : 'user'),
+            at: new Date().toISOString()
+          };
+
+    // 7) Construir META final con config fija del proveedor (incluyendo createdBy)
     const meta = {
       loginUrl: FIXED.loginUrl,
       uploadUrlTemplate: FIXED.uploadUrlTemplate,
@@ -169,6 +185,7 @@ module.exports = async function controller(req, res) {
       planId: metaIn.planId,
       formData: metaIn.formData,
       options: { ...FIXED.options, ...(metaIn.options || {}) },
+      createdBy, // ⬅️ importante para trazabilidad en flow/evidence si se usa
     };
 
     // 8) Submit (no esperamos el resultado) + cleanup /tmp al terminar
@@ -180,6 +197,7 @@ module.exports = async function controller(req, res) {
       caption: minimalForm.caption,
       status: minimalForm.status,
       effectiveDate: minimalForm.effectiveDate,
+      createdBy, // ⬅️ clave: queue.submit lo usa para persistir en jobsById
     };
 
     const accepted = queue.submit({
@@ -210,6 +228,7 @@ module.exports = async function controller(req, res) {
       queuePosition: accepted.queuePosition,
       estimate: accepted.estimate,                // { method, avgDurationSeconds, startSeconds, finishSeconds, startAt, finishAt }
       capacitySnapshot: accepted.capacitySnapshot // { maxConcurrency, running, queued, slotsAvailable }
+      // Nota: no incluimos createdBy aquí para no romper clientes; se ve en /jobs y /jobs/:id
     });
 
   } catch (err) {

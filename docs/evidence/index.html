@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Evidence Login — ForUsBots</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <link rel="icon" type="image/png" href="/docs/images/icon.png" />
+    <!-- Base docs styles (variables, header, nav) -->
+    <link rel="stylesheet" href="../styles.css" />
+    <!-- Page-specific styles -->
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="evidence-login">
+    <!-- Top menu only -->
+    <header>
+      <div class="wrap header-bar">
+        <div class="brand">
+          <img src="../images/icon.png" alt="icon" />
+          <h1>ForUsBots — Evidence</h1>
+        </div>
+
+        <div class="header-right">
+          <span class="spacer"></span>
+
+          <span class="spacer"></span>
+          <span class="spacer"></span>
+          <a id="back-link" class="toplink" href="/docs/api">API Docs</a>
+          <span class="spacer"></span>
+          <a id="back-link" class="toplink" href="/docs/">Docs</a>
+          <span class="spacer"></span>
+          <a id="back-link" class="toplink" href="/docs/sandbox">Sandbox</a>
+          <span class="spacer"></span>
+          <span class="spacer"></span>
+          <span class="spacer"></span>
+          <span class="spacer"></span>
+
+
+          <span class="spacer"></span>
+        </div>
+      </div>
+
+    </header>
+
+    <!-- Full-screen dark hero with centered form -->
+    <main class="full-hero" role="main">
+      <form id="loginForm" class="login-panel" autocomplete="off" novalidate>
+        <div class="field">
+          <label for="token" class="lbl">Token</label>
+          <div class="input-wrap" id="inputWrap">
+            <input
+              id="token"
+              name="token"
+              type="password"
+              inputmode="text"
+              autocomplete="off"
+              aria-describedby="err"
+              aria-invalid="false"
+            />
+          </div>
+        </div>
+
+        <button id="loginBtn" class="btn primary" type="submit">Sign in</button>
+
+        <p id="err" class="err hide" role="alert" aria-live="assertive">
+          Incorrect token. Try again.
+        </p>
+      </form>
+    </main>
+
+    <script>
+      (function () {
+        const $ = (s) => document.querySelector(s);
+        const form = $("#loginForm");
+        const input = $("#token");
+        const wrap = $("#inputWrap");
+        const btn = $("#loginBtn");
+        const errEl = $("#err");
+
+        // Avoid bfcache showing stale state when navigating back
+        window.addEventListener("pageshow", function (e) {
+          if (e.persisted) location.reload();
+        });
+        // Also force refresh on browser back/forward
+        try {
+          history.replaceState({ t: Date.now() }, "");
+          window.addEventListener("popstate", () => location.reload());
+        } catch (_) {}
+
+        function showError(msg) {
+          errEl.textContent = msg || "Incorrect token. Try again.";
+          errEl.classList.remove("hide");
+          input.setAttribute("aria-invalid", "true");
+          wrap.classList.remove("shake"); // restart animation
+          // Trigger reflow to restart keyframes
+          void wrap.offsetWidth;
+          wrap.classList.add("shake");
+        }
+
+        function clearError() {
+          errEl.classList.add("hide");
+          input.setAttribute("aria-invalid", "false");
+          wrap.classList.remove("shake");
+        }
+
+        async function submitToken(token) {
+          btn.disabled = true;
+          btn.setAttribute("aria-busy", "true");
+          clearError();
+          try {
+            const res = await fetch("/forusbot/evidence/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ token }),
+            });
+            // Success: redirect straight to /evidence
+            if (res.ok) {
+              location.href = "/evidence";
+              return;
+            }
+            // Failure: show error + shake
+            showError(
+              res.status === 401
+                ? "Incorrect token. Try again."
+                : "Login failed. Please retry."
+            );
+            input.value = "";
+            input.focus();
+          } catch (e) {
+            showError("Network error. Please retry.");
+            input.focus();
+          } finally {
+            btn.disabled = false;
+            btn.removeAttribute("aria-busy");
+          }
+        }
+
+        form.addEventListener("submit", function (e) {
+          e.preventDefault();
+          const token = (input.value || "").trim();
+          if (!token) {
+            showError("Please enter a token.");
+            input.focus();
+            return;
+          }
+          submitToken(token);
+        });
+
+        input.addEventListener("input", () => clearError());
+        // Enter to submit even if focus not on button (handled by form submit)
+
+        // Autofocus the field on load
+        setTimeout(() => input.focus({ preventScroll: true }), 0);
+      })();
+    </script>
+  </body>
+</html>

@@ -15,7 +15,7 @@ const queue   = []; // [{ jobId, botId, meta, enqueuedAt, run, _resolve, _reject
 const stageByJob = new Map(); // jobId -> { name, meta, sinceISO }
 
 // Registro de jobs (para GET /jobs/:id y listados)
-const jobsById = new Map();   // jobId -> { jobId, botId, meta, state, acceptedAt, startedAt, finishedAt, result, error }
+const jobsById = new Map();   // jobId -> { jobId, botId, meta, state, acceptedAt, startedAt, finishedAt, result, error, createdBy }
 
 // Promedios móviles por bot
 const durationsByBot = new Map(); // botId -> number[] (segundos)
@@ -40,6 +40,20 @@ function currentMaxConcurrency() {
   const s = getSettings && typeof getSettings === 'function' ? getSettings() : null;
   const n = s && Number.isFinite(s.maxConcurrency) ? s.maxConcurrency : CFG_MAX;
   return Math.max(1, Number.isFinite(n) ? n : 3);
+}
+
+// ===== Helpers de createdBy/meta =====
+function sanitizeCreatedBy(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const name = raw.name ?? null;
+  const role = raw.role ? String(raw.role) : null;
+  const at   = raw.at ? String(raw.at) : nowISO();
+  return { name, role, at };
+}
+function splitMeta(meta) {
+  if (!meta || typeof meta !== 'object') return { metaSansCreator: {}, createdBySan: null };
+  const { createdBy, ...rest } = meta;
+  return { metaSansCreator: rest, createdBySan: sanitizeCreatedBy(createdBy) };
 }
 
 // ===== Stages =====
@@ -188,10 +202,14 @@ function finalize(job, err, val) {
 // ===== API Legacy (por compat interna) =====
 function enqueue({ botId, meta = {}, run }) {
   if (typeof run !== 'function') throw new Error('enqueue requiere un run() function');
+
+  // Separar createdBy y limpiar meta para persistencia
+  const { metaSansCreator, createdBySan } = splitMeta(meta);
+
   const job = {
     jobId: randomUUID(),
     botId: String(botId || 'unknown'),
-    meta,
+    meta: metaSansCreator, // <- ya sin createdBy
     enqueuedAt: nowISO(),
     run,
     _resolve: null,
@@ -201,13 +219,14 @@ function enqueue({ botId, meta = {}, run }) {
   jobsById.set(job.jobId, {
     jobId: job.jobId,
     botId: job.botId,
-    meta: job.meta,
+    meta: job.meta, // persistimos meta sin createdBy
     state: 'queued',
     acceptedAt: job.enqueuedAt,
     startedAt: null,
     finishedAt: null,
     result: null,
     error: null,
+    createdBy: createdBySan || null, // top-level, solo {name, role, at}
   });
 
   const p = new Promise((resolve, reject) => {
@@ -226,12 +245,15 @@ function enqueue({ botId, meta = {}, run }) {
 function submit({ botId, meta = {}, run }) {
   if (typeof run !== 'function') throw new Error('submit requiere un run() function');
 
+  // Separar createdBy y limpiar meta para persistencia
+  const { metaSansCreator, createdBySan } = splitMeta(meta);
+
   const jobId = randomUUID();
   const acceptedAt = nowISO();
   const job = {
     jobId,
     botId: String(botId || 'unknown'),
-    meta,
+    meta: metaSansCreator, // <- ya sin createdBy
     enqueuedAt: acceptedAt,
     run,
     _resolve: () => {},
@@ -241,13 +263,14 @@ function submit({ botId, meta = {}, run }) {
   jobsById.set(jobId, {
     jobId,
     botId: job.botId,
-    meta: job.meta,
+    meta: job.meta, // persistimos meta sin createdBy
     state: 'queued',
     acceptedAt,
     startedAt: null,
     finishedAt: null,
     result: null,
     error: null,
+    createdBy: createdBySan || null, // top-level, solo {name, role, at}
   });
 
   // Snapshot/posición antes de encolar (nuestra posición será el último de la cola actual + 1)
@@ -420,7 +443,7 @@ function getStatus() {
     return {
       jobId: j.jobId,
       botId: j.botId,
-      meta: j.meta,
+      meta: j.meta, // ya sin createdBy
       startedAt: j.startedAt,
       elapsedSeconds: secondsSince(j.startedAt),
       stage: st ? st.name : null,
@@ -433,7 +456,7 @@ function getStatus() {
     position: idx + 1,
     jobId: j.jobId,
     botId: j.botId,
-    meta: j.meta,
+    meta: j.meta, // ya sin createdBy
     enqueuedAt: j.enqueuedAt,
     waitingSeconds: secondsSince(j.enqueuedAt),
   }));

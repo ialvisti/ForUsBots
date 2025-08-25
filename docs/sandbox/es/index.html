@@ -1,0 +1,328 @@
+<!-- docs/sandbox/index.html (ES, traducido de EN) -->
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ForUsBots — Sandbox</title>
+    <link rel="stylesheet" href="../sandbox.css" />
+    <link rel="icon" type="image/png" href="../../images/icon.png" />
+    <script src="sandbox.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <div class="wrap header-bar">
+        <div class="brand">
+          <img src="../../images/icon.png" alt="icon" />
+          <h1>ForUsBots — Sandbox</h1>
+        </div>
+
+        <div class="header-right">
+
+          <span class="spacer"></span>
+
+          <div id="endpointBadges" class="badges"></div>
+
+          <span class="spacer"></span>
+          <span class="spacer"></span>
+          <a id="back-link" class="toplink" href="/docs/api">API Docs</a>
+          <span class="spacer"></span>
+
+          <!-- Toggle light/dark -->
+          <label class="theme-toggle" title="Alternar tema claro/oscuro">
+            <input id="themeSwitch" type="checkbox" aria-label="Alternar tema" />
+            <span class="track"><span class="thumb"></span></span>
+            <span class="toggle-label" id="themeLabel">Oscuro</span>
+          </label>
+
+          <span class="spacer"></span>
+
+          <div class="lang-switch">
+            <label for="lang-select" class="sr-only">Idioma</label>
+            <select id="lang-select" aria-label="Idioma">
+              <option value="en" selected>EN</option>
+              <option value="es">ES</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="wrap grid cols-2">
+      <!-- Generator -->
+      <section class="card" id="generator">
+        <h2>1) Genera tu request</h2>
+        <p class="muted">
+          Selecciona el endpoint y completa los campos. Te generamos headers,
+          x-meta (si aplica) y snippets listos.
+        </p>
+
+        <div class="field-row">
+          <div class="field field-inline">
+            <label class="small">Endpoint</label>
+            <select id="endpoint" class="endpoint-select">
+              <option value="vault-upload">
+                POST /forusbot/vault-file-upload ⚠️ PRECAUCIÓN: Petición Real ⚠️
+              </option>
+              <option value="sandbox-upload">
+                POST /forusbot/sandbox/vault-file-upload (dry-run)
+              </option>
+              <option value="jobs-get">GET /forusbot/jobs/:id</option>
+              <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
+              <option value="status-get">GET /forusbot/status</option>
+            </select>
+          </div>
+        </div>
+
+        <br />
+
+        <div class="grid inner">
+          <div class="two">
+            <div class="field">
+              <label>Base URL</label>
+              <input
+                id="baseUrl"
+                type="text"
+                placeholder="https://tu-deploy/render.app"
+                readonly
+                aria-readonly="true"
+                title="Bloqueado al origen de esta página"
+              />
+              <div class="help">Por defecto usamos el mismo origen de esta página.</div>
+            </div>
+            <div class="field">
+              <label>x-auth-token</label>
+              <input
+                id="token"
+                type="password"
+                placeholder="(opcional, según endpoint)"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <!-- Upload: file + x-filename -->
+          <div class="two ep ep-upload">
+            <div class="field">
+              <label>PDF a enviar</label>
+
+              <!-- native input (accessible) -->
+              <input
+                id="pdfFile"
+                type="file"
+                accept="application/pdf"
+                class="file-input-hidden"
+              />
+
+              <!-- dropzone / full-width button -->
+              <div
+                id="dropzone"
+                class="dropzone"
+                tabindex="0"
+                role="button"
+                aria-label="Subir PDF"
+              >
+                Haz clic o arrastra un <b>PDF</b> aquí
+              </div>
+              <div id="fileName" class="file-name muted">Ningún archivo seleccionado.</div>
+
+              <div class="help">
+                Para una <b>ejecución real</b> en upload el archivo es obligatorio. En Dry-Run
+                es opcional.
+              </div>
+            </div>
+            <div class="field">
+              <label>x-filename (nombre que enviaremos)</label>
+              <input id="xFilename" type="text" placeholder="documento.pdf" />
+            </div>
+          </div>
+
+          <!-- Upload: x-meta builder -->
+          <div class="ep ep-upload">
+            <div class="two">
+              <div class="field">
+                <label>planId</label>
+                <input id="planId" type="number" placeholder="580" />
+              </div>
+              <div class="field">
+                <label>effectiveDate</label>
+                <input id="effectiveDate" type="date" />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="field">
+              <label>section</label>
+              <!-- changed to SELECT -->
+              <select id="section">
+                <option>COVER LETTERS</option>
+                <option>PLAN DOCUMENTS</option>
+                <option selected>CONTRACTS &amp; AGREEMENTS</option>
+                <option>PARTICIPANT NOTICES</option>
+                <option>COMPLIANCE</option>
+                <option>OTHER DOCUMENTS</option>
+                <option>AUDIT DOCUMENTS</option>
+              </select>
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>caption</label>
+                <!-- changed to SELECT (options populated dynamically) -->
+                <select id="caption"></select>
+              </div>
+
+              <div class="field">
+                <label>status</label>
+                <select id="status">
+                  <option>Document Unsigned</option>
+                  <option>Document Missing</option>
+                  <option>Out-of-date</option>
+                  <option>Audit Ready</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="otherWrap" class="field hidden">
+              <label>captionOtherText (requerido si caption = Other)</label>
+              <input
+                id="captionOtherText"
+                type="text"
+                placeholder="Describe el documento"
+              />
+            </div>
+          </div>
+
+          <!-- Jobs: jobId -->
+          <div class="ep ep-jobs hidden">
+            <div class="field">
+              <label>jobId</label>
+              <input id="jobId" type="text" placeholder="<uuid>" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn" id="genBtn">
+              Generar (headers, x-meta, snippets)
+            </button>
+            <button
+              class="btn secondary"
+              id="dryBtn"
+              title="Validar sin lanzar un job"
+            >
+              Dry-Run
+            </button>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="field">
+            <h3>Headers generados</h3>
+            <div class="kvs" id="headersKV"></div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div id="metaBlock" class="field hidden">
+            <h3>x-meta (JSON en una línea)</h3>
+            <textarea id="metaOut" readonly></textarea>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="field">
+            <h3>Snippets</h3>
+            <div class="grid code-grid">
+              <div class="code">
+                <div class="actions">
+                  <button class="btn ghost small" data-copy="#curlCode">
+                    Copiar
+                  </button>
+                </div>
+                <br />
+                <pre id="curlCode"></pre>
+              </div>
+              <div class="code">
+                <div class="actions">
+                  <button class="btn ghost small" data-copy="#httpieCode">
+                    Copiar
+                  </button>
+                </div>
+                <br />
+                <pre id="httpieCode"></pre>
+              </div>
+              <div class="code">
+                <div class="actions">
+                  <button class="btn ghost small" data-copy="#nodeCode">
+                    Copiar
+                  </button>
+                </div>
+                <br />
+                <pre id="nodeCode"></pre>
+              </div>
+              <div class="code">
+                <div class="actions">
+                  <button class="btn ghost small" data-copy="#pyCode">
+                    Copiar
+                  </button>
+                </div>
+                <br />
+                <pre id="pyCode"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Runner -->
+      <section class="card" id="runner">
+        <h2>2) Prueba contra el servidor</h2>
+        <p class="muted">
+          Ejecuta la petición real contra el endpoint seleccionado y revisa la
+          respuesta.
+        </p>
+
+        <div class="actions top-actions">
+          <button class="btn success" id="runBtn">Probar petición</button>
+          <button class="btn ghost" id="cancelBtn" disabled>
+            Cancelar polling
+          </button>
+        </div>
+
+        <div id="runResult" class="code"><pre>(sin ejecutar)</pre></div>
+
+        <div class="sep"></div>
+
+        <!-- Job status area (hidden if endpoint is not upload) -->
+        <div id="jobArea">
+          <h3>Estado del Job</h3>
+          <div id="jobState" class="status">
+            <span class="dot"></span><span class="txt">—</span>
+          </div>
+          <div id="jobJson" class="code"><pre>(esperando job)</pre></div>
+        </div>
+      </section>
+    </div>
+
+    <div id="toast" class="toast">Copiado ✅</div>
+
+    <script>
+      (function () {
+        const sel = document.getElementById("lang-select");
+        if (!sel) return;
+        const isES = location.pathname
+          .replace(/\/+$/, "")
+          .endsWith("/docs/sandbox/es");
+        sel.value = isES ? "es" : "en";
+        sel.addEventListener("change", (e) => {
+          const v = e.target.value;
+          location.href = v === "es" ? "/docs/sandbox/es" : "/docs/sandbox";
+        });
+      })();
+    </script>
+  </body>
+</html>

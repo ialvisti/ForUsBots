@@ -4,9 +4,10 @@
   --line: #e7e7ea;
   --bg: #fff;
   --chip: #f6f7f9;
-  --get: #0ea5e9;
-  --post: #10b981;
+  --get: #10b981;
+  --post: #0ea5e9;
   --del: #ef4444;
+  --patch: #ffc750;
 }
 
 * { box-sizing: border-box; }
@@ -129,7 +130,8 @@ nav a:hover {
 }
 .op.get .method { background: var(--get); }
 .op.post .method { background: var(--post); }
-.op.delete .method { background: var(--del); }
+.op.del .method { background: var(--del); }
+.op.patch .method { background: var(--patch); }
 
 .op .path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .op .sum  { color: var(--muted); font-size: 14px; }

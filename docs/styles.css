@@ -184,17 +184,21 @@ code {
   flex: 1 1 auto;
 }
 
+/* Lang switch */
 .lang-switch select {
   padding: 6px 10px;
-  border: 1px solid var(--border, #e3e5e8);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   font: inherit;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--text);
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease, filter .15s ease;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.lang-switch select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(32, 99, 224, 0.15);
+.lang-switch select:hover {
+  filter: brightness(1.03);
 }
 
 /* Accesibilidad: esconder solo visualmente */

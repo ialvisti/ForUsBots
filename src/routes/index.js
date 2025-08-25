@@ -2,16 +2,23 @@
 const router = require('express').Router();
 const path = require('path');
 const fs = require('fs');
+const express = require('express');
+
 const forusUploadRoutes = require('../bots/forusall-upload/routes');
+const scrapeParticipantRoutes = require('../bots/forusall-scrape-participant/routes');
 const queue = require('../engine/queue');
 const { getLoginLocksStatus } = require('../engine/loginLock');
-const auth = require('../middleware/auth');
+const auth = require('../middleware/auth'); // default = requireUser (compat)
+const { requireAdmin, requireUser } = require('../middleware/auth');
 const { getSettings, patchSettings } = require('../engine/settings');
 
-// Decide si /status es público según flag
+// Decide si /status es público o requiere rol según flags
 function maybeProtectStatus() {
   const s = getSettings();
-  return s.flags && s.flags.statusPublic ? [] : [auth];
+  const flags = (s && s.flags) || {};
+  if (flags.statusPublic) return [];              // público
+  if (flags.statusAdminOnly) return [requireAdmin]; // solo admin
+  return [requireUser];                           // requiere usuario (o admin)
 }
 
 // Health “global” del namespace /forusbot
@@ -22,6 +29,9 @@ router.get('/status', ...maybeProtectStatus(), (_req, res) => {
   try {
     const status = queue.getStatus();
     const locks = getLoginLocksStatus();
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     return res.json({
       ...status,
       loginLocks: locks.locks,
@@ -71,8 +81,8 @@ router.delete('/jobs/:id', auth, (req, res) => {
   }
 });
 
-// ===== Locks =====
-router.get('/locks', auth, (_req, res) => {
+// ===== Locks (ADMIN) =====
+router.get('/locks', requireAdmin, (_req, res) => {
   try {
     const locks = getLoginLocksStatus();
     return res.json(locks);
@@ -82,8 +92,8 @@ router.get('/locks', auth, (_req, res) => {
   }
 });
 
-// ===== Settings =====
-router.get('/settings', auth, (_req, res) => {
+// ===== Settings (ADMIN) =====
+router.get('/settings', requireAdmin, (_req, res) => {
   try {
     const s = getSettings();
     return res.json({ ok: true, settings: s, capacity: queue.getStatus().capacity });
@@ -93,11 +103,10 @@ router.get('/settings', auth, (_req, res) => {
   }
 });
 
-router.patch('/settings', auth, (req, res) => {
+router.patch('/settings', requireAdmin, (req, res) => {
   try {
     const partial = req.body && typeof req.body === 'object' ? req.body : {};
     const result = patchSettings(partial);
-    // Si cambió concurrencia, intentamos arrancar más jobs
     if (result.changed.includes('maxConcurrency')) {
       queue.kick();
     }
@@ -108,8 +117,24 @@ router.patch('/settings', auth, (req, res) => {
   }
 });
 
-// ===== Métricas =====
-router.get('/metrics', auth, (_req, res) => {
+// ===== WhoAmI (auth) =====
+router.get('/whoami', auth, (req, res) => {
+  try {
+    const a = req.auth || {};
+    return res.json({
+      ok: true,
+      role: a.role || null,
+      isAdmin: !!a.isAdmin,
+      user: a.user || null
+    });
+  } catch (e) {
+    console.error('[whoami] error', e);
+    return res.status(500).json({ ok: false, error: 'whoami error' });
+  }
+});
+
+// ===== Métricas (ADMIN) =====
+router.get('/metrics', requireAdmin, (_req, res) => {
   try {
     const m = queue.getMetrics();
     return res.json(m);
@@ -119,8 +144,8 @@ router.get('/metrics', auth, (_req, res) => {
   }
 });
 
-// ===== Versión =====
-router.get('/version', auth, (_req, res) => {
+// ===== Versión (ADMIN) =====
+router.get('/version', requireAdmin, (_req, res) => {
   try {
     const pkg = require('../../package.json');
     return res.json({ ok: true, name: pkg.name, version: pkg.version });
@@ -130,8 +155,8 @@ router.get('/version', auth, (_req, res) => {
   }
 });
 
-// ===== OpenAPI (YAML) =====
-router.get('/openapi', auth, (_req, res) => {
+// ===== OpenAPI (YAML) (ADMIN) =====
+router.get('/openapi', requireAdmin, (_req, res) => {
   try {
     const openapiPath = path.join(__dirname, '..', '..', 'docs', 'openapi.yaml');
     if (!fs.existsSync(openapiPath)) {
@@ -145,7 +170,101 @@ router.get('/openapi', auth, (_req, res) => {
   }
 });
 
+// ===== Sandbox Dry-Run (opcional, sin auth) =====
+router.post(
+  '/sandbox/vault-file-upload',
+  express.raw({ type: '*/*', limit: '20mb' }),
+  (req, res) => {
+    try {
+      const warnings = [];
+      const filenameHdr = req.header('x-filename');
+      const metaHdr = req.header('x-meta');
+
+      if (!filenameHdr) {
+        return res.status(400).json({ ok: false, error: 'Falta header x-filename', warnings });
+      }
+      const safeBase = require('path').basename(String(filenameHdr).trim());
+      const ext = require('path').extname(safeBase).toLowerCase();
+      if (!ext || ext !== '.pdf') {
+        return res.status(400).json({
+          ok: false,
+          errorType: 'validation',
+          error: "x-filename debe terminar en '.pdf'",
+          warnings
+        });
+      }
+
+      if (!metaHdr) {
+        return res.status(400).json({ ok: false, error: 'Falta header x-meta', warnings });
+      }
+
+      let metaIn;
+      try { metaIn = JSON.parse(metaHdr); }
+      catch (e) {
+        return res.status(400).json({
+          ok: false,
+          errorType: 'parse',
+          error: 'x-meta no es JSON válido',
+          parseMessage: e && e.message ? e.message : String(e),
+          warnings
+        });
+      }
+
+      const missing = [];
+      if (metaIn.planId === undefined || metaIn.planId === null || String(metaIn.planId).trim?.() === '') missing.push('planId');
+      const f = (metaIn.formData && typeof metaIn.formData === 'object') ? metaIn.formData : null;
+      if (!f) missing.push('formData');
+      else {
+        ['section','caption','status','effectiveDate'].forEach(k=>{
+          if (f[k] === undefined || f[k] === null || String(f[k]).trim() === '') missing.push(`formData.${k}`);
+        });
+        const isOther = String(f.caption||'').trim().toLowerCase() === 'other';
+        if (isOther && (!f.captionOtherText || String(f.captionOtherText).trim() === '')) {
+          missing.push('formData.captionOtherText (required when caption=Other)');
+        }
+      }
+      if (missing.length) {
+        return res.status(400).json({
+          ok:false, errorType:'validation', error:'Campos faltantes en x-meta', missing, warnings
+        });
+      }
+
+      const hasBinary = !!(req.body && req.body.length);
+      if (hasBinary && /^document\s+missing$/i.test(String(f.status||''))) {
+        return res.status(422).json({
+          ok:false, errorType:'validation',
+          error: "Status 'Document Missing' no es válido cuando se adjunta un archivo",
+          hint: "Usa 'Audit Ready' u otro estado permitido por el portal",
+          warnings
+        });
+      }
+
+      const isOther = String(f.caption||'').trim().toLowerCase() === 'other';
+      if (!isOther && f.captionOtherText && String(f.captionOtherText).trim() !== '') {
+        warnings.push("captionOtherText fue ignorado porque caption != 'Other'");
+      }
+
+      return res.json({
+        ok: true,
+        mode: 'dry-run',
+        receivedBinaryBytes: hasBinary ? req.body.length : 0,
+        normalized: {
+          filename: safeBase,
+          meta: metaIn
+        },
+        warnings
+      });
+    } catch (e) {
+      console.error('[sandbox dry-run] error', e);
+      return res.status(500).json({ ok:false, error: 'No se pudo procesar dry-run' });
+    }
+  }
+);
+
 // Monta el bot: /forusbot/vault-file-upload
 router.use('/vault-file-upload', forusUploadRoutes);
+
+// Monta el bot: /forusbot/scrape-participant
+router.use('/scrape-participant', scrapeParticipantRoutes);
 
 module.exports = router;

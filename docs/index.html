@@ -1,114 +1,211 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>ForUsBots File Upload Bot — API Docs (Multi-Bot)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="/docs/styles.css">
-  <link rel="icon" type="image/png" href="/docs/images/icon.png">
-</head>
-<body>
+  <head>
+    <meta charset="utf-8" />
+    <title>ForUsBots — API Docs (Multi-Bot)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/docs/styles.css" />
+    <link rel="icon" type="image/png" href="/docs/images/icon.png" />
+  </head>
+  <body>
     <header>
-    <div class="wrap header-row">
-      <h1>ForUsBots — API Docs (Dev)</h1>
-      <nav class="topnav">
-        <a href="#overview">Overview</a>
-        <a href="#base">Base URLs</a>
-        <a href="#auth">Auth</a>
-        <a href="#endpoints">Endpoints</a>
-        <a href="#schemas">Schemas</a>
-        <a href="#examples">Examples</a>
-        <a href="#env">Env</a>
-        <a href="#evidence">Evidence</a>
-        <a href="#errors">Errors</a>
-        <a href="#openapi">OpenAPI</a>
-        <a href="/docs/api">API</a>
+      <div class="wrap header-row">
+        <h1>ForUsBots — API Docs</h1>
+        <nav class="topnav">
+          <a href="#overview">Overview</a>
+          <a href="#base">Base URLs</a>
+          <a href="#auth">Auth</a>
+          <a href="#endpoints">Endpoints</a>
+          <a href="#schemas">Schemas</a>
+          <a href="#examples">Examples</a>
+          <a href="#env">Env</a>
+          <a href="#evidence">Evidence</a>
+          <a href="#errors">Errors</a>
+          <a href="#openapi">OpenAPI</a>
+          <a href="/docs/api">API</a>
 
-        <span class="spacer"></span>
-        <div class="lang-switch">
-          <label for="lang-select" class="sr-only">Language</label>
-          <select id="lang-select" aria-label="Language">
-            <option value="en" selected>EN</option>
-            <option value="es">ES</option>
-          </select>
-        </div>
-      </nav>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section id="overview">
-      <h2>Overview</h2>
-      <p>This service automates document uploads to third-party portals using Playwright. Each <em>bot</em> targets one portal with its own selectors and URL patterns. The server logs in (with TOTP when needed), fills the upload form, submits the file, and can store screenshots as evidence. A single HTTP API accepts a binary file plus minimal metadata (<code>x-meta</code>).</p>
-      <p class="small">Version: 1.0 • Updated: 2025-08-15</p>
-    </section>
-
-    <section id="bots">
-      <h2>Bots</h2>
-      <p>Available bots and their base endpoints:</p>
-      <ul class="list">
-        <li>
-          <strong>forusall</strong> — Employer portal uploads
-          <ul>
-            <li><code>POST /forusall/run-binary</code> (preferred)</li>
-            <li><code>POST /run-binary</code> (legacy alias → forusall)</li>
-          </ul>
-        </li>
-        <!-- When you add a new bot, append here:
-        <li>
-          <strong>acme</strong> — ACME portal uploads
-          <ul>
-            <li><code>POST /acme/run-binary</code></li>
-          </ul>
-        </li>
-        -->
-      </ul>
-      <p class="muted">All bots share the same request schema (<code>x-meta</code>), although each portal may constrain acceptable values.</p>
-    </section>
-
-    <section id="base">
-      <h2>Base URLs</h2>
-      <ul class="list">
-        <li><span class="chip">DEV</span> <code>http://localhost:10000</code></li>
-        <li><span class="chip">Render</span> Your deployed URL (e.g. <code>https://file-upload-bot.onrender.com</code>)</li>
-      </ul>
-    </section>
-
-    <section id="auth">
-      <h2>Authentication</h2>
-      <p>All write operations require header <code>x-auth-token</code> matching server env <code>SHARED_TOKEN</code>. Invalid/missing token → <code>401</code>.</p>
-      <pre><code>x-auth-token: dev-secret</code></pre>
-    </section>
-
-    <section id="endpoints">
-      <h2>Endpoints</h2>
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="small"><strong>GET /health</strong></div>
-          <p class="muted">Liveness probe.</p>
-<pre><code>GET /health → 200
-{
-  "ok": true
-}</code></pre>
-        </div>
-        <div class="card">
-          <div class="small"><strong>POST /{botId}/run-binary</strong></div>
-          <p class="muted">Upload a file (binary body) for a specific bot.</p>
-          <ul class="list">
-            <li><strong>Path</strong>: <code>botId</code> ∈ <code>{"forusall"}</code></li>
-            <li><strong>Headers</strong>: <code>x-auth-token</code> (req), <code>x-filename</code> (req), <code>x-meta</code> (JSON, req), <code>Content-Type</code> = <code>application/octet-stream</code> or <code>application/pdf</code></li>
-            <li><strong>Body</strong>: raw binary file (max 50MB by default)</li>
-          </ul>
-        </div>
+          <span class="spacer"></span>
+          <div class="lang-switch">
+            <label for="lang-select" class="sr-only">Language</label>
+            <select id="lang-select" aria-label="Language">
+              <option value="en" selected>EN</option>
+              <option value="es">ES</option>
+            </select>
+          </div>
+        </nav>
       </div>
-      <p class="small muted">Legacy alias: <code>POST /run-binary</code> (wired to <code>forusall</code>).</p>
-    </section>
+    </header>
 
-    <section id="schemas">
-      <h2>Request & Response Schemas</h2>
+    <main class="wrap">
+      <section id="overview">
+        <h2>Overview</h2>
+        <p>
+          This service automates portal actions (currently: ForUsAll employer
+          portal document uploads) using Playwright. The server logs in (TOTP
+          when required), fills the upload form, submits the file, and can store
+          screenshots as evidence. A single HTTP API accepts the binary file
+          plus minimal metadata (<code>x-meta</code>) and returns a
+          <em>202 Accepted</em> with a <code>jobId</code>.
+        </p>
+        <p class="small">Docs updated: 2025-08-20</p>
+      </section>
 
-      <h3>x-meta (shared across bots)</h3>
-<pre><code>{
+      <section id="base">
+        <h2>Base URLs</h2>
+        <ul class="list">
+          <li>
+            <span class="chip">DEV</span> <code>http://localhost:10000</code>
+          </li>
+          <li>
+            <span class="chip">Render</span>
+            <code>https://forusbots.onrender.com</code>
+          </li>
+        </ul>
+        <p>All API routes are namespaced under <code>/forusbot</code>.</p>
+      </section>
+
+      <section id="auth">
+        <h2>Authentication</h2>
+        <p>
+          Protected routes require header <code>x-auth-token</code> equal to
+          server env <code>SHARED_TOKEN</code>. Missing/invalid token →
+          <code>401</code>.
+        </p>
+        <pre><code>x-auth-token: dev-secret</code></pre>
+        <p class="small muted">
+          By default, <code>/forusbot/status</code> is public. You can require
+          auth by toggling <code>flags.statusPublic</code> via
+          <code>PATCH /forusbot/settings</code>.
+        </p>
+      </section>
+
+      <section id="endpoints">
+        <h2>Endpoints</h2>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/health</strong></div>
+            <p class="muted">Liveness probe.</p>
+            <pre><code>200 → {"ok":true}</code></pre>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/status</strong></div>
+            <p class="muted">
+              Snapshot: running queue, waiting queue, capacity and login locks.
+            </p>
+            <pre><code>200 → {
+  "ok": true,
+  "running": [...],
+  "queue": [...],
+  "capacity": {...},
+  "loginLocks": {...}
+}</code></pre>
+          </div>
+
+          <div class="card">
+            <div class="small">
+              <strong>POST /forusbot/vault-file-upload</strong>
+            </div>
+            <p class="muted">
+              Submit a new upload job (binary body). Returns
+              <code>202</code> with <code>jobId</code> and ETA.
+            </p>
+            <ul class="list">
+              <li>
+                <strong>Headers</strong>: <code>x-auth-token</code> (req),
+                <code>x-filename</code> (req), <code>x-meta</code> (JSON, req),
+                <code>Content-Type</code>=<code>application/octet-stream</code>
+                or <code>application/pdf</code>
+              </li>
+              <li><strong>Body</strong>: raw file bytes</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/jobs</strong></div>
+            <p class="muted">List job records with filters (requires auth).</p>
+            <pre><code>GET /forusbot/jobs?state=queued&botId=forusall&limit=50&offset=0</code></pre>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/jobs/:id</strong></div>
+            <p class="muted">Get a single job (requires auth).</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>DELETE /forusbot/jobs/:id</strong></div>
+            <p class="muted">
+              Cancel a queued job (requires auth). Returns 409 if already
+              running.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/locks</strong></div>
+            <p class="muted">Inspect per-user login/TOTP locks.</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/settings</strong></div>
+            <p class="muted">Read runtime settings (max concurrency, flags).</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>PATCH /forusbot/settings</strong></div>
+            <p class="muted">
+              Patch settings. Useful fields: <code>maxConcurrency</code>,
+              <code>flags.statusPublic</code>.
+            </p>
+            <pre><code>PATCH /forusbot/settings
+Content-Type: application/json
+x-auth-token: ...
+
+{"maxConcurrency": 5}</code></pre>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/metrics</strong></div>
+            <p class="muted">Averages per bot, totals, samples.</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/version</strong></div>
+            <p class="muted">Package name/version.</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/openapi</strong></div>
+            <p class="muted">Raw OpenAPI YAML.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="jobs">
+        <h2>Jobs API — states & fields</h2>
+        <ul class="list">
+          <li>
+            <strong>States</strong>: <code>queued</code>, <code>running</code>,
+            <code>succeeded</code>, <code>failed</code>, <code>canceled</code>.
+          </li>
+          <li>
+            <strong>Fields</strong>: <code>jobId</code>, <code>botId</code>,
+            <code>meta</code>, <code>acceptedAt</code>, <code>startedAt</code>,
+            <code>finishedAt</code>, <code>result</code>, <code>error</code>.
+          </li>
+          <li>
+            <strong>Runtime metrics</strong>: when queued →
+            <code>waitingSeconds</code> & <code>position</code>; when running →
+            <code>elapsedSeconds</code> & stage info; when finished →
+            <code>totalSeconds</code>.
+          </li>
+        </ul>
+      </section>
+
+      <section id="schemas">
+        <h2>Request & Response Schemas</h2>
+
+        <h3>x-meta (shared)</h3>
+        <pre><code>{
   "planId": number,
   "formData": {
     "section": string,
@@ -129,103 +226,170 @@
   }
 }</code></pre>
 
-      <h3>Success</h3>
-<pre><code>200 OK
-{
+        <h3>202 Accepted (submit)</h3>
+        <pre><code>{
   "ok": true,
-  "message": "Archivo cargado",
-  "newUrl": "https://.../manage_fv_document?...",
-  "postSubmitResult": "url-change | http-2xx | success-selector | form-reset | same-url",
-  "defaultsVerified": true,
-  "warnings": [],
-  "evidence": {
-    "loginShotPath": "/tmp/evidence/....png",
-    "uploadShotPath": "/tmp/evidence/....png",
-    "loginShotBase64"?: "...",
-    "uploadShotBase64"?: "..."
-  }
+  "jobId": "uuid",
+  "acceptedAt": "2025-08-20T00:00:00Z",
+  "queuePosition": 3,
+  "estimate": {
+    "method": "lanes+movingAvg",
+    "avgDurationSeconds": 120,
+    "startAt": "...",
+    "finishAt": "..."
+  },
+  "capacitySnapshot": { ... }
 }</code></pre>
-    </section>
 
-    <section id="examples">
-      <h2>cURL Examples</h2>
+        <h3>Job (GET /jobs/:id)</h3>
+        <pre><code>{
+  "ok": true,
+  "jobId": "...",
+  "state": "running|...|failed",
+  "error": null | "message",
+  "result": null | {...},
+  "waitingSeconds"?: 4,
+  "position"?: 1,
+  "elapsedSeconds"?: 8,
+  "stage"?: "login|otp|...|done",
+  "stageSeconds"?: 2,
+  "totalSeconds"?: 117
+}</code></pre>
+      </section>
 
-      <div class="card spacey">
-        <h3>forusall — Happy path</h3>
-<pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
+      <section id="examples">
+        <h2>cURL Examples</h2>
 
-curl -sS -X POST http://localhost:10000/forusall/run-binary \
-  -H 'x-auth-token: dev-secret' \
+        <div class="card spacey">
+          <h3>Submit upload (202)</h3>
+          <pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
+
+curl -sS -X POST https://YOUR_URL/forusbot/vault-file-upload \
+  -H 'x-auth-token: YOUR_TOKEN' \
   -H 'x-filename: presentation.pdf' \
   -H 'Content-Type: application/octet-stream' \
   -H "x-meta: $META" \
   --data-binary @presentation.pdf</code></pre>
-      </div>
+        </div>
 
-      <div class="card spacey">
-        <h3>Legacy alias (forusall)</h3>
-<pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
-curl -sS -X POST http://localhost:10000/run-binary \
-  -H 'x-auth-token: dev-secret' \
-  -H 'x-filename: presentation.pdf' \
-  -H 'Content-Type: application/octet-stream' \
-  -H "x-meta: $META" \
-  --data-binary @presentation.pdf</code></pre>
-      </div>
-    </section>
+        <div class="card spacey">
+          <h3>Poll a job</h3>
+          <pre><code>curl -sS -H 'x-auth-token: YOUR_TOKEN' \
+  https://YOUR_URL/forusbot/jobs/JOB_ID</code></pre>
+        </div>
 
-    <section id="env">
-      <h2>Environment & Defaults</h2>
-<pre><code># .env
+        <div class="card spacey">
+          <h3>List jobs</h3>
+          <pre><code>curl -sS -H 'x-auth-token: YOUR_TOKEN' \
+  'https://YOUR_URL/forusbot/jobs?state=queued&limit=20'</code></pre>
+        </div>
+
+        <div class="card spacey">
+          <h3>Cancel a queued job</h3>
+          <pre><code>curl -sS -X DELETE -H 'x-auth-token: YOUR_TOKEN' \
+  https://YOUR_URL/forusbot/jobs/JOB_ID</code></pre>
+        </div>
+
+        <div class="card spacey">
+          <h3>Toggle status visibility</h3>
+          <pre><code>curl -sS -X PATCH https://YOUR_URL/forusbot/settings \
+  -H 'x-auth-token: YOUR_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"flags":{"statusPublic":false}}'</code></pre>
+        </div>
+      </section>
+
+      <section id="env">
+        <h2>Environment & Defaults</h2>
+        <pre><code># Required
 PORT=10000
 SHARED_TOKEN=dev-secret
-SITE_USER=...        # portal username
-SITE_PASS=...        # portal password
-TOTP_SECRET=...      # base32, no spaces
-HEADFUL=0            # 1 to see the browser
-SLOWMO=0             # ms per action when headful
-CLOSE_KILL_MS=1500   # hard kill grace time</code></pre>
-      <p>Selectors, URLs, and defaults live in each bot’s <code>config.js</code>. n8n only sends <em>planId</em>, <em>formData</em>, filename and the binary body.</p>
-    </section>
 
-    <section id="evidence">
-      <h2>Evidence Files</h2>
-      <p>Evidence screenshots are stored under <code>/tmp/evidence</code>. In dev, they are exposed via <code>GET /evidence/*</code>. In production, consider disabling public access.</p>
-    </section>
+# Portal credentials
+SITE_USER=...
+SITE_PASS=...
+TOTP_SECRET=...        # Base32, no spaces
+TOTP_STEP_SECONDS=30
 
-    <section id="errors">
-      <h2>Errors & Warnings</h2>
-      <ul class="list">
-        <li><strong>422 validation</strong>: business rule rejection (e.g. status <em>Document Missing</em> is invalid with an attached file).</li>
-        <li><strong>Warnings</strong> are non-fatal: e.g. <em>captionOtherText ignored because caption != "Other"</em>, or <em>No navigation after submit</em>.</li>
-        <li>Ephemeral alerts (JS <code>alert()</code>, toasts) are captured via dialog and DOM observers.</li>
-      </ul>
-    </section>
+# Concurrency & ETA
+MAX_CONCURRENCY=3
+ESTIMATE_AVG_SECONDS=120
+ESTIMATE_AVG_WINDOW=10
 
-    <section id="openapi">
-      <h2>OpenAPI (YAML)</h2>
-      <p>See <code><a href="/docs/openapi.yaml">/docs/openapi.yaml</a></code> for importing into Swagger/Postman.</p>
-    </section>
+# Evidence
+EVIDENCE_DIR=/tmp/evidence
 
-    <section id="changelog">
-      <h2>Changelog</h2>
-      <ul class="list">
-        <li><strong>2025-08-15</strong> — Multi-bot layout; 422 prevalidation; dialog/toast capture; code re-org; static docs.</li>
-      </ul>
-    </section>
-  </main>
+# Playwright
+HEADFUL=0             # 0=headless (recommended in cloud), 1=show browser locally
+SLOWMO=0              # ms per action when HEADFUL=1
+CLOSE_KILL_MS=1500</code></pre>
+        <p class="small muted">
+          The code uses <code>HEADFUL</code> (not <code>HEADLESS</code>). In
+          production set <code>HEADFUL=0</code>.
+        </p>
+      </section>
 
-  <script>
-  (function(){
-    const sel = document.getElementById('lang-select');
-    if (!sel) return;
-    const isES = location.pathname.replace(/\/+$/,'').endsWith('/docs/es');
-    sel.value = isES ? 'es' : 'en';
-    sel.addEventListener('change', (e) => {
-      const v = e.target.value;
-      location.href = v === 'es' ? '/docs/es' : '/docs';
-    });
-  })();
-  </script>
-</body>
+      <section id="evidence">
+        <h2>Evidence Files</h2>
+        <p>
+          Evidence screenshots go to <code>/tmp/evidence</code>. In dev they are
+          served via <code>GET /evidence/*</code>. Disable public access in
+          production if not needed.
+        </p>
+      </section>
+
+      <section id="errors">
+        <h2>Errors & Warnings</h2>
+        <ul class="list">
+          <li>
+            <strong>400 Bad Request</strong> — invalid <code>x-meta</code>,
+            missing file.
+          </li>
+          <li><strong>401 Unauthorized</strong> — bad/missing token.</li>
+          <li>
+            <strong>409 Conflict</strong> — cancel attempted on a running job.
+          </li>
+          <li>
+            <strong>422 Unprocessable Entity</strong> — business rule rejection.
+          </li>
+          <li><strong>500</strong> — unexpected error.</li>
+        </ul>
+      </section>
+
+      <section id="openapi">
+        <h2>OpenAPI (YAML)</h2>
+        <p>
+          See
+          <code><a href="/docs/openapi.yaml">/docs/openapi.yaml</a></code> to
+          import into Swagger/Postman.
+        </p>
+      </section>
+
+      <section id="changelog">
+        <h2>Changelog</h2>
+        <ul class="list">
+          <li>
+            <strong>2025-08-20</strong> — Namespaced <code>/forusbot</code>,
+            added <code>/jobs</code> list & cancel,
+            <code>/settings</code> (GET/PATCH), <code>/locks</code>,
+            <code>/metrics</code>, <code>/version</code>, <code>/openapi</code>;
+            docs updated for <code>HEADFUL</code>.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        const sel = document.getElementById("lang-select");
+        if (!sel) return;
+        const isES = location.pathname.replace(/\/+$/, "").endsWith("/docs/es");
+        sel.value = isES ? "es" : "en";
+        sel.addEventListener("change", (e) => {
+          const v = e.target.value;
+          location.href = v === "es" ? "/docs/es" : "/docs";
+        });
+      })();
+    </script>
+  </body>
 </html>

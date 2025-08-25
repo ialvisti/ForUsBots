@@ -1,97 +1,232 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>ForUsAll File Upload Bot — API Reference</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="icon" type="image/png" href="/docs/images/icon.png" />
-  <link rel="stylesheet" href="./styles.css" />
-</head>
-<body>
-  <header class="site-header">
-    <div class="wrap header-row">
-      <h1 class="title">ForUsAll File Upload Bot — API Reference</h1>
+  <head>
+    <meta charset="utf-8" />
+    <title>ForUsBots — API Reference</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/png" href="/docs/images/icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-row">
+        <h1 class="title">ForUsBots — API Reference</h1>
 
-      <!-- Top bar: Back to Docs + Language -->
-      <nav class="topnav">
-        <a id="back-link" class="toplink" href="/docs">Go back to Docs</a>
-        <span class="spacer"></span>
-        <label for="lang-select" class="sr-only">Language</label>
-        <div class="lang-switch">
-          <select id="lang-select" aria-label="Language">
-            <option value="en" selected>EN</option>
-            <option value="es">ES</option>
-          </select>
-        </div>
-      </nav>
-    </div>
-
-    <div class="wrap meta-row">
-      <div class="meta">
-        <a class="muted small" href="/docs/openapi.yaml">openapi.yaml</a>
-        <span class="badge">v1.0.0</span>
-        <span class="badge alt">OAS 3.0</span>
+        <!-- Top bar: Back to Docs + Language -->
+        <nav class="topnav">
+          <a id="" class="toplink" href="/docs/sandbox">Sandbox</a>
+          <span class="spacer"></span>
+          <a id="back-link" class="toplink" href="/docs">Go back to Docs</a>
+          <span class="spacer"></span>
+          <label for="lang-select" class="sr-only">Language</label>
+          <div class="lang-switch">
+            <select id="lang-select" aria-label="Language">
+              <option value="en" selected>EN</option>
+              <option value="es">ES</option>
+            </select>
+          </div>
+        </nav>
       </div>
-    </div>
-  </header>
 
-  <main class="wrap">
-    <p class="lead">
-      Minimal REST endpoints that back the Playwright automation which logs into the portal,
-      fills the upload form, and submits a document.
-    </p>
+      <div class="wrap meta-row">
+        <div class="meta">
+          <a class="muted small" href="/docs/openapi.yaml">openapi.yaml</a>
+          <span class="badge">v1.0.0</span>
+          <span class="badge alt">OAS 3.0</span>
+        </div>
+      </div>
+    </header>
 
-    <h2 id="default" class="tag">default</h2>
+    <main class="wrap">
+      <p class="lead">
+        Minimal REST endpoints that back the Playwright automation. Submit a
+        file for processing, track job status, adjust concurrency at runtime,
+        and inspect locks & metrics.
+        <br /><span class="muted small"
+          >All routes are namespaced under <code>/forusbot</code>. A plain
+          <code>/health</code> also exists.</span
+        >
+      </p>
 
-    <!-- GET /health -->
-    <details class="op get">
-      <summary>
-        <span class="method get">GET</span>
-        <span class="path">/health</span>
-        <span class="sum">Health Check</span>
-      </summary>
-      <div class="op-body">
-        <p class="muted">Enhanced health check with system resources.</p>
+      <!-- =================== TAG: health & status =================== -->
+      <h2 id="health-status" class="tag">health &amp; status</h2>
 
-        <h4>Parameters</h4>
-        <div class="muted">No parameters.</div>
+      <!-- GET /forusbot/health -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/health</span>
+          <span class="sum">Health check</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Simple liveness probe. Also available at <code>/health</code>.
+          </p>
+          <h4>Parameters</h4>
+          <div class="muted">No parameters.</div>
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{"ok": true}</code></pre>
+          </div>
+        </div>
+      </details>
 
-        <h4>Responses</h4>
-        <div class="resp">
-          <div class="code">200 <span class="muted">Successful Response</span></div>
-          <pre><code class="json">{
-  "ok": true
+      <!-- GET /forusbot/status -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/status</span>
+          <span class="sum">Runtime snapshot</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Queue snapshot (running & queued), capacity, and login/TOTP locks.
+            May be public or protected depending on
+            <code>flags.statusPublic</code> (see
+            <code>PATCH /forusbot/settings</code>).
+          </p>
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "timestamp": "2025-08-20T00:00:00.000Z",
+  "running": [
+    {
+      "jobId": "uuid",
+      "botId": "forusall",
+      "meta": {...},
+      "startedAt": "2025-08-20T00:00:00.000Z",
+      "elapsedSeconds": 12,
+      "stage": "login|otp|goto-upload|fill-form|upload-file|submit|verify|done",
+      "stageSince": "2025-08-20T00:00:10.000Z",
+      "stageSeconds": 2,
+      "stageMeta": null
+    }
+  ],
+  "queue": [
+    {
+      "position": 1,
+      "jobId": "uuid",
+      "botId": "forusall",
+      "meta": {...},
+      "enqueuedAt": "2025-08-20T00:00:05.000Z",
+      "waitingSeconds": 4
+    }
+  ],
+  "summaryPorBot": { "forusall": { "running": 1, "queued": 1 } },
+  "capacity": { "maxConcurrency": 3, "running": 1, "queued": 1, "slotsAvailable": 2 },
+  "loginLocks": { "user@example.com": { "state": "free|locked", "queueSize": 0, "currentStep": 1234, "lastStepUsed": 1233, "lastStepAgeSeconds": 25 } },
+  "totpStepSeconds": 30
 }</code></pre>
+          </div>
         </div>
-      </div>
-    </details>
+      </details>
 
-    <!-- POST /run-binary -->
-    <details class="op post">
-      <summary>
-        <span class="method post">POST</span>
-        <span class="path">/run-binary</span>
-        <span class="sum">Upload file &amp; run automation</span>
-      </summary>
-      <div class="op-body">
-        <p class="muted">
-          Accepts a raw binary body (PDF/Octet-Stream) with headers carrying metadata.
-          The server logs in, validates OTP, fills the form, and submits it.
-        </p>
+      <!-- GET /forusbot/whoami -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/whoami</span>
+          <span class="sum">Identity of the current API token (auth)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Returns the role and user metadata associated with the provided API
+            token. Send the token via <code>x-auth-token</code> or
+            <code>Authorization: Bearer &lt;token&gt;</code>.
+          </p>
 
-        <h4>Parameters (Headers)</h4>
-        <table class="tbl">
-          <thead><tr><th>Name</th><th>In</th><th>Type</th><th>Req</th><th>Description</th></tr></thead>
-          <tbody>
-            <tr><td><code>x-auth-token</code></td><td>header</td><td>string</td><td>yes</td><td>Must match server env <code>SHARED_TOKEN</code>.</td></tr>
-            <tr><td><code>x-filename</code></td><td>header</td><td>string</td><td>yes</td><td>Original filename (used for temp write).</td></tr>
-            <tr><td><code>x-meta</code></td><td>header</td><td>string (JSON)</td><td>yes</td><td>See schema.</td></tr>
-            <tr><td><code>Content-Type</code></td><td>header</td><td>enum</td><td>yes</td><td><code>application/octet-stream</code> or <code>application/pdf</code>.</td></tr>
-          </tbody>
-        </table>
+          <h4>Responses</h4>
 
-        <h4>Request: <code>x-meta</code> (simplified)</h4>
-        <pre><code class="json">{
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "role": "admin",
+  "isAdmin": true,
+  "user": {
+    "name": "Ivan Alvis",
+    "email": "ivan.alvis@forusall.com",
+    "id": "u_ivan"
+  }
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">401 <span class="muted">Unauthorized</span></div>
+            <pre><code class="json">{"ok": false, "error": "unauthorized"}</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- =================== TAG: submit =================== -->
+      <h2 id="submit" class="tag">submit</h2>
+
+      <!-- POST /forusbot/vault-file-upload -->
+      <details class="op post">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/vault-file-upload</span>
+          <span class="sum">Submit file (binary) → 202 Accepted</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Accepts a raw binary body (PDF/Octet-Stream) with headers carrying
+            metadata. The server logs in (TOTP), fills the form, and processes
+            the job asynchronously. Returns <strong>202</strong> with a
+            <code>jobId</code> and ETA.
+          </p>
+
+          <h4>Parameters (Headers)</h4>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>In</th>
+                <th>Type</th>
+                <th>Req</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>x-auth-token</code></td>
+                <td>header</td>
+                <td>string</td>
+                <td>yes</td>
+                <td>Must match server env <code>SHARED_TOKEN</code>.</td>
+              </tr>
+              <tr>
+                <td><code>x-filename</code></td>
+                <td>header</td>
+                <td>string</td>
+                <td>yes</td>
+                <td>Original filename (used for temp write).</td>
+              </tr>
+              <tr>
+                <td><code>x-meta</code></td>
+                <td>header</td>
+                <td>string (JSON)</td>
+                <td>yes</td>
+                <td>See schema below.</td>
+              </tr>
+              <tr>
+                <td><code>Content-Type</code></td>
+                <td>header</td>
+                <td>enum</td>
+                <td>yes</td>
+                <td>
+                  <code>application/octet-stream</code> or
+                  <code>application/pdf</code>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>Request: <code>x-meta</code> (simplified)</h4>
+          <pre><code class="json">{
   "planId": 580,
   "formData": {
     "section": "CONTRACTS & AGREEMENTS",
@@ -103,71 +238,366 @@
   "options": {
     "confirmDelayMs": 5000,
     "fastExit": false,
-    "snifferWindowMs": 7000
+    "snifferWindowMs": 7000,
+    "evidenceOnSuccess": false
   }
 }</code></pre>
 
-        <h4>Responses</h4>
-
-        <div class="resp">
-          <div class="code">200 <span class="muted">Success</span></div>
-          <pre><code class="json">{
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
   "ok": true,
-  "message": "File uploaded",
-  "newUrl": "https://.../manage_fv_document?...",
-  "postSubmitResult": "same-url",
-  "defaultsVerified": true,
-  "warnings": [],
-  "evidence": {
-    "loginShotPath": "/tmp/evidence/2025-08-15T03-01-33.460Z_login.png",
-    "uploadShotPath": "/tmp/evidence/2025-08-15T03-01-46.623Z_after_submit.png"
+  "jobId": "2ef1db9f-9a0d-4b9b-97a1-6b6a0f2e0a90",
+  "acceptedAt": "2025-08-20T00:00:00.000Z",
+  "queuePosition": 2,
+  "estimate": {
+    "method": "lanes+movingAvg",
+    "avgDurationSeconds": 120,
+    "startSeconds": 60,
+    "finishSeconds": 180,
+    "startAt": "2025-08-20T00:01:00.000Z",
+    "finishAt": "2025-08-20T00:03:00.000Z"
+  },
+  "capacitySnapshot": { "maxConcurrency": 3, "running": 1, "queued": 1, "slotsAvailable": 2 }
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "Missing or empty fields in x-meta"
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">401 <span class="muted">Unauthorized</span></div>
+            <pre><code class="json">{"ok": false, "error": "unauthorized"}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">
+              422 <span class="muted">Unprocessable Entity</span>
+            </div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "Status 'Document Missing' is not allowed when a file is attached"
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">
+              500 <span class="muted">Internal Server Error</span>
+            </div>
+            <pre><code class="json">{"ok": false, "error": "Unexpected runtime error"}</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- =================== TAG: jobs =================== -->
+      <h2 id="jobs" class="tag">jobs</h2>
+
+      <!-- GET /forusbot/jobs -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/jobs</span>
+          <span class="sum">List jobs (auth)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Supports filters:
+            <code>state</code> (queued|running|succeeded|failed|canceled),
+            <code>botId</code>, <code>limit</code>, <code>offset</code>.
+          </p>
+          <h4>Parameters (Query)</h4>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>In</th>
+                <th>Type</th>
+                <th>Req</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>state</code></td>
+                <td>query</td>
+                <td>string</td>
+                <td>no</td>
+                <td>Filter by state.</td>
+              </tr>
+              <tr>
+                <td><code>botId</code></td>
+                <td>query</td>
+                <td>string</td>
+                <td>no</td>
+                <td>Filter by bot id (e.g. <code>forusall</code>).</td>
+              </tr>
+              <tr>
+                <td><code>limit</code></td>
+                <td>query</td>
+                <td>integer</td>
+                <td>no</td>
+                <td>Max items (default 50, max 500).</td>
+              </tr>
+              <tr>
+                <td><code>offset</code></td>
+                <td>query</td>
+                <td>integer</td>
+                <td>no</td>
+                <td>Pagination offset.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "total": 123,
+  "limit": 50,
+  "offset": 0,
+  "jobs": [
+    {
+      "jobId": "uuid",
+      "botId": "forusall",
+      "meta": {...},
+      "state": "succeeded",
+      "acceptedAt": "2025-08-20T00:00:00Z",
+      "startedAt": "2025-08-20T00:00:30Z",
+      "finishedAt": "2025-08-20T00:02:00Z",
+      "result": {...},
+      "error": null
+    }
+  ]
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">401 <span class="muted">Unauthorized</span></div>
+            <pre><code class="json">{"ok": false, "error": "unauthorized"}</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- GET /forusbot/jobs/:id -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/jobs/:id</span>
+          <span class="sum">Get job by id (auth)</span>
+        </summary>
+        <div class="op-body">
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "botId": "forusall",
+  "meta": {...},
+  "state": "running",
+  "acceptedAt": "...",
+  "startedAt": "...",
+  "finishedAt": null,
+  "result": null,
+  "error": null,
+  "elapsedSeconds": 18,
+  "stage": "upload-file",
+  "stageSince": "2025-08-20T00:01:18Z",
+  "stageSeconds": 3
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">401 <span class="muted">Unauthorized</span></div>
+            <pre><code class="json">{"ok": false, "error": "unauthorized"}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">404 <span class="muted">Not Found</span></div>
+            <pre><code class="json">{"ok": false, "error": "Job no encontrado"}</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- DELETE /forusbot/jobs/:id -->
+      <details class="op del">
+        <summary>
+          <span class="method del">DELETE</span>
+          <span class="path">/forusbot/jobs/:id</span>
+          <span class="sum">Cancel queued job (auth)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Only jobs in the queue can be canceled. Running jobs return 409.
+          </p>
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{"ok": true, "canceled": true, "reason": "queued"}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">409 <span class="muted">Conflict</span></div>
+            <pre><code class="json">{"ok": false, "error": "No se puede cancelar: job en ejecución"}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">404 <span class="muted">Not Found</span></div>
+            <pre><code class="json">{"ok": false, "error": "Job no encontrado"}</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- =================== TAG: admin =================== -->
+      <h2 id="admin" class="tag">admin</h2>
+
+      <!-- GET /forusbot/locks -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/locks</span>
+          <span class="sum">Login/TOTP locks (auth)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">Per-user mutex and TOTP step window info.</p>
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "stepSeconds": 30,
+  "locks": {
+    "user@example.com": {
+      "state": "free|locked",
+      "queueSize": 0,
+      "currentStep": 1234,
+      "lastStepUsed": 1233,
+      "lastStepAgeSeconds": 25
+    }
   }
 }</code></pre>
+          </div>
         </div>
+      </details>
 
-        <div class="resp">
-          <div class="code">400 <span class="muted">Bad Request</span></div>
-          <pre><code class="json">{
-  "ok": false,
-  "errorType": "validation",
-  "error": "Missing or empty fields in x-meta",
-  "missing": ["formData.status"]
+      <!-- GET /forusbot/settings -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/settings</span>
+          <span class="sum">Read settings (auth)</span>
+        </summary>
+        <div class="op-body">
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "settings": {
+    "maxConcurrency": 3,
+    "flags": { "statusPublic": true }
+  },
+  "capacity": { "maxConcurrency": 3, "running": 0, "queued": 0, "slotsAvailable": 3 }
 }</code></pre>
+          </div>
         </div>
+      </details>
 
-        <div class="resp">
-          <div class="code">401 <span class="muted">Unauthorized</span></div>
-          <pre><code class="json">{
-  "ok": false,
-  "error": "unauthorized"
+      <!-- PATCH /forusbot/settings -->
+      <details class="op patch">
+        <summary>
+          <span class="method patch">PATCH</span>
+          <span class="path">/forusbot/settings</span>
+          <span class="sum">Patch settings (auth)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">Body example:</p>
+          <pre><code class="json">{"maxConcurrency": 5, "flags": {"statusPublic": false}}</code></pre>
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "changed": ["maxConcurrency","flags.statusPublic"],
+  "previous": { "maxConcurrency": 3, "flags": {"statusPublic": true} },
+  "settings":  { "maxConcurrency": 5, "flags": {"statusPublic": false} },
+  "capacity":  { "maxConcurrency": 5, "running": 0, "queued": 0, "slotsAvailable": 5 }
 }</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{"ok": false, "error": "maxConcurrency debe ser un número >= 1"}</code></pre>
+          </div>
         </div>
+      </details>
 
-        <div class="resp">
-          <div class="code">422 <span class="muted">Unprocessable Entity</span></div>
-          <pre><code class="json">{
-  "ok": false,
-  "errorType": "validation",
-  "error": "Status 'Document Missing' is not allowed when a file is attached",
-  "hint": "Use 'Audit Ready' or another status allowed by the portal"
+      <!-- GET /forusbot/metrics -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/metrics</span>
+          <span class="sum">Metrics (auth)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Averages by bot, totals and raw samples used for ETA.
+          </p>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "timestamp": "2025-08-20T00:00:00Z",
+  "totals": { "running": 1, "queued": 2, "finished": 10, "maxConcurrency": 3 },
+  "byBot": {
+    "forusall": {
+      "running": 1,
+      "queued": 2,
+      "avgDurationSeconds": 118,
+      "samples": [120, 115, 119]
+    }
+  }
 }</code></pre>
+          </div>
         </div>
+      </details>
 
-        <div class="resp">
-          <div class="code">500 <span class="muted">Internal Server Error</span></div>
-          <pre><code class="json">{
-  "ok": false,
-  "error": "Unexpected runtime error"
-}</code></pre>
+      <!-- GET /forusbot/version -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/version</span>
+          <span class="sum">Package version (auth)</span>
+        </summary>
+        <div class="op-body">
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{"ok": true, "name": "file-upload-bot", "version": "1.0.0"}</code></pre>
+          </div>
         </div>
-      </div>
-    </details>
+      </details>
 
-    <h2 id="schemas" class="tag">Schemas</h2>
+      <!-- GET /forusbot/openapi -->
+      <details class="op get">
+        <summary>
+          <span class="method get">GET</span>
+          <span class="path">/forusbot/openapi</span>
+          <span class="sum">OpenAPI YAML (auth)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Returns the raw <code>openapi.yaml</code> (text/yaml).
+          </p>
+        </div>
+      </details>
 
-    <details class="schema">
-      <summary><strong>x-meta</strong></summary>
-      <pre><code class="json">{
+      <!-- =================== TAG: Schemas =================== -->
+      <h2 id="schemas" class="tag">schemas</h2>
+
+      <details class="schema">
+        <summary><strong>x-meta</strong></summary>
+        <pre><code class="json">{
   "planId": number,
   "formData": {
     "section": string,
@@ -187,55 +617,77 @@
     "skipPrevalidation"?: boolean
   }
 }</code></pre>
-    </details>
+      </details>
 
-    <details class="schema">
-      <summary><strong>Success</strong></summary>
-      <pre><code class="json">{
+      <details class="schema">
+        <summary><strong>202 Accepted (submit)</strong></summary>
+        <pre><code class="json">{
   "ok": true,
-  "message": "File uploaded",
-  "newUrl": "string",
-  "postSubmitResult": "url-change|http-2xx|success-selector|form-reset|same-url",
-  "defaultsVerified": true,
-  "warnings": [ "string" ],
-  "evidence": {
-    "loginShotPath": "string",
-    "uploadShotPath": "string",
-    "loginShotBase64"?: "string",
-    "uploadShotBase64"?: "string"
+  "jobId": "uuid",
+  "acceptedAt": "date-time",
+  "queuePosition": 1,
+  "estimate": {
+    "method": "lanes+movingAvg",
+    "avgDurationSeconds": 120,
+    "startSeconds": 0,
+    "finishSeconds": 120,
+    "startAt": "date-time",
+    "finishAt": "date-time"
+  },
+  "capacitySnapshot": {
+    "maxConcurrency": 3,
+    "running": 0,
+    "queued": 0,
+    "slotsAvailable": 3
   }
 }</code></pre>
-    </details>
+      </details>
 
-    <details class="schema">
-      <summary><strong>Error</strong></summary>
-      <pre><code class="json">{
-  "ok": false,
-  "error": "string",
-  "errorType"?: "parse|validation|runtime",
-  "warnings"?: [ "string" ]
+      <details class="schema">
+        <summary><strong>Job (GET /jobs/:id)</strong></summary>
+        <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "botId": "string",
+  "meta": {},
+  "state": "queued|running|succeeded|failed|canceled",
+  "acceptedAt": "date-time",
+  "startedAt": "date-time|null",
+  "finishedAt": "date-time|null",
+  "result": "object|null",
+  "error": "string|null",
+  "waitingSeconds"?: 0,
+  "position"?: 1,
+  "elapsedSeconds"?: 0,
+  "stage"?: "string",
+  "stageSince"?: "date-time",
+  "stageSeconds"?: 0,
+  "totalSeconds"?: 0
 }</code></pre>
-    </details>
+      </details>
 
-    <footer class="foot muted small">
-      Last updated 2025-08-15 • Static docs (no “Try it out”)
-    </footer>
-  </main>
+      <footer class="foot muted small">
+        Last updated 2025-08-20 • Static docs (no “Try it out”). Set
+        <code>HEADFUL=0</code> in cloud.
+      </footer>
+    </main>
 
-  <script>
-    (function () {
-      var isES = location.pathname.replace(/\/+$/,'').endsWith('/docs/api/es');
-      var sel = document.getElementById('lang-select');
-      if (sel) {
-        sel.value = isES ? 'es' : 'en';
-        sel.addEventListener('change', function (e) {
-          var v = e.target.value;
-          location.href = v === 'es' ? '/docs/api/es' : '/docs/api';
-        });
-      }
-      var back = document.getElementById('back-link');
-      if (back) back.href = isES ? '/docs/es' : '/docs';
-    })();
-  </script>
-</body>
+    <script>
+      (function () {
+        var isES = location.pathname
+          .replace(/\/+$/, "")
+          .endsWith("/docs/api/es");
+        var sel = document.getElementById("lang-select");
+        if (sel) {
+          sel.value = isES ? "es" : "en";
+          sel.addEventListener("change", function (e) {
+            var v = e.target.value;
+            location.href = v === "es" ? "/docs/api/es" : "/docs/api";
+          });
+        }
+        var back = document.getElementById("back-link");
+        if (back) back.href = isES ? "/docs/es" : "/docs";
+      })();
+    </script>
+  </body>
 </html>
