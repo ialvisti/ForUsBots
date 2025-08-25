@@ -2,7 +2,7 @@
 const queue = require('../../engine/queue');
 const { FIXED } = require('../../providers/forusall/config');
 const { allowedKeys } = require('../../providers/forusall/participantMap');
-const { getSupportedFields, supportsFieldFiltering } = require('../../extractors/forusall-participant/registry');
+const { validateFieldsForModule } = require('../../extractors/forusall-participant/registry');
 const runFlow = require('./runFlow');
 
 /** Por defecto devolvemos SOLO DATA */
@@ -60,14 +60,19 @@ module.exports = async function controller(req, res) {
       return res.status(422).json({ ok: false, error: 'modules contiene claves no soportadas', invalid: invalidKeys, allowed: [...validKeys] });
     }
 
-    // PRE-VALIDACIÓN DE CAMPOS (para evitar lanzar Chromium si no tiene sentido)
+    // PRE-VALIDACIÓN / NORMALIZACIÓN DE FIELDS
     const fieldWarnings = [];
     const fieldErrors = [];
     const filteredModules = [];
 
     for (const m of prelimValid) {
-      // Si el cliente pidió fields, verificamos que el módulo soporte filtrado de campos
-      if (m.fields && !supportsFieldFiltering(m.key)) {
+      const v = validateFieldsForModule(m.key, m.fields);
+
+      if (v.reason === 'unknown_module') {
+        fieldErrors.push({ key: m.key, reason: 'unknown_module' });
+        continue;
+      }
+      if (v.reason === 'fields_not_supported_for_module') {
         fieldErrors.push({
           key: m.key,
           reason: 'fields_not_supported_for_module',
@@ -76,33 +81,23 @@ module.exports = async function controller(req, res) {
         continue;
       }
 
-      // Si no hay fields, lo dejamos pasar tal cual
-      if (!m.fields) {
-        filteredModules.push(m);
+      // Si hubo errores de formato en fields
+      if (v.errors && v.errors.length) {
+        fieldErrors.push({ key: m.key, reason: 'field_validation_failed', details: v.errors });
         continue;
       }
 
-      // Filtra solo campos soportados
-      const supported = getSupportedFields(m.key) || [];
-      const unknown = m.fields.filter(f => !supported.includes(f));
-      const accepted = m.fields.filter(f => supported.includes(f));
-
-      if (unknown.length) {
+      // Campos desconocidos
+      if (v.unknown && v.unknown.length) {
         if (strict) {
-          fieldErrors.push({ key: m.key, reason: 'unknown_fields', unknown });
+          fieldErrors.push({ key: m.key, reason: 'unknown_fields', unknown: v.unknown });
           continue;
         } else {
-          fieldWarnings.push({ key: m.key, type: 'unknown_fields_ignored', unknown });
+          fieldWarnings.push({ key: m.key, type: 'unknown_fields_ignored', unknown: v.unknown });
         }
       }
 
-      if (!accepted.length) {
-        // Si todas las fields fueron desconocidas, evita encolar el job de este módulo
-        fieldErrors.push({ key: m.key, reason: 'no_valid_fields_after_filter' });
-        continue;
-      }
-
-      filteredModules.push({ key: m.key, fields: accepted });
+      filteredModules.push({ key: m.key, fields: v.normalized ?? null });
     }
 
     // Si después del filtrado no queda NINGÚN módulo, no encolamos
@@ -132,7 +127,7 @@ module.exports = async function controller(req, res) {
       loginUrl: FIXED.loginUrl,
       selectors: FIXED.selectors, // user/pass/loginButton/otpInput/otpSubmit
       participantId: String(participantId).trim(),
-      modules: filteredModules,       // [{key, fields?}] ya validados/filtrados
+      modules: filteredModules,       // [{key, fields?}] ya validados/normalizados
       invalidModules: invalidKeys,    // para warnings
       includeScreens,
       timeoutMs,

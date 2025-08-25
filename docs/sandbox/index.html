@@ -1,4 +1,4 @@
-<!-- docs/sandbox/index.html (EN, updated) -->
+<!-- docs/sandbox/index.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
   <head>
@@ -7,7 +7,7 @@
     <title>ForUsBots — Sandbox</title>
     <link rel="stylesheet" href="sandbox.css" />
     <link rel="icon" type="image/png" href="/docs/images/icon.png" />
-    <script src="sandbox.js" defer></script>
+    <script src="./js/main.js" defer></script>
   </head>
   <body>
     <header>
@@ -18,25 +18,17 @@
         </div>
 
         <div class="header-right">
-
           <span class="spacer"></span>
-
           <div id="endpointBadges" class="badges"></div>
-
-          <span class="spacer"></span>
-          <span class="spacer"></span>
+          <span class="spacer"></span><span class="spacer"></span>
           <a id="back-link" class="toplink" href="/docs/api">API Docs</a>
           <span class="spacer"></span>
-
-          <!-- Toggle light/dark -->
           <label class="theme-toggle" title="Toggle light/dark theme">
             <input id="themeSwitch" type="checkbox" aria-label="Toggle theme" />
             <span class="track"><span class="thumb"></span></span>
             <span class="toggle-label" id="themeLabel">Dark</span>
           </label>
-
           <span class="spacer"></span>
-
           <div class="lang-switch">
             <label for="lang-select" class="sr-only">Language</label>
             <select id="lang-select" aria-label="Language">
@@ -70,6 +62,10 @@
               <option value="jobs-get">GET /forusbot/jobs/:id</option>
               <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
               <option value="status-get">GET /forusbot/status</option>
+              <!-- NEW -->
+              <option value="scrape-participant">
+                POST /forusbot/scrape-participant
+              </option>
             </select>
           </div>
         </div>
@@ -105,16 +101,12 @@
           <div class="two ep ep-upload">
             <div class="field">
               <label>PDF to upload</label>
-
-              <!-- native input (accessible) -->
               <input
                 id="pdfFile"
                 type="file"
                 accept="application/pdf"
                 class="file-input-hidden"
               />
-
-              <!-- dropzone / full-width button -->
               <div
                 id="dropzone"
                 class="dropzone"
@@ -125,7 +117,6 @@
                 Click or drag a <b>PDF</b> here
               </div>
               <div id="fileName" class="file-name muted">No file selected.</div>
-
               <div class="help">
                 For a <b>real run</b> on upload a file is required. On Dry-Run
                 it’s optional.
@@ -154,7 +145,6 @@
 
             <div class="field">
               <label>section</label>
-              <!-- changed to SELECT -->
               <select id="section">
                 <option>COVER LETTERS</option>
                 <option>PLAN DOCUMENTS</option>
@@ -171,10 +161,8 @@
             <div class="two">
               <div class="field">
                 <label>caption</label>
-                <!-- changed to SELECT (options populated dynamically) -->
                 <select id="caption"></select>
               </div>
-
               <div class="field">
                 <label>status</label>
                 <select id="status">
@@ -194,6 +182,68 @@
                 type="text"
                 placeholder="Describe the document"
               />
+            </div>
+          </div>
+
+          <!-- Scrape builder -->
+          <div class="ep ep-scrape hidden">
+            <div class="field">
+              <label>participantId</label>
+              <input
+                id="participantId"
+                type="text"
+                placeholder="e.g. 12345"
+              />
+            </div>
+
+            <br>
+
+            <div class="two">
+              <div class="field">
+                <label>return</label>
+                <select id="returnMode">
+                  <option value="data" selected>data</option>
+                  <option value="html">html</option>
+                  <option value="text">text</option>
+                  <option value="both">both</option>
+                </select>
+              </div>
+              <div class="field hidden">
+                <label>timeoutMs</label>
+                <input id="timeoutMs" type="number" placeholder="30000" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label class="small"
+                  ><input id="strict" type="checkbox" checked /> strict</label
+                >
+              </div>
+              <div class="field">
+                <label class="small"
+                  ><input id="includeScreens" type="checkbox" />
+                  includeScreens</label
+                >
+              </div>
+            </div>
+
+            <br>
+
+            <div class="field">
+              <label>modules</label>
+              <div id="modulesList" class="stack"> </div>
+              <button class="btn ghost small" id="addModuleBtn">
+                Add module
+              </button>
+              <div class="help">
+                Choose a module and (when available) select its fields. <br />  <br />
+                For <code>payroll</code>, you can type a years token (<code
+                  >years:all</code
+                >
+                or <code>2024,2025</code>) and/or specific year tables (e.g.
+                <code>2024,2025</code>).
+              </div>
             </div>
           </div>
 
@@ -297,8 +347,7 @@
 
         <div class="sep"></div>
 
-        <!-- Job status area (hidden if endpoint is not upload) -->
-        <div id="jobArea">
+        <div id="jobArea" class="">
           <h3>Job status</h3>
           <div id="jobState" class="status">
             <span class="dot"></span><span class="txt">—</span>
@@ -324,5 +373,7 @@
         });
       })();
     </script>
+
+    <script type="module" src="./js/main.js"></script>
   </body>
 </html>
