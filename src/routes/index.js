@@ -60,7 +60,7 @@ router.get('/jobs', auth, (req, res) => {
 // Obtener estado de un job por id
 router.get('/jobs/:id', auth, (req, res) => {
   const job = queue.getJob(req.params.id);
-  if (!job) return res.status(404).json({ ok: false, error: 'Job no encontrado' });
+  if (!job) return res.status(404).json({ ok: false, error: 'Job not found' });
   return res.json(job);
 });
 
@@ -69,15 +69,15 @@ router.delete('/jobs/:id', auth, (req, res) => {
   try {
     const r = queue.cancel(req.params.id);
     if (!r.ok && r.reason === 'not_found') {
-      return res.status(404).json({ ok: false, error: 'Job no encontrado' });
+      return res.status(404).json({ ok: false, error: 'Job not found' });
     }
     if (r.ok && !r.canceled && r.reason === 'running') {
-      return res.status(409).json({ ok: false, error: 'No se puede cancelar: job en ejecución' });
+      return res.status(409).json({ ok: false, error: 'Cannot cancel: job is running' });
     }
     return res.json({ ok: true, canceled: !!r.canceled, reason: r.reason || null });
   } catch (e) {
     console.error('[jobs delete] error', e);
-    return res.status(500).json({ ok: false, error: 'No se pudo cancelar el job' });
+    return res.status(500).json({ ok: false, error: 'Could not cancel job' });
   }
 });
 
@@ -88,7 +88,7 @@ router.get('/locks', requireAdmin, (_req, res) => {
     return res.json(locks);
   } catch (e) {
     console.error('[locks] error', e);
-    return res.status(500).json({ ok: false, error: 'No se pudo obtener locks' });
+    return res.status(500).json({ ok: false, error: 'Could not obtain locks' });
   }
 });
 
@@ -99,7 +99,7 @@ router.get('/settings', requireAdmin, (_req, res) => {
     return res.json({ ok: true, settings: s, capacity: queue.getStatus().capacity });
   } catch (e) {
     console.error('[settings get] error', e);
-    return res.status(500).json({ ok: false, error: 'No se pudo obtener settings' });
+    return res.status(500).json({ ok: false, error: 'Could not obtain settings' });
   }
 });
 
@@ -113,7 +113,7 @@ router.patch('/settings', requireAdmin, (req, res) => {
     return res.json({ ok: true, ...result, capacity: queue.getStatus().capacity });
   } catch (e) {
     console.error('[settings patch] error', e);
-    return res.status(400).json({ ok: false, error: e && e.message ? e.message : 'patch inválido' });
+    return res.status(400).json({ ok: false, error: e && e.message ? e.message : 'Invalid patch' });
   }
 });
 
@@ -140,7 +140,7 @@ router.get('/metrics', requireAdmin, (_req, res) => {
     return res.json(m);
   } catch (e) {
     console.error('[metrics] error', e);
-    return res.status(500).json({ ok: false, error: 'No se pudo obtener métricas' });
+    return res.status(500).json({ ok: false, error: 'Could not get metrics' });
   }
 });
 
@@ -151,7 +151,7 @@ router.get('/version', requireAdmin, (_req, res) => {
     return res.json({ ok: true, name: pkg.name, version: pkg.version });
   } catch (e) {
     console.error('[version] error', e);
-    return res.status(500).json({ ok: false, error: 'No se pudo leer package.json' });
+    return res.status(500).json({ ok: false, error: 'Could not obtain package.json' });
   }
 });
 
@@ -160,13 +160,13 @@ router.get('/openapi', requireAdmin, (_req, res) => {
   try {
     const openapiPath = path.join(__dirname, '..', '..', 'docs', 'openapi.yaml');
     if (!fs.existsSync(openapiPath)) {
-      return res.status(404).json({ ok: false, error: 'openapi.yaml no encontrado' });
+      return res.status(404).json({ ok: false, error: 'openapi.yaml not found' });
     }
     res.type('text/yaml');
     return res.send(fs.readFileSync(openapiPath, 'utf8'));
   } catch (e) {
     console.error('[openapi] error', e);
-    return res.status(500).json({ ok: false, error: 'No se pudo servir OpenAPI' });
+    return res.status(500).json({ ok: false, error: 'Could not serve OpenAPI' });
   }
 });
 
@@ -181,7 +181,7 @@ router.post(
       const metaHdr = req.header('x-meta');
 
       if (!filenameHdr) {
-        return res.status(400).json({ ok: false, error: 'Falta header x-filename', warnings });
+        return res.status(400).json({ ok: false, error: 'Missing header x-filename', warnings });
       }
       const safeBase = require('path').basename(String(filenameHdr).trim());
       const ext = require('path').extname(safeBase).toLowerCase();
@@ -189,13 +189,13 @@ router.post(
         return res.status(400).json({
           ok: false,
           errorType: 'validation',
-          error: "x-filename debe terminar en '.pdf'",
+          error: "x-filename must end with '.pdf'",
           warnings
         });
       }
 
       if (!metaHdr) {
-        return res.status(400).json({ ok: false, error: 'Falta header x-meta', warnings });
+        return res.status(400).json({ ok: false, error: 'Missing header x-meta', warnings });
       }
 
       let metaIn;
@@ -204,7 +204,7 @@ router.post(
         return res.status(400).json({
           ok: false,
           errorType: 'parse',
-          error: 'x-meta no es JSON válido',
+          error: 'x-meta is not valid JSON',
           parseMessage: e && e.message ? e.message : String(e),
           warnings
         });
@@ -225,7 +225,7 @@ router.post(
       }
       if (missing.length) {
         return res.status(400).json({
-          ok:false, errorType:'validation', error:'Campos faltantes en x-meta', missing, warnings
+          ok:false, errorType:'validation', error:'Missing fields in x-meta', missing, warnings
         });
       }
 
@@ -233,15 +233,15 @@ router.post(
       if (hasBinary && /^document\s+missing$/i.test(String(f.status||''))) {
         return res.status(422).json({
           ok:false, errorType:'validation',
-          error: "Status 'Document Missing' no es válido cuando se adjunta un archivo",
-          hint: "Usa 'Audit Ready' u otro estado permitido por el portal",
+          error: "Status 'Document Missing' is not valid when a file is attached",
+          hint: "Use 'Audit Ready' or another status allowed by the portal",
           warnings
         });
       }
 
       const isOther = String(f.caption||'').trim().toLowerCase() === 'other';
       if (!isOther && f.captionOtherText && String(f.captionOtherText).trim() !== '') {
-        warnings.push("captionOtherText fue ignorado porque caption != 'Other'");
+        warnings.push("captionOtherText was ignored because caption != 'Other'");
       }
 
       return res.json({
@@ -256,7 +256,7 @@ router.post(
       });
     } catch (e) {
       console.error('[sandbox dry-run] error', e);
-      return res.status(500).json({ ok:false, error: 'No se pudo procesar dry-run' });
+      return res.status(500).json({ ok:false, error: 'Could not process dry-run' });
     }
   }
 );
