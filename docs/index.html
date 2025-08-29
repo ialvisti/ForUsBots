@@ -177,7 +177,354 @@ x-auth-token: ...
             <div class="small"><strong>GET /forusbot/openapi</strong></div>
             <p class="muted">Raw OpenAPI YAML.</p>
           </div>
+
+          <!-- NEW: Sandbox Dry-Run -->
+          <div class="card">
+            <div class="small">
+              <strong
+                >POST <code>/forusbot/sandbox/vault-file-upload</code></strong
+              >
+            </div>
+            <p class="muted">
+              Dry-run validator for uploads. Validates headers/body without
+              creating a job.
+            </p>
+            <p class="small">
+              <a href="/docs/api#sandbox-upload">Read docs →</a>
+            </p>
+          </div>
+
+          <!-- NEW: Scrape Participant -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/scrape-participant</code></strong>
+            </div>
+            <p class="muted">
+              Scrapes participant modules by participantId. 202 Accepted with
+              jobId; supports return=data|html|text|both.
+            </p>
+            <p class="small">
+              <a href="/docs/api#scrape-participant">Read docs →</a>
+            </p>
+          </div>
+
+          <!-- NEW: Search Participants -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/search-participants</code></strong>
+            </div>
+            <p class="muted">
+              Search by company/name/email/SSN last4/phone/participantId.
+              Supports fetchAllPages/pageLimit/maxRows; returns normalized rows
+              + pagination.
+            </p>
+            <p class="small">
+              <a href="/docs/api#search-participants">Read docs →</a>
+            </p>
+          </div>
+
+          <!-- NEW: MFA Reset -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/mfa-reset</code></strong>
+            </div>
+            <p class="muted">
+              Triggers participant MFA reset. 202 Accepted with jobId; waits
+              until status becomes ‘not enrolled’.
+            </p>
+            <p class="small"><a href="/docs/api#mfa-reset">Read docs →</a></p>
+          </div>
         </div>
+      </section>
+
+      <h2 id="bots" class="tag">Bots</h2>
+      <p class="muted">
+        High-level overview of the automation bots. For full specs and response
+        examples, follow each link to the API Reference.
+      </p>
+
+      <!-- Vault File Upload -->
+      <section id="bot-vault-file-upload">
+        <h3>Vault File Upload Bot</h3>
+        <p>
+          Automates secure PDF uploads to the ForUsAll Employer Portal. Accepts
+          a binary body and metadata in headers; returns
+          <code>202 Accepted</code> with a <code>jobId</code> for polling.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/vault-file-upload</code> (auth)</p>
+        <h4>Headers</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Req</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>x-auth-token</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Shared API token.</td>
+            </tr>
+            <tr>
+              <td><code>x-filename</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Original filename (e.g., <code>document.pdf</code>).</td>
+            </tr>
+            <tr>
+              <td><code>x-meta</code></td>
+              <td>JSON string</td>
+              <td>yes</td>
+              <td>
+                Includes <code>planId</code> and <code>formData</code> (section,
+                caption, status, effectiveDate).
+              </td>
+            </tr>
+            <tr>
+              <td><code>Content-Type</code></td>
+              <td>enum</td>
+              <td>yes</td>
+              <td>
+                <code>application/pdf</code> or
+                <code>application/octet-stream</code>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Body</h4>
+        <p>Binary (the PDF file).</p>
+        <h4>Responses</h4>
+        <ul>
+          <li>
+            <strong>202</strong> Accepted — returns
+            <code>{ ok, jobId, estimate, ... }</code>
+          </li>
+          <li><strong>400/401/422</strong> — validation/auth errors</li>
+        </ul>
+        <h4>Quick cURL</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/vault-file-upload" \
+  -H "x-auth-token: &lt;TOKEN&gt;" \
+  -H "x-filename: document.pdf" \
+  -H 'x-meta: {"planId":580,"formData":{"section":"CONTRACTS &amp; AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}' \
+  -H "Content-Type: application/pdf" \
+  --data-binary @document.pdf</code></pre>
+        <p><a href="/docs/api#vault-file-upload">Read full reference →</a></p>
+      </section>
+
+      <!-- Scrape Participant -->
+      <section id="bot-scrape-participant">
+        <h3>Scrape Participant Bot</h3>
+        <p>
+          Scrapes participant data by <code>participantId</code>. Supports
+          selecting modules and return modes. Returns
+          <code>202 Accepted</code> with a <code>jobId</code>; poll
+          <code>/forusbot/jobs/:id</code> for results.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/scrape-participant</code> (auth)</p>
+        <h4>JSON Body</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Req</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>participantId</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Target participant.</td>
+            </tr>
+            <tr>
+              <td><code>return</code></td>
+              <td>enum</td>
+              <td>no</td>
+              <td>
+                <code>data|html|text|both</code> (default <code>data</code>).
+              </td>
+            </tr>
+            <tr>
+              <td><code>strict</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Stricter parsing/guards.</td>
+            </tr>
+            <tr>
+              <td><code>includeScreens</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Attach screenshots when available.</td>
+            </tr>
+            <tr>
+              <td><code>timeoutMs</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Global timeout per run.</td>
+            </tr>
+            <tr>
+              <td><code>modules</code></td>
+              <td>array</td>
+              <td>no</td>
+              <td>
+                List of module descriptors (e.g.,
+                <code>[{"name":"profile"}]</code>).
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Quick cURL</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/scrape-participant" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"participantId":"12345","return":"data","strict":true,"modules":[{"name":"profile"}]}'</code></pre>
+        <p><a href="/docs/api#scrape-participant">Read full reference →</a></p>
+      </section>
+
+      <!-- Search Participants -->
+      <section id="bot-search-participants">
+        <h3>Search Participants Bot</h3>
+        <p>
+          Searches participants with flexible criteria. Supports pagination
+          controls and result limits; returns normalized rows and a pagination
+          summary.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/search-participants</code> (auth)</p>
+        <h4>JSON Body</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Type</th>
+              <th>Req</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>criteria.companyName</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Filter by company name.</td>
+            </tr>
+            <tr>
+              <td><code>criteria.fullName</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Filter by full name.</td>
+            </tr>
+            <tr>
+              <td><code>criteria.email</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Email filter.</td>
+            </tr>
+            <tr>
+              <td><code>criteria.ssn</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>SSN (last 4 supported).</td>
+            </tr>
+            <tr>
+              <td><code>criteria.phone</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Phone digits.</td>
+            </tr>
+            <tr>
+              <td><code>criteria.participantId</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Exact id.</td>
+            </tr>
+            <tr>
+              <td><code>options.fetchAllPages</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>
+                If true, iterates pages up to <code>pageLimit</code> and until
+                <code>maxRows</code> is reached.
+              </td>
+            </tr>
+            <tr>
+              <td><code>options.pageLimit</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Hard cap on paged traversal (default 1).</td>
+            </tr>
+            <tr>
+              <td><code>options.maxRows</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Maximum rows to return (default 25).</td>
+            </tr>
+            <tr>
+              <td><code>options.timeoutMs</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Overall timeout.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted">
+          Note: If <code>maxRows</code> is small, the run may stop after the
+          first page even with <code>fetchAllPages=true</code>.
+        </p>
+        <h4>Quick cURL</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/search-participants" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"criteria":{"fullName":"miguel"},"options":{"fetchAllPages":true,"pageLimit":5,"maxRows":250}}'</code></pre>
+        <p><a href="/docs/api#search-participants">Read full reference →</a></p>
+      </section>
+
+      <!-- MFA Reset -->
+      <section id="bot-mfa-reset">
+        <h3>MFA Reset Bot</h3>
+        <p>
+          Queues a participant MFA reset and waits until the status becomes
+          <code>not enrolled</code>. Returns <code>202 Accepted</code> with
+          <code>jobId</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/mfa-reset</code> (auth)</p>
+        <h4>JSON Body</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Req</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>participantId</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Target participant id.</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Quick cURL</h4>
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/mfa-reset" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"participantId":"12345"}'</code></pre>
+        <p><a href="/docs/api#mfa-reset">Read full reference →</a></p>
       </section>
 
       <section id="jobs">

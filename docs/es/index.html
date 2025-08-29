@@ -1,148 +1,563 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>ForUsBots — API Docs</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="/docs/styles.css">
-  <link rel="icon" type="image/png" href="/docs/images/icon.png">
-</head>
-<body>
-  <header>
-    <div class="wrap header-row">
-      <h1>ForUsBots — API Docs</h1>
-      <nav class="topnav">
-        <a href="#overview">Overview</a>
-        <a href="#base">Base URLs</a>
-        <a href="#auth">Auth</a>
-        <a href="#endpoints">Endpoints</a>
-        <a href="#schemas">Schemas</a>
-        <a href="#examples">Examples</a>
-        <a href="#env">Env</a>
-        <a href="#evidence">Evidence</a>
-        <a href="#errors">Errors</a>
-        <a href="#openapi">OpenAPI</a>
-        <a href="/docs/api/es">API</a>
+  <head>
+    <meta charset="utf-8" />
+    <title>ForUsBots — API Docs</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/docs/styles.css" />
+    <link rel="icon" type="image/png" href="/docs/images/icon.png" />
+  </head>
+  <body>
+    <header>
+      <div class="wrap header-row">
+        <h1>ForUsBots — API Docs</h1>
+        <nav class="topnav">
+          <a href="#overview">Overview</a>
+          <a href="#base">Base URLs</a>
+          <a href="#auth">Auth</a>
+          <a href="#endpoints">Endpoints</a>
+          <a href="#schemas">Schemas</a>
+          <a href="#examples">Examples</a>
+          <a href="#env">Env</a>
+          <a href="#evidence">Evidence</a>
+          <a href="#errors">Errors</a>
+          <a href="#openapi">OpenAPI</a>
+          <a href="/docs/api/es">API</a>
 
-        <span class="spacer"></span>
-        <div class="lang-switch">
-          <label for="lang-select" class="sr-only">Language</label>
-          <select id="lang-select" aria-label="Language">
-            <option value="en" selected>EN</option>
-            <option value="es">ES</option>
-          </select>
-        </div>
-      </nav>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section id="overview">
-      <h2>Descripción general</h2>
-      <p>Este servicio automatiza acciones en portales (actualmente: carga de documentos en el portal de empleadores de ForUsAll) usando Playwright. El servidor inicia sesión (TOTP cuando aplique), completa el formulario, envía el archivo y puede guardar capturas como evidencia. La API recibe el binario y metadatos mínimos (<code>x-meta</code>) y responde <em>202 Accepted</em> con un <code>jobId</code>.</p>
-      <p class="small">Docs actualizadas: 2025-08-20</p>
-    </section>
-
-    <section id="base">
-      <h2>URLs base</h2>
-      <ul class="list">
-        <li><span class="chip">DEV</span> <code>http://localhost:10000</code></li>
-        <li><span class="chip">Render</span> <code>https://forusbots.onrender.com</code></li>
-      </ul>
-      <p>Todas las rutas de la API están bajo el namespace <code>/forusbot</code>.</p>
-    </section>
-
-    <section id="auth">
-      <h2>Autenticación</h2>
-      <p>Las rutas protegidas requieren el header <code>x-auth-token</code> igual a la variable <code>SHARED_TOKEN</code> del servidor. Si falta o no coincide → <code>401</code>.</p>
-      <pre><code>x-auth-token: dev-secret</code></pre>
-      <p class="small muted">Por defecto <code>/forusbot/status</code> es público; puedes exigir token cambiando <code>flags.statusPublic</code> con <code>PATCH /forusbot/settings</code>.</p>
-    </section>
-
-    <section id="endpoints">
-      <h2>Endpoints</h2>
-      <div class="grid grid-2">
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/health</strong></div>
-          <p class="muted">Sonda de vida.</p>
-<pre><code>200 → {"ok":true}</code></pre>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/status</strong></div>
-          <p class="muted">Snapshot de ejecución: colas, capacidad y candados de login.</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>POST /forusbot/vault-file-upload</strong></div>
-          <p class="muted">Crea un job de carga (cuerpo binario). Devuelve <code>202</code> con <code>jobId</code> y ETA.</p>
-          <ul class="list">
-            <li><strong>Headers</strong>: <code>x-auth-token</code> (req), <code>x-filename</code> (req), <code>x-meta</code> (JSON, req), <code>Content-Type</code>=<code>application/octet-stream</code> o <code>application/pdf</code></li>
-          </ul>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/jobs</strong></div>
-          <p class="muted">Lista de jobs con filtros (auth requerido).</p>
-<pre><code>/forusbot/jobs?state=queued&botId=forusall&limit=50&offset=0</code></pre>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/jobs/:id</strong></div>
-          <p class="muted">Detalle de un job (auth requerido).</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>DELETE /forusbot/jobs/:id</strong></div>
-          <p class="muted">Cancela un job en cola (auth requerido). Si ya está en ejecución → <code>409</code>.</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/locks</strong></div>
-          <p class="muted">Estado de candados de login/TOTP por usuario.</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/settings</strong></div>
-          <p class="muted">Lee settings (concurrencia y flags).</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>PATCH /forusbot/settings</strong></div>
-          <p class="muted">Actualiza settings. Campos útiles: <code>maxConcurrency</code>, <code>flags.statusPublic</code>.</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/metrics</strong></div>
-          <p class="muted">Promedios por bot, totales y muestras.</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/version</strong></div>
-          <p class="muted">Nombre/versión del paquete.</p>
-        </div>
-
-        <div class="card">
-          <div class="small"><strong>GET /forusbot/openapi</strong></div>
-          <p class="muted">YAML OpenAPI.</p>
-        </div>
+          <span class="spacer"></span>
+          <div class="lang-switch">
+            <label for="lang-select" class="sr-only">Language</label>
+            <select id="lang-select" aria-label="Language">
+              <option value="en" selected>EN</option>
+              <option value="es">ES</option>
+            </select>
+          </div>
+        </nav>
       </div>
-    </section>
+    </header>
 
-    <section id="jobs">
-      <h2>Jobs API — estados y campos</h2>
-      <ul class="list">
-        <li><strong>Estados</strong>: <code>queued</code>, <code>running</code>, <code>succeeded</code>, <code>failed</code>, <code>canceled</code>.</li>
-        <li><strong>Campos</strong>: <code>jobId</code>, <code>botId</code>, <code>meta</code>, <code>acceptedAt</code>, <code>startedAt</code>, <code>finishedAt</code>, <code>result</code>, <code>error</code>.</li>
-        <li><strong>Métricas de ejecución</strong>: en cola → <code>waitingSeconds</code> y <code>position</code>; ejecutando → <code>elapsedSeconds</code> y etapa; terminado → <code>totalSeconds</code>.</li>
-      </ul>
-    </section>
+    <main class="wrap">
+      <section id="overview">
+        <h2>Descripción general</h2>
+        <p>
+          Este servicio automatiza acciones en portales (actualmente: carga de
+          documentos en el portal de empleadores de ForUsAll) usando Playwright.
+          El servidor inicia sesión (TOTP cuando aplique), completa el
+          formulario, envía el archivo y puede guardar capturas como evidencia.
+          La API recibe el binario y metadatos mínimos (<code>x-meta</code>) y
+          responde <em>202 Accepted</em> con un <code>jobId</code>.
+        </p>
+        <p class="small">Docs actualizadas: 2025-08-20</p>
+      </section>
 
-    <section id="schemas">
-      <h2>Esquemas</h2>
+      <section id="base">
+        <h2>URLs base</h2>
+        <ul class="list">
+          <li>
+            <span class="chip">DEV</span> <code>http://localhost:10000</code>
+          </li>
+          <li>
+            <span class="chip">Render</span>
+            <code>https://forusbots.onrender.com</code>
+          </li>
+        </ul>
+        <p>
+          Todas las rutas de la API están bajo el namespace
+          <code>/forusbot</code>.
+        </p>
+      </section>
 
-      <h3>x-meta (compartido)</h3>
-<pre><code>{
+      <section id="auth">
+        <h2>Autenticación</h2>
+        <p>
+          Las rutas protegidas requieren el header
+          <code>x-auth-token</code> igual a la variable
+          <code>SHARED_TOKEN</code> del servidor. Si falta o no coincide →
+          <code>401</code>.
+        </p>
+        <pre><code>x-auth-token: dev-secret</code></pre>
+        <p class="small muted">
+          Por defecto <code>/forusbot/status</code> es público; puedes exigir
+          token cambiando <code>flags.statusPublic</code> con
+          <code>PATCH /forusbot/settings</code>.
+        </p>
+      </section>
+
+      <section id="endpoints">
+        <h2>Endpoints</h2>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/health</strong></div>
+            <p class="muted">Sonda de vida.</p>
+            <pre><code>200 → {"ok":true}</code></pre>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/status</strong></div>
+            <p class="muted">
+              Snapshot de ejecución: colas, capacidad y candados de login.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="small">
+              <strong>POST /forusbot/vault-file-upload</strong>
+            </div>
+            <p class="muted">
+              Crea un job de carga (cuerpo binario). Devuelve
+              <code>202</code> con <code>jobId</code> y ETA.
+            </p>
+            <ul class="list">
+              <li>
+                <strong>Headers</strong>: <code>x-auth-token</code> (req),
+                <code>x-filename</code> (req), <code>x-meta</code> (JSON, req),
+                <code>Content-Type</code>=<code>application/octet-stream</code>
+                o <code>application/pdf</code>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/jobs</strong></div>
+            <p class="muted">Lista de jobs con filtros (auth requerido).</p>
+            <pre><code>/forusbot/jobs?state=queued&botId=forusall&limit=50&offset=0</code></pre>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/jobs/:id</strong></div>
+            <p class="muted">Detalle de un job (auth requerido).</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>DELETE /forusbot/jobs/:id</strong></div>
+            <p class="muted">
+              Cancela un job en cola (auth requerido). Si ya está en ejecución →
+              <code>409</code>.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/locks</strong></div>
+            <p class="muted">Estado de candados de login/TOTP por usuario.</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/settings</strong></div>
+            <p class="muted">Lee settings (concurrencia y flags).</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>PATCH /forusbot/settings</strong></div>
+            <p class="muted">
+              Actualiza settings. Campos útiles: <code>maxConcurrency</code>,
+              <code>flags.statusPublic</code>.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/metrics</strong></div>
+            <p class="muted">Promedios por bot, totales y muestras.</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/version</strong></div>
+            <p class="muted">Nombre/versión del paquete.</p>
+          </div>
+
+          <div class="card">
+            <div class="small"><strong>GET /forusbot/openapi</strong></div>
+            <p class="muted">YAML OpenAPI.</p>
+          </div>
+
+          <!-- NUEVO: Sandbox Dry-Run -->
+          <div class="card">
+            <div class="small">
+              <strong
+                >POST <code>/forusbot/sandbox/vault-file-upload</code></strong
+              >
+            </div>
+            <p class="muted">
+              Validación en seco del upload. Valida cabeceras/cuerpo sin crear
+              un job.
+            </p>
+            <p class="small">
+              <a href="/docs/api/es#sandbox-upload">Leer docs →</a>
+            </p>
+          </div>
+
+          <!-- NUEVO: Scrape Participant -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/scrape-participant</code></strong>
+            </div>
+            <p class="muted">
+              Raspa módulos del participante por participantId. 202 Accepted con
+              jobId; soporta return=data|html|text|both.
+            </p>
+            <p class="small">
+              <a href="/docs/api/es#scrape-participant">Leer docs →</a>
+            </p>
+          </div>
+
+          <!-- NUEVO: Search Participants -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/search-participants</code></strong>
+            </div>
+            <p class="muted">
+              Busca por empresa/nombre/email/SSN (últimos
+              4)/teléfono/participantId. Soporta
+              fetchAllPages/pageLimit/maxRows; devuelve filas normalizadas +
+              paginación.
+            </p>
+            <p class="small">
+              <a href="/docs/api/es#search-participants">Leer docs →</a>
+            </p>
+          </div>
+
+          <!-- NUEVO: MFA Reset -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/mfa-reset</code></strong>
+            </div>
+            <p class="muted">
+              Reinicia el MFA del participante. 202 Accepted con jobId; espera
+              hasta ‘not enrolled’.
+            </p>
+            <p class="small">
+              <a href="/docs/api/es#mfa-reset">Leer docs →</a>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <h2 id="bots" class="tag">Bots</h2>
+      <p class="muted">
+        Resumen de alto nivel de los bots de automatización. Para
+        especificaciones completas y ejemplos de respuestas, visita cada
+        referencia.
+      </p>
+
+      <!-- Vault File Upload -->
+      <section id="bot-vault-file-upload">
+        <h3>Vault File Upload Bot</h3>
+        <p>
+          Automatiza cargas seguras de PDF al portal de empleadores de ForUsAll.
+          Acepta cuerpo binario y metadatos en headers; devuelve
+          <code>202 Accepted</code> con <code>jobId</code> para consultar.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/vault-file-upload</code> (auth)</p>
+        <h4>Headers</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Req</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>x-auth-token</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>Token compartido de API.</td>
+            </tr>
+            <tr>
+              <td><code>x-filename</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>Nombre original (p. ej., <code>document.pdf</code>).</td>
+            </tr>
+            <tr>
+              <td><code>x-meta</code></td>
+              <td>JSON string</td>
+              <td>sí</td>
+              <td>
+                Incluye <code>planId</code> y <code>formData</code> (section,
+                caption, status, effectiveDate).
+              </td>
+            </tr>
+            <tr>
+              <td><code>Content-Type</code></td>
+              <td>enum</td>
+              <td>sí</td>
+              <td>
+                <code>application/pdf</code> o
+                <code>application/octet-stream</code>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Body</h4>
+        <p>Binario (el archivo PDF).</p>
+        <h4>Respuestas</h4>
+        <ul>
+          <li>
+            <strong>202</strong> Accepted — devuelve
+            <code>{ ok, jobId, estimate, ... }</code>
+          </li>
+          <li><strong>400/401/422</strong> — errores de validación/auth</li>
+        </ul>
+        <h4>cURL rápido</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/vault-file-upload" \
+  -H "x-auth-token: &lt;TOKEN&gt;" \
+  -H "x-filename: document.pdf" \
+  -H 'x-meta: {"planId":580,"formData":{"section":"CONTRACTS &amp; AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}' \
+  -H "Content-Type: application/pdf" \
+  --data-binary @document.pdf</code></pre>
+        <p>
+          <a href="/docs/api/es#vault-file-upload">Ver referencia completa →</a>
+        </p>
+      </section>
+
+      <!-- Scrape Participant -->
+      <section id="bot-scrape-participant">
+        <h3>Scrape Participant Bot</h3>
+        <p>
+          Raspa datos del participante por <code>participantId</code>. Soporta
+          selección de módulos y modos de retorno. Devuelve
+          <code>202 Accepted</code> con <code>jobId</code>; consulta
+          <code>/forusbot/jobs/:id</code> para resultados.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/scrape-participant</code> (auth)</p>
+        <h4>Body JSON</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Tipo</th>
+              <th>Req</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>participantId</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>Participante objetivo.</td>
+            </tr>
+            <tr>
+              <td><code>return</code></td>
+              <td>enum</td>
+              <td>no</td>
+              <td>
+                <code>data|html|text|both</code> (por defecto
+                <code>data</code>).
+              </td>
+            </tr>
+            <tr>
+              <td><code>strict</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Validaciones más estrictas.</td>
+            </tr>
+            <tr>
+              <td><code>includeScreens</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Adjunta capturas cuando aplique.</td>
+            </tr>
+            <tr>
+              <td><code>timeoutMs</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Timeout global por ejecución.</td>
+            </tr>
+            <tr>
+              <td><code>modules</code></td>
+              <td>array</td>
+              <td>no</td>
+              <td>
+                Lista de módulos (p. ej., <code>[{"name":"profile"}]</code>).
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>cURL rápido</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/scrape-participant" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"participantId":"12345","return":"data","strict":true,"modules":[{"name":"profile"}]}'</code></pre>
+        <p>
+          <a href="/docs/api/es#scrape-participant"
+            >Ver referencia completa →</a
+          >
+        </p>
+      </section>
+
+      <!-- Search Participants -->
+      <section id="bot-search-participants">
+        <h3>Search Participants Bot</h3>
+        <p>
+          Busca participantes con criterios flexibles. Soporta controles de
+          paginación y límites de resultado; devuelve filas normalizadas y un
+          resumen de paginación.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/search-participants</code> (auth)</p>
+        <h4>Body JSON</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Ruta</th>
+              <th>Tipo</th>
+              <th>Req</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>criteria.companyName</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Filtra por empresa.</td>
+            </tr>
+            <tr>
+              <td><code>criteria.fullName</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Filtra por nombre completo.</td>
+            </tr>
+            <tr>
+              <td><code>criteria.email</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Email.</td>
+            </tr>
+            <tr>
+              <td><code>criteria.ssn</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>SSN (últimos 4 soportados).</td>
+            </tr>
+            <tr>
+              <td><code>criteria.phone</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>Teléfono (dígitos).</td>
+            </tr>
+            <tr>
+              <td><code>criteria.participantId</code></td>
+              <td>string</td>
+              <td>no</td>
+              <td>ID exacto.</td>
+            </tr>
+            <tr>
+              <td><code>options.fetchAllPages</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>
+                Si es true, recorre páginas hasta <code>pageLimit</code> o
+                <code>maxRows</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><code>options.pageLimit</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Límite duro de páginas (por defecto 1).</td>
+            </tr>
+            <tr>
+              <td><code>options.maxRows</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Máximo de filas a devolver (por defecto 25).</td>
+            </tr>
+            <tr>
+              <td><code>options.timeoutMs</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Timeout general.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="muted">
+          Nota: Si <code>maxRows</code> es pequeño, la ejecución puede detenerse
+          tras la primera página aun con <code>fetchAllPages=true</code>.
+        </p>
+        <h4>cURL rápido</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/search-participants" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"criteria":{"fullName":"miguel"},"options":{"fetchAllPages":true,"pageLimit":5,"maxRows":250}}'</code></pre>
+        <p>
+          <a href="/docs/api/es#search-participants"
+            >Ver referencia completa →</a
+          >
+        </p>
+      </section>
+
+      <!-- MFA Reset -->
+      <section id="bot-mfa-reset">
+        <h3>MFA Reset Bot</h3>
+        <p>
+          Programa el reinicio del MFA del participante y espera hasta que el
+          estado sea <code>not enrolled</code>. Devuelve
+          <code>202 Accepted</code> con <code>jobId</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/mfa-reset</code> (auth)</p>
+        <h4>Body JSON</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Tipo</th>
+              <th>Req</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>participantId</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>ID de participante.</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>cURL rápido</h4>
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/mfa-reset" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"participantId":"12345"}'</code></pre>
+        <p><a href="/docs/api/es#mfa-reset">Ver referencia completa →</a></p>
+      </section>
+
+      <section id="jobs">
+        <h2>Jobs API — estados y campos</h2>
+        <ul class="list">
+          <li>
+            <strong>Estados</strong>: <code>queued</code>, <code>running</code>,
+            <code>succeeded</code>, <code>failed</code>, <code>canceled</code>.
+          </li>
+          <li>
+            <strong>Campos</strong>: <code>jobId</code>, <code>botId</code>,
+            <code>meta</code>, <code>acceptedAt</code>, <code>startedAt</code>,
+            <code>finishedAt</code>, <code>result</code>, <code>error</code>.
+          </li>
+          <li>
+            <strong>Métricas de ejecución</strong>: en cola →
+            <code>waitingSeconds</code> y <code>position</code>; ejecutando →
+            <code>elapsedSeconds</code> y etapa; terminado →
+            <code>totalSeconds</code>.
+          </li>
+        </ul>
+      </section>
+
+      <section id="schemas">
+        <h2>Esquemas</h2>
+
+        <h3>x-meta (compartido)</h3>
+        <pre><code>{
   "planId": number,
   "formData": {
     "section": string,
@@ -163,8 +578,8 @@
   }
 }</code></pre>
 
-      <h3>202 Accepted (submit)</h3>
-<pre><code>{
+        <h3>202 Accepted (submit)</h3>
+        <pre><code>{
   "ok": true,
   "jobId": "uuid",
   "acceptedAt": "....",
@@ -173,8 +588,8 @@
   "capacitySnapshot": { ... }
 }</code></pre>
 
-      <h3>Job (GET /jobs/:id)</h3>
-<pre><code>{
+        <h3>Job (GET /jobs/:id)</h3>
+        <pre><code>{
   "ok": true,
   "jobId": "...",
   "state": "running|...|failed",
@@ -187,14 +602,14 @@
   "stageSeconds"?: 2,
   "totalSeconds"?: 117
 }</code></pre>
-    </section>
+      </section>
 
-    <section id="examples">
-      <h2>Ejemplos cURL</h2>
+      <section id="examples">
+        <h2>Ejemplos cURL</h2>
 
-      <div class="card spacey">
-        <h3>Crear job (202)</h3>
-<pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
+        <div class="card spacey">
+          <h3>Crear job (202)</h3>
+          <pre><code>META='{"planId":580,"formData":{"section":"CONTRACTS & AGREEMENTS","caption":"Recordkeeper Agreement","status":"Audit Ready","effectiveDate":"2025-05-02"}}'
 
 curl -sS -X POST https://TU_URL/forusbot/vault-file-upload \
   -H 'x-auth-token: TU_TOKEN' \
@@ -202,30 +617,30 @@ curl -sS -X POST https://TU_URL/forusbot/vault-file-upload \
   -H 'Content-Type: application/octet-stream' \
   -H "x-meta: $META" \
   --data-binary @presentation.pdf</code></pre>
-      </div>
+        </div>
 
-      <div class="card spacey">
-        <h3>Consultar un job</h3>
-<pre><code>curl -sS -H 'x-auth-token: TU_TOKEN' \
+        <div class="card spacey">
+          <h3>Consultar un job</h3>
+          <pre><code>curl -sS -H 'x-auth-token: TU_TOKEN' \
   https://TU_URL/forusbot/jobs/JOB_ID</code></pre>
-      </div>
+        </div>
 
-      <div class="card spacey">
-        <h3>Listar jobs</h3>
-<pre><code>curl -sS -H 'x-auth-token: TU_TOKEN' \
+        <div class="card spacey">
+          <h3>Listar jobs</h3>
+          <pre><code>curl -sS -H 'x-auth-token: TU_TOKEN' \
   'https://TU_URL/forusbot/jobs?state=queued&limit=20'</code></pre>
-      </div>
+        </div>
 
-      <div class="card spacey">
-        <h3>Cancelar un job en cola</h3>
-<pre><code>curl -sS -X DELETE -H 'x-auth-token: TU_TOKEN' \
+        <div class="card spacey">
+          <h3>Cancelar un job en cola</h3>
+          <pre><code>curl -sS -X DELETE -H 'x-auth-token: TU_TOKEN' \
   https://TU_URL/forusbot/jobs/JOB_ID</code></pre>
-      </div>
-    </section>
+        </div>
+      </section>
 
-    <section id="env">
-      <h2>Variables de entorno</h2>
-<pre><code># Requeridas
+      <section id="env">
+        <h2>Variables de entorno</h2>
+        <pre><code># Requeridas
 PORT=10000
 SHARED_TOKEN=dev-secret
 
@@ -247,50 +662,76 @@ EVIDENCE_DIR=/tmp/evidence
 HEADFUL=0             # 0=headless (recomendado en la nube), 1=mostrar navegador
 SLOWMO=0              # ms por acción cuando HEADFUL=1
 CLOSE_KILL_MS=1500</code></pre>
-      <p class="small muted">El código usa <code>HEADFUL</code> (no <code>HEADLESS</code>). En producción usa <code>HEADFUL=0</code>.</p>
-    </section>
+        <p class="small muted">
+          El código usa <code>HEADFUL</code> (no <code>HEADLESS</code>). En
+          producción usa <code>HEADFUL=0</code>.
+        </p>
+      </section>
 
-    <section id="evidence">
-      <h2>Evidencias</h2>
-      <p>Las capturas se guardan en <code>/tmp/evidence</code>. En dev se exponen vía <code>GET /evidence/*</code>. En producción puedes deshabilitar el acceso público.</p>
-    </section>
+      <section id="evidence">
+        <h2>Evidencias</h2>
+        <p>
+          Las capturas se guardan en <code>/tmp/evidence</code>. En dev se
+          exponen vía <code>GET /evidence/*</code>. En producción puedes
+          deshabilitar el acceso público.
+        </p>
+      </section>
 
-    <section id="errors">
-      <h2>Errores & Warnings</h2>
-      <ul class="list">
-        <li><strong>400 Bad Request</strong> — <code>x-meta</code> inválido o falta el archivo.</li>
-        <li><strong>401 Unauthorized</strong> — token inválido/ausente.</li>
-        <li><strong>409 Conflict</strong> — intento de cancelar un job que ya está corriendo.</li>
-        <li><strong>422 Unprocessable Entity</strong> — regla de negocio rechazada.</li>
-        <li><strong>500</strong> — error inesperado.</li>
-      </ul>
-    </section>
+      <section id="errors">
+        <h2>Errores & Warnings</h2>
+        <ul class="list">
+          <li>
+            <strong>400 Bad Request</strong> — <code>x-meta</code> inválido o
+            falta el archivo.
+          </li>
+          <li><strong>401 Unauthorized</strong> — token inválido/ausente.</li>
+          <li>
+            <strong>409 Conflict</strong> — intento de cancelar un job que ya
+            está corriendo.
+          </li>
+          <li>
+            <strong>422 Unprocessable Entity</strong> — regla de negocio
+            rechazada.
+          </li>
+          <li><strong>500</strong> — error inesperado.</li>
+        </ul>
+      </section>
 
-    <section id="openapi">
-      <h2>OpenAPI (YAML)</h2>
-      <p>Consulta <code><a href="/docs/openapi.yaml">/docs/openapi.yaml</a></code> para importar en Swagger/Postman.</p>
-    </section>
+      <section id="openapi">
+        <h2>OpenAPI (YAML)</h2>
+        <p>
+          Consulta
+          <code><a href="/docs/openapi.yaml">/docs/openapi.yaml</a></code> para
+          importar en Swagger/Postman.
+        </p>
+      </section>
 
-    <section id="changelog">
-      <h2>Historial</h2>
-      <ul class="list">
-        <li><strong>2025-08-20</strong> — Namespace <code>/forusbot</code>, nuevos endpoints: <code>/jobs</code> (listar/cancelar), <code>/settings</code> (GET/PATCH), <code>/locks</code>, <code>/metrics</code>, <code>/version</code>, <code>/openapi</code>; docs ajustadas para <code>HEADFUL</code>.</li>
-      </ul>
-    </section>
-  </main>
+      <section id="changelog">
+        <h2>Historial</h2>
+        <ul class="list">
+          <li>
+            <strong>2025-08-20</strong> — Namespace <code>/forusbot</code>,
+            nuevos endpoints: <code>/jobs</code> (listar/cancelar),
+            <code>/settings</code> (GET/PATCH), <code>/locks</code>,
+            <code>/metrics</code>, <code>/version</code>, <code>/openapi</code>;
+            docs ajustadas para <code>HEADFUL</code>.
+          </li>
+        </ul>
+      </section>
+    </main>
 
-  <script>
-  (function(){
-    const sel = document.getElementById('lang-select');
-    if (!sel) return;
-    const isES = location.pathname.replace(/\/+$/,'').endsWith('/docs/es');
-    sel.value = isES ? 'es' : 'en';
-    sel.addEventListener('change', (e) => {
-      const v = e.target.value;
-      if (v === 'es') location.href = '/docs/es';
-      else location.href = '/docs';
-    });
-  })();
-  </script>
-</body>
+    <script>
+      (function () {
+        const sel = document.getElementById("lang-select");
+        if (!sel) return;
+        const isES = location.pathname.replace(/\/+$/, "").endsWith("/docs/es");
+        sel.value = isES ? "es" : "en";
+        sel.addEventListener("change", (e) => {
+          const v = e.target.value;
+          if (v === "es") location.href = "/docs/es";
+          else location.href = "/docs";
+        });
+      })();
+    </script>
+  </body>
 </html>

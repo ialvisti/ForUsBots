@@ -32,7 +32,7 @@
       <div class="wrap meta-row">
         <div class="meta">
           <a class="muted small" href="/docs/openapi.yaml">openapi.yaml</a>
-          <span class="badge">v1.0.0</span>
+          <span class="badge">v2.2.0</span>
           <span class="badge alt">OAS 3.0</span>
         </div>
       </div>
@@ -257,6 +257,280 @@
             <div class="code">500 <span class="muted">Error interno</span></div>
             <pre><code class="json">{"ok": false, "error": "Unexpected runtime error"}</code></pre>
           </div>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/sandbox/vault-file-upload (dry-run) -->
+      <details class="op post" id="sandbox-upload">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/sandbox/vault-file-upload</span>
+          <span class="sum">Validar sin lanzar un job (dry-run)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Validador de prueba. No requiere auth. Valida
+            <code>x-filename</code> y parsea/valida <code>x-meta</code>. Si se
+            envía binario, solo se cuenta pero no se procesa. Devuelve
+            <code>200</code> con eco normalizado o <code>4xx</code> ante errores
+            de validación.
+          </p>
+
+          <h4>Parámetros (Headers)</h4>
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Ubicación</th>
+                <th>Tipo</th>
+                <th>Req</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>x-filename</code></td>
+                <td>header</td>
+                <td>string</td>
+                <td>sí</td>
+                <td>Debe terminar en <code>.pdf</code>.</td>
+              </tr>
+              <tr>
+                <td><code>x-meta</code></td>
+                <td>header</td>
+                <td>string (JSON)</td>
+                <td>sí</td>
+                <td>Misma forma que <code>x-meta</code> del upload.</td>
+              </tr>
+              <tr>
+                <td><code>Content-Type</code></td>
+                <td>header</td>
+                <td>enum</td>
+                <td>no</td>
+                <td>
+                  <code>application/octet-stream</code> o
+                  <code>application/pdf</code> si se envía binario.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "mode": "dry-run",
+  "receivedBinaryBytes": 12345,
+  "normalized": {
+    "filename": "document.pdf",
+    "meta": { "planId": 580, "formData": {"section":"CONTRACTS & AGREEMENTS", "caption":"Recordkeeper Agreement", "status":"Audit Ready", "effectiveDate":"2025-05-02"} }
+  },
+  "warnings": []
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">
+              400 <span class="muted">Solicitud incorrecta</span>
+            </div>
+            <pre><code class="json">{
+  "ok": false,
+  "errorType": "validation",
+  "error": "Missing fields in x-meta",
+  "missing": ["planId","formData.section","formData.caption","formData.status","formData.effectiveDate"],
+  "warnings": []
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">
+              422 <span class="muted">Entidad no procesable</span>
+            </div>
+            <pre><code class="json">{
+  "ok": false,
+  "errorType": "validation",
+  "error": "Status 'Document Missing' is not valid when a file is attached"
+}</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- =================== TAG: participantes =================== -->
+      <h2 id="participants" class="tag">participantes</h2>
+
+      <!-- POST /forusbot/scrape-participant -->
+      <details class="op post" id="scrape-participant">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/scrape-participant</span>
+          <span class="sum">Extraer módulos de un participante (en cola)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Requiere auth (<code>x-auth-token</code>). Encola un job de scraping
+            para un participante. Usa <code>GET /forusbot/jobs/:id</code> para
+            consultar hasta completar.
+          </p>
+
+          <h4>Body</h4>
+          <pre><code class="json">{
+  "participantId": "12345",
+  "return": "data|html|text|both",
+  "strict": true,
+  "includeScreens": false,
+  "timeoutMs": 30000,
+  "modules": [
+    "census",
+    { "key": "payroll", "fields": ["years:all", "2024", "2025"] }
+  ]
+}</code></pre>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "date-time",
+  "queuePosition": 1,
+  "estimate": {"method":"lanes+movingAvg","avgDurationSeconds":120,...},
+  "capacitySnapshot": {"maxConcurrency":3,"running":0,"queued":0,"slotsAvailable":3},
+  "warnings": [
+    { "type": "invalid_modules_ignored", "keys": ["unknown"] }
+  ],
+  "executedBy": { "name": "...", "role": "user|admin", "at": "date-time" }
+}</code></pre>
+          </div>
+          <p class="muted small">
+            La forma del resultado depende de los módulos seleccionados.
+            Consulta <code>/forusbot/jobs/:id</code> hasta
+            <code>state: "succeeded"</code>.
+          </p>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/search-participants -->
+      <details class="op post" id="search-participants">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/search-participants</span>
+          <span class="sum">Buscar participantes (en cola)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Requiere auth (<code>x-auth-token</code>). Normaliza criterios y
+            opciones, inicia sesión, ejecuta la búsqueda en el portal y encola
+            el job.
+          </p>
+
+          <h4>Body</h4>
+          <pre><code class="json">{
+  "criteria": {
+    "companyName": "Acme Inc.",
+    "fullName": "Jane Doe",
+    "email": "jane@acme.com",
+    "ssn": "1234",                 // últimos 4 (o 9)
+    "phone": "4155551234",         // 10 dígitos
+    "participantId": "98765"
+  },
+  "options": {
+    "fetchAllPages": true,
+    "pageLimit": 3,
+    "maxRows": 60,
+    "timeoutMs": 12000,
+    "evidenceOnSuccess": false
+  }
+}</code></pre>
+
+          <p class="muted small">
+            Interacción: cuando <code>fetchAllPages=true</code>, el bot avanza
+            por páginas hasta <code>pageLimit</code>.
+            <code>maxRows</code> limita el total de filas devueltas. La
+            respuesta inmediata es <code>202 Accepted</code> con
+            <code>jobId</code>; el resultado final del job incluye las filas y
+            la paginación mostrada abajo.
+          </p>
+
+          <h4>Aceptado (202)</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "date-time",
+  "queuePosition": 1,
+  "estimate": {"method":"lanes+movingAvg","avgDurationSeconds":120,...},
+  "capacitySnapshot": {"maxConcurrency":3,"running":0,"queued":0,"slotsAvailable":3}
+}</code></pre>
+          </div>
+
+          <h4>Resultado del job (cuando finaliza)</h4>
+          <pre><code class="json">{
+  "ok": true,
+  "targetUrl": "https://employer.forusall.com/view_participants",
+  "criteriaEcho": {"companyName": "Acme Inc.", "fullName": "Jane Doe", "email": "jane@acme.com", "ssn": "1234", "phone": "4155551234", "participantId": "98765"},
+  "pagination": {
+    "pagesFetched": 2,
+    "pageLimit": 3,
+    "estimatedTotal": 125,
+    "hasNextPage": true,
+    "shownText": "Showing 1 to 25 of 125 entries"
+  },
+  "count": 50,
+  "rows": [
+    {
+      "planName": "Acme 401(k)",
+      "planId": "580",
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "participantId": "98765",
+      "last4Ssn": "1234",
+      "status": "Eligible",
+      "rmContact": "RM Name",
+      "opsContact": "Ops Name"
+    }
+  ],
+  "evidencePath": "/tmp/evidence/search-participants_after_....png"
+}</code></pre>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/mfa-reset -->
+      <details class="op post" id="mfa-reset">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/mfa-reset</span>
+          <span class="sum">Reset de MFA para un participante (en cola)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Requiere auth (<code>x-auth-token</code>). Dispara el reset de MFA
+            de un participante y espera a que el estado sea
+            <code>not enrolled</code>. Devuelve 202 y puedes seguir el progreso
+            vía la Jobs API.
+          </p>
+
+          <h4>Body</h4>
+          <pre><code class="json">{ "participantId": "12345" }</code></pre>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "date-time",
+  "queuePosition": 1,
+  "estimate": {"method":"lanes+movingAvg","avgDurationSeconds":120,...},
+  "capacitySnapshot": {"maxConcurrency":3,"running":0,"queued":0,"slotsAvailable":3},
+  "botId": "forusall-mfa-reset",
+  "meta": { "participantId": "12345", "participantUrl": "https://employer.forusall.com/participants/12345" }
+}</code></pre>
+          </div>
+          <p class="muted small">
+            Consulta <code>/forusbot/jobs/:id</code> hasta que el job finalice.
+          </p>
         </div>
       </details>
 

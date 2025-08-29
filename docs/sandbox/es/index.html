@@ -1,4 +1,4 @@
-<!-- docs/sandbox/index.html (ES, traducido de EN) -->
+<!-- docs/sandbox/index.html -->
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
   <head>
@@ -6,9 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ForUsBots — Sandbox</title>
     <link rel="stylesheet" href="../sandbox.css" />
-    <link rel="icon" type="image/png" href="../../images/icon.png" />
-    <script src="sandbox.js" defer></script>
+    <link rel="icon" type="image/png" href="/docs/images/icon.png" />
+    <script src="./js/main.js" defer></script>
   </head>
+
   <body>
     <header>
       <div class="wrap header-bar">
@@ -18,28 +19,22 @@
         </div>
 
         <div class="header-right">
-
           <span class="spacer"></span>
-
           <div id="endpointBadges" class="badges"></div>
-
+          <span class="spacer"></span><span class="spacer"></span>
+          <a id="back-link" class="toplink" href="/docs/api"
+            >Documentación API</a
+          >
           <span class="spacer"></span>
-          <span class="spacer"></span>
-          <a id="back-link" class="toplink" href="/docs/api">API Docs</a>
-          <span class="spacer"></span>
-
-          <!-- Toggle light/dark -->
-          <label class="theme-toggle" title="Alternar tema claro/oscuro">
-            <input id="themeSwitch" type="checkbox" aria-label="Alternar tema" />
+          <label class="theme-toggle" title="Cambiar tema claro/oscuro">
+            <input id="themeSwitch" type="checkbox" aria-label="Toggle theme" />
             <span class="track"><span class="thumb"></span></span>
             <span class="toggle-label" id="themeLabel">Oscuro</span>
           </label>
-
           <span class="spacer"></span>
-
           <div class="lang-switch">
-            <label for="lang-select" class="sr-only">Idioma</label>
-            <select id="lang-select" aria-label="Idioma">
+            <label for="lang-select" class="sr-only">Language</label>
+            <select id="lang-select" aria-label="Language">
               <option value="en" selected>EN</option>
               <option value="es">ES</option>
             </select>
@@ -51,10 +46,10 @@
     <div class="wrap grid cols-2">
       <!-- Generator -->
       <section class="card" id="generator">
-        <h2>1) Genera tu request</h2>
+        <h2>1) Construye tu solicitud</h2>
         <p class="muted">
-          Selecciona el endpoint y completa los campos. Te generamos headers,
-          x-meta (si aplica) y snippets listos.
+          Selecciona el endpoint y completa los campos. Generaremos headers,
+          x-meta (si aplica) y fragmentos listos para usar.
         </p>
 
         <div class="field-row">
@@ -62,11 +57,21 @@
             <label class="small">Endpoint</label>
             <select id="endpoint" class="endpoint-select">
               <option value="vault-upload">
-                POST /forusbot/vault-file-upload ⚠️ PRECAUCIÓN: Petición Real ⚠️
+                POST /forusbot/vault-file-upload ⚠️ CAUTION: Real Request ⚠️
               </option>
               <option value="sandbox-upload">
                 POST /forusbot/sandbox/vault-file-upload (dry-run)
               </option>
+              <!-- NEW -->
+              <option value="scrape-participant">
+                POST /forusbot/scrape-participant
+              </option>
+
+              <option value="search-participants">
+                POST /forusbot/search-participants
+              </option>
+
+              <option value="mfa-reset">POST /forusbot/mfa-reset</option>
               <option value="jobs-get">GET /forusbot/jobs/:id</option>
               <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
               <option value="status-get">GET /forusbot/status</option>
@@ -79,23 +84,25 @@
         <div class="grid inner">
           <div class="two">
             <div class="field">
-              <label>Base URL</label>
+              <label>URL base</label>
               <input
                 id="baseUrl"
                 type="text"
-                placeholder="https://tu-deploy/render.app"
+                placeholder="https://your-deploy/render.app"
                 readonly
                 aria-readonly="true"
-                title="Bloqueado al origen de esta página"
+                title="Locked to this page’s origin"
               />
-              <div class="help">Por defecto usamos el mismo origen de esta página.</div>
+              <div class="help">
+                Por defecto usamos el origen de esta página.
+              </div>
             </div>
             <div class="field">
               <label>x-auth-token</label>
               <input
                 id="token"
                 type="password"
-                placeholder="(opcional, según endpoint)"
+                placeholder="(optional, depending on endpoint)"
                 autocomplete="off"
               />
             </div>
@@ -104,31 +111,28 @@
           <!-- Upload: file + x-filename -->
           <div class="two ep ep-upload">
             <div class="field">
-              <label>PDF a enviar</label>
-
-              <!-- native input (accessible) -->
+              <label>PDF a cargar</label>
               <input
                 id="pdfFile"
                 type="file"
                 accept="application/pdf"
                 class="file-input-hidden"
               />
-
-              <!-- dropzone / full-width button -->
               <div
                 id="dropzone"
                 class="dropzone"
                 tabindex="0"
                 role="button"
-                aria-label="Subir PDF"
+                aria-label="Upload PDF"
               >
                 Haz clic o arrastra un <b>PDF</b> aquí
               </div>
-              <div id="fileName" class="file-name muted">Ningún archivo seleccionado.</div>
-
+              <div id="fileName" class="file-name muted">
+                Ningún archivo seleccionado.
+              </div>
               <div class="help">
-                Para una <b>ejecución real</b> en upload el archivo es obligatorio. En Dry-Run
-                es opcional.
+                Para una <b>ejecución real</b> en upload se requiere un archivo.
+                En Dry-Run es opcional.
               </div>
             </div>
             <div class="field">
@@ -154,7 +158,6 @@
 
             <div class="field">
               <label>section</label>
-              <!-- changed to SELECT -->
               <select id="section">
                 <option>COVER LETTERS</option>
                 <option>PLAN DOCUMENTS</option>
@@ -171,10 +174,8 @@
             <div class="two">
               <div class="field">
                 <label>caption</label>
-                <!-- changed to SELECT (options populated dynamically) -->
                 <select id="caption"></select>
               </div>
-
               <div class="field">
                 <label>status</label>
                 <select id="status">
@@ -188,12 +189,184 @@
             </div>
 
             <div id="otherWrap" class="field hidden">
-              <label>captionOtherText (requerido si caption = Other)</label>
+              <label>captionOtherText (requerido cuando caption = Other)</label>
               <input
                 id="captionOtherText"
                 type="text"
                 placeholder="Describe el documento"
               />
+            </div>
+          </div>
+
+          <!-- Scrape builder -->
+          <div class="ep ep-scrape hidden">
+            <div class="field">
+              <label>participantId</label>
+              <input id="participantId" type="text" placeholder="e.g. 12345" />
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>return</label>
+                <select id="returnMode">
+                  <option value="data" selected>data</option>
+                  <option value="html">html</option>
+                  <option value="text">text</option>
+                  <option value="both">both</option>
+                </select>
+              </div>
+              <div class="field hidden">
+                <label>timeoutMs</label>
+                <input id="timeoutMs" type="number" placeholder="30000" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label class="small"
+                  ><input id="strict" type="checkbox" checked /> strict</label
+                >
+              </div>
+              <div class="field">
+                <label class="small"
+                  ><input id="includeScreens" type="checkbox" />
+                  includeScreens</label
+                >
+              </div>
+            </div>
+
+            <br />
+
+            <div class="field">
+              <label>modules</label>
+              <div id="modulesList" class="stack"></div>
+              <button class="btn ghost small" id="addModuleBtn">
+                Agregar módulo
+              </button>
+              <div class="help">
+                Elige un módulo y (cuando aplique) selecciona sus campos. <br />
+                <br />
+                Para <code>payroll</code>, puedes escribir un token de años
+                (<code>years:all</code> o <code>2024,2025</code>) y/o tablas de
+                años específicas (p. ej. <code>2024,2025</code>).
+              </div>
+            </div>
+          </div>
+
+          <!-- MFA Reset builder -->
+          <div class="ep ep-mfa hidden">
+            <div class="field">
+              <label>participantId</label>
+              <input
+                id="mfaParticipantId"
+                type="text"
+                placeholder="e.g. 12345"
+              />
+            </div>
+            <div class="help">
+              Esto dispara el reset de MFA de un participante y espera a que el
+              estado sea
+              <code>not enrolled</code>. La solicitud se encola y puedes
+              seguirla en el área de estado de Job.
+            </div>
+          </div>
+
+          <!-- Search Participants builder -->
+          <div class="ep ep-search hidden">
+            <div class="two">
+              <div class="field">
+                <label>companyName</label>
+                <input
+                  id="spCompany"
+                  type="text"
+                  placeholder="p. ej. Acme Inc."
+                />
+              </div>
+              <div class="field">
+                <label>fullName</label>
+                <input
+                  id="spFullName"
+                  type="text"
+                  placeholder="p. ej. Jane Doe"
+                />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>email</label>
+                <input
+                  id="spEmail"
+                  type="email"
+                  placeholder="nombre@dominio.com"
+                />
+              </div>
+              <div class="field">
+                <label>ssn (últimos 4)</label>
+                <input
+                  id="spSsn"
+                  type="text"
+                  maxlength="4"
+                  inputmode="numeric"
+                  placeholder="1234"
+                />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>phone</label>
+                <input id="spPhone" type="text" placeholder="(opcional)" />
+              </div>
+              <div class="field">
+                <label>participantId</label>
+                <input
+                  id="spParticipantId"
+                  type="text"
+                  placeholder="p. ej. 12345"
+                />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>maxRows</label>
+                <input id="spMaxRows" type="number" min="1" value="25" />
+              </div>
+              <div class="field">
+                <label>pageLimit</label>
+                <input id="spPageLimit" type="number" min="1" value="1" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label class="small"
+                  ><input id="spFetchAllPages" type="checkbox" />
+                  fetchAllPages</label
+                >
+              </div>
+              <div class="field hidden">
+                <label>timeoutMs</label>
+                <input id="spTimeoutMs" type="number" value="12000" />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="help">
+              <em>Tip:</em> Si activas <code>fetchAllPages</code> y dejas
+              <code>maxRows</code> en 25, el sandbox lo ajustará automáticamente
+              a <code>25 × pageLimit</code> para cubrir esas páginas. Puedes
+              cambiar <code>maxRows</code> si quieres limitar el total.
             </div>
           </div>
 
@@ -212,7 +385,7 @@
             <button
               class="btn secondary"
               id="dryBtn"
-              title="Validar sin lanzar un job"
+              title="Validate without launching a job"
             >
               Dry-Run
             </button>
@@ -228,14 +401,14 @@
           <div class="sep"></div>
 
           <div id="metaBlock" class="field hidden">
-            <h3>x-meta (JSON en una línea)</h3>
+            <h3>x-meta (JSON en una sola línea)</h3>
             <textarea id="metaOut" readonly></textarea>
           </div>
 
           <div class="sep"></div>
 
           <div class="field">
-            <h3>Snippets</h3>
+            <h3>Fragmentos</h3>
             <div class="grid code-grid">
               <div class="code">
                 <div class="actions">
@@ -280,30 +453,33 @@
 
       <!-- Runner -->
       <section class="card" id="runner">
-        <h2>2) Prueba contra el servidor</h2>
+        <h2>2) Probar contra el servidor</h2>
         <p class="muted">
-          Ejecuta la petición real contra el endpoint seleccionado y revisa la
-          respuesta.
+          Ejecuta la solicitud real contra el endpoint seleccionado e
+          inspecciona la respuesta.
         </p>
 
         <div class="actions top-actions">
-          <button class="btn success" id="runBtn">Probar petición</button>
+          <button class="btn success" id="runBtn">Ejecutar solicitud</button>
           <button class="btn ghost" id="cancelBtn" disabled>
-            Cancelar polling
+            Cancelar sondeo
           </button>
         </div>
 
-        <div id="runResult" class="code"><pre>(sin ejecutar)</pre></div>
+        <div id="runResult" class="code">
+          <pre>(no ejecutado)</pre>
+        </div>
 
         <div class="sep"></div>
 
-        <!-- Job status area (hidden if endpoint is not upload) -->
-        <div id="jobArea">
-          <h3>Estado del Job</h3>
+        <div id="jobArea" class="">
+          <h3>Estado del job</h3>
           <div id="jobState" class="status">
             <span class="dot"></span><span class="txt">—</span>
           </div>
-          <div id="jobJson" class="code"><pre>(esperando job)</pre></div>
+          <div id="jobJson" class="code">
+            <pre>(esperando job)</pre>
+          </div>
         </div>
       </section>
     </div>
@@ -324,5 +500,7 @@
         });
       })();
     </script>
+
+    <script type="module" src="./js/main.js"></script>
   </body>
 </html>
