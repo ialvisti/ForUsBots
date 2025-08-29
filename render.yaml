@@ -2,7 +2,7 @@ services:
   - type: web
     name: forusbots
     env: docker
-    plan: starter   # o 'free' / 'standard'
+    plan: starter
     autoDeploy: true
     dockerfilePath: ./Dockerfile
 
@@ -14,6 +14,8 @@ services:
         value: production
       - key: PORT
         value: 10000
+
+      # 🔐 Secrets (define los valores en el Dashboard de Render)
       - key: SHARED_TOKEN
         sync: false
       - key: SITE_USER
@@ -22,6 +24,8 @@ services:
         sync: false
       - key: TOTP_SECRET
         sync: false
+
+      # ⏱️ OTP / Concurrencia / Estimaciones
       - key: TOTP_STEP_SECONDS
         value: 30
       - key: MAX_CONCURRENCY
@@ -30,8 +34,25 @@ services:
         value: 120
       - key: ESTIMATE_AVG_WINDOW
         value: 10
+
+      # 📸 Evidencias (temporal, no persistente)
       - key: EVIDENCE_DIR
         value: /tmp/evidence
-      # Fuerza headless en Render (tiene prioridad sobre HEADFUL)
+
+      # 🖥️ Headless (tiene prioridad sobre HEADFUL)
       - key: HEADLESS
         value: 1
+
+      # 🍪 Reuso de sesión (Playwright storageState)
+      - key: SESSION_REUSE
+        value: 1
+      - key: SESSIONS_DIR
+        value: /data/sessions
+      - key: SESSION_TTL_HOURS
+        value: 24
+
+    # 💾 Disco persistente para sessions (sobrevive deploys/restarts)
+    disks:
+      - name: data
+        mountPath: /data
+        sizeGB: 1

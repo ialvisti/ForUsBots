@@ -21,6 +21,10 @@ import { ENDPOINTS } from "./endpoints/constants.js";
 import { startPolling } from "./endpoints/jobs.js";
 import { runDryUpload } from "./endpoints/upload.js";
 import { wireScrapeUI, buildScrapeBodyStr } from "./core/scrape-ui.js";
+import {
+  wireSearchUI,
+  buildSearchBodyStr as buildSearchBodyStrSP,
+} from "./core/search-ui.js";
 
 // ==== Theme ====
 const themeSwitch = $("#themeSwitch");
@@ -33,6 +37,9 @@ const token = $("#token");
 const endpointSel = $("#endpoint");
 const endpointBadges = $("#endpointBadges");
 lockBaseUrlToOrigin(baseUrl);
+
+// ==== MFA controls ====
+const mfaParticipantId = $("#mfaParticipantId");
 
 // ==== Upload controls ====
 const pdfFile = $("#pdfFile");
@@ -144,8 +151,15 @@ function refreshAllOutputs() {
     });
   }
 
+  if (endpointSel.value === "search-participants") {
+    jsonBodyStr = buildSearchBodyStrSP(false); // compact
+  }
+
   if (endpointSel.value === "scrape-participant") {
     jsonBodyStr = buildScrapeBodyStr(false); // compact
+  } else if (endpointSel.value === "mfa-reset") {
+    const pid = (mfaParticipantId?.value || "").trim();
+    jsonBodyStr = JSON.stringify({ participantId: pid });
   }
 
   renderHeaders(metaStr, jsonBodyStr);
@@ -178,7 +192,7 @@ caption.addEventListener("change", () => {
 
 captionOtherText.addEventListener("input", refreshAllOutputs);
 status.addEventListener("change", refreshAllOutputs);
-[planId, effectiveDate, xFilename, jobId, token].forEach(
+[planId, effectiveDate, xFilename, jobId, token, mfaParticipantId].forEach(
   (el) => el && el.addEventListener("input", refreshAllOutputs)
 );
 
@@ -188,6 +202,9 @@ wireScrapeUI({
   strictDefault: true,
   hideTimeout: true,
 });
+
+// Search UI
+wireSearchUI({ onChange: refreshAllOutputs });
 
 document.querySelectorAll("[data-copy]").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -312,6 +329,25 @@ runBtn.addEventListener("click", async (e) => {
       }
     }
 
+    // mfa-reset: participantId must exist
+    if (endpointSel.value === "mfa-reset") {
+      const pid = (mfaParticipantId?.value || "").trim();
+      if (!pid) throw new Error("participantId is required for this endpoint.");
+      jsonBodyStr = JSON.stringify({ participantId: pid });
+    }
+
+    // search-participants: at least one criteria must exist
+    if (endpointSel.value === "search-participants") {
+      jsonBodyStr = buildSearchBodyStrSP(false);
+      const bodyTest = JSON.parse(jsonBodyStr);
+      const c = bodyTest.criteria || {};
+      const hasAny = Object.values(c).some(
+        (v) => v != null && String(v).trim() !== ""
+      );
+      if (!hasAny)
+        throw new Error("Provide at least one search criteria field.");
+    }
+
     renderHeaders(metaStr, jsonBodyStr);
     if (metaStr) metaOut.value = metaStr;
     buildAndRenderSnippets(ep, metaStr, jsonBodyStr);
@@ -328,6 +364,8 @@ runBtn.addEventListener("click", async (e) => {
     const url = ep.path.replace(":id", jobId.value || "");
     let body = bodyPromise ? await bodyPromise : undefined;
     if (endpointSel.value === "scrape-participant") body = jsonBodyStr;
+    if (endpointSel.value === "mfa-reset") body = jsonBodyStr;
+    if (endpointSel.value === "search-participants") body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });
     const text = await res.text();

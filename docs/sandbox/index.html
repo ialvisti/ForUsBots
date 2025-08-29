@@ -59,13 +59,19 @@
               <option value="sandbox-upload">
                 POST /forusbot/sandbox/vault-file-upload (dry-run)
               </option>
-              <option value="jobs-get">GET /forusbot/jobs/:id</option>
-              <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
-              <option value="status-get">GET /forusbot/status</option>
               <!-- NEW -->
               <option value="scrape-participant">
                 POST /forusbot/scrape-participant
               </option>
+
+              <option value="search-participants">
+                POST /forusbot/search-participants
+              </option>
+
+              <option value="mfa-reset">POST /forusbot/mfa-reset</option>
+              <option value="jobs-get">GET /forusbot/jobs/:id</option>
+              <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
+              <option value="status-get">GET /forusbot/status</option>
             </select>
           </div>
         </div>
@@ -189,14 +195,10 @@
           <div class="ep ep-scrape hidden">
             <div class="field">
               <label>participantId</label>
-              <input
-                id="participantId"
-                type="text"
-                placeholder="e.g. 12345"
-              />
+              <input id="participantId" type="text" placeholder="e.g. 12345" />
             </div>
 
-            <br>
+            <br />
 
             <div class="two">
               <div class="field">
@@ -228,22 +230,138 @@
               </div>
             </div>
 
-            <br>
+            <br />
 
             <div class="field">
               <label>modules</label>
-              <div id="modulesList" class="stack"> </div>
+              <div id="modulesList" class="stack"></div>
               <button class="btn ghost small" id="addModuleBtn">
                 Add module
               </button>
               <div class="help">
-                Choose a module and (when available) select its fields. <br />  <br />
+                Choose a module and (when available) select its fields. <br />
+                <br />
                 For <code>payroll</code>, you can type a years token (<code
                   >years:all</code
                 >
                 or <code>2024,2025</code>) and/or specific year tables (e.g.
                 <code>2024,2025</code>).
               </div>
+            </div>
+          </div>
+
+          <!-- MFA Reset builder -->
+          <div class="ep ep-mfa hidden">
+            <div class="field">
+              <label>participantId</label>
+              <input
+                id="mfaParticipantId"
+                type="text"
+                placeholder="e.g. 12345"
+              />
+            </div>
+            <div class="help">
+              This triggers a participant MFA reset and waits for status to
+              become
+              <code>not enrolled</code>. The request is queued and you can track
+              it in the Job status area.
+            </div>
+          </div>
+
+          <!-- Search Participants builder -->
+          <div class="ep ep-search hidden">
+            <div class="two">
+              <div class="field">
+                <label>companyName</label>
+                <input
+                  id="spCompany"
+                  type="text"
+                  placeholder="e.g. Acme Inc."
+                />
+              </div>
+              <div class="field">
+                <label>fullName</label>
+                <input
+                  id="spFullName"
+                  type="text"
+                  placeholder="e.g. Jane Doe"
+                />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>email</label>
+                <input
+                  id="spEmail"
+                  type="email"
+                  placeholder="name@domain.com"
+                />
+              </div>
+              <div class="field">
+                <label>ssn (last 4)</label>
+                <input
+                  id="spSsn"
+                  type="text"
+                  maxlength="4"
+                  inputmode="numeric"
+                  placeholder="1234"
+                />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>phone</label>
+                <input id="spPhone" type="text" placeholder="(optional)" />
+              </div>
+              <div class="field">
+                <label>participantId</label>
+                <input
+                  id="spParticipantId"
+                  type="text"
+                  placeholder="e.g. 12345"
+                />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>maxRows</label>
+                <input id="spMaxRows" type="number" min="1" value="25" />
+              </div>
+              <div class="field">
+                <label>pageLimit</label>
+                <input id="spPageLimit" type="number" min="1" value="1" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label class="small"
+                  ><input id="spFetchAllPages" type="checkbox" />
+                  fetchAllPages</label
+                >
+              </div>
+              <div class="field hidden">
+                <label>timeoutMs</label>
+                <input id="spTimeoutMs" type="number" value="12000" />
+              </div>
+            </div>
+
+            <br />
+
+            <div class="help">
+              <em>Tip:</em> If you enable <code>fetchAllPages</code> and leave
+              <code>maxRows</code> at 25, the sandbox will automatically adjust it to
+              <code>25 × pageLimit</code> to cover those pages. You can
+              override <code>maxRows</code> if you want to limit the total.
             </div>
           </div>
 

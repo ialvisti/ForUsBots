@@ -110,6 +110,15 @@ const AVAILABLE_MODULES = [
       dynamic: { type: "yearTables", label: "Payroll YYYY" },
     },
   },
+  // NEW: MFA (campo único)
+  {
+    key: "mfa",
+    label: "mfa",
+    fields: {
+      mode: "static",
+      list: ["MFA Status"],
+    },
+  },
 ];
 
 /** ====== Elementos ====== */
@@ -230,8 +239,6 @@ function renderFieldsForModule(row, key) {
       yi.addEventListener(ev, () => onChangeCb?.())
     );
   }
-
-
 }
 
 /** ====== Construcción de filas ====== */

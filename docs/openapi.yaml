@@ -152,6 +152,45 @@ paths:
       responses:
         '200': { description: OK }
         '401': { description: Unauthorized }
+  
+    /forusbot/search-participants:
+    post:
+      summary: Search participants
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                criteria:
+                  type: object
+                  properties:
+                    companyName: { type: string, nullable: true }
+                    fullName:    { type: string, nullable: true }
+                    email:       { type: string, nullable: true }
+                    ssn:         { type: string, nullable: true, description: "last 4" }
+                    phone:       { type: string, nullable: true }
+                    participantId:{ type: string, nullable: true }
+                options:
+                  type: object
+                  properties:
+                    fetchAllPages:    { type: boolean }
+                    pageLimit:        { type: integer, minimum: 1 }
+                    maxRows:          { type: integer, minimum: 1 }
+                    evidenceOnSuccess:{ type: boolean }
+                    timeoutMs:        { type: integer, minimum: 1000 }
+      responses:
+        '202': { description: Accepted (returns jobId) }
+        '400': { description: Bad Request }
+        '401': { description: Unauthorized }
+        '500': { description: Internal Server Error }
+
 
   /forusbot/openapi:
     get:

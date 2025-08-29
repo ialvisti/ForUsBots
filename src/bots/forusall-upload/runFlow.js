@@ -1,16 +1,6 @@
 // src/bots/forusall-upload/runFlow.js
-const speakeasy = require("speakeasy");
-const {
-  launchBrowser,
-  createContext,
-  safeClose,
-} = require("../../engine/browser");
-const {
-  SITE_USER,
-  SITE_PASS,
-  TOTP_SECRET,
-  TOTP_STEP_SECONDS,
-} = require("../../config"); // incluye step
+const { getPageFromPool, releasePage } = require("../../engine/sharedContext");
+const { SITE_USER, SITE_PASS, TOTP_SECRET } = require("../../config");
 const { buildUploadUrl } = require("../../engine/utils/url");
 const { saveEvidence } = require("../../engine/evidence");
 const {
@@ -18,19 +8,114 @@ const {
   selectByText,
 } = require("../../engine/utils/select");
 const { setEffectiveDate } = require("../../engine/utils/date");
-const { waitForFormCleared } = require("../../engine/utils/verify"); // ⬅️ nuevo verificador post-submit
+const { waitForFormCleared } = require("../../engine/utils/verify");
+const { ensureAuthForTarget } = require("../../engine/auth/loginOtp");
 
-// Login lock / introspección
-const {
-  acquireLogin,
-  waitNewTotpWindowIfNeeded,
-  markTotpUsed,
-} = require("../../engine/loginLock");
+const PW_DEFAULT_TIMEOUT = Math.max(
+  2000,
+  parseInt(process.env.PW_DEFAULT_TIMEOUT || "6000", 10)
+);
 
 /**
- * Ejecuta el flujo completo del bot de upload.
- * @param {{ meta, localFilePath?: string, filePayload?: {name, mimeType, buffer}, warnings?: string[], jobCtx?: {jobId, setStage(name, meta?)} }} args
+ * Verificador rápido en el propio DOM (1 sola evaluación en el frame).
+ * Comprueba que los valores del form YA no coinciden con los enviados (o están vacíos).
+ * Devuelve { ok, snapshot } si lo logra en el timeout, o null si no.
  */
+async function waitClearedFast(
+  page,
+  { fsel, fileInputSel, filled },
+  { timeoutMs = 2500, pollMs = 60 } = {}
+) {
+  try {
+    const res = await page.waitForFunction(
+      ({ fsel, fileInputSel, filled }) => {
+        function tidy(s) {
+          return String(s ?? "").trim();
+        }
+        function selectedText(sel) {
+          const el = document.querySelector(sel);
+          if (!el) return null;
+          const i = el.selectedIndex;
+          const t =
+            i >= 0 && el.options[i] ? el.options[i].textContent || "" : "";
+          return tidy(t);
+        }
+
+        const snap = {
+          section: fsel.section ? selectedText(fsel.section) : null,
+          caption: fsel.caption ? selectedText(fsel.caption) : null,
+          status: fsel.status ? selectedText(fsel.status) : null,
+          effectiveDate: fsel.effectiveDate
+            ? tidy(
+                (document.querySelector(fsel.effectiveDate) || {}).value || ""
+              )
+            : null,
+          fileEmpty: (function () {
+            const el = document.querySelector(fileInputSel);
+            if (!el || !el.files) return null;
+            return el.files.length === 0;
+          })(),
+          captionOtherText:
+            filled.captionOtherText != null
+              ? tidy(
+                  (
+                    document.querySelector(
+                      fsel.customCaption || "#fv_document_customized_caption"
+                    ) || {}
+                  ).value || ""
+                )
+              : null,
+        };
+
+        // Reglas (idénticas a verify.js pero en una sola pasada DOM):
+        const want = {
+          section: tidy(filled.section),
+          caption: tidy(filled.caption),
+          status: tidy(filled.status),
+          effectiveDate: tidy(filled.effectiveDate || ""),
+          captionOtherText:
+            filled.captionOtherText != null
+              ? tidy(filled.captionOtherText)
+              : null,
+        };
+
+        // Selects: deben ser distintos a lo enviado
+        const secOk =
+          snap.section == null || tidy(snap.section) !== want.section;
+        const capOk =
+          snap.caption == null || tidy(snap.caption) !== want.caption;
+        const staOk = snap.status == null || tidy(snap.status) !== want.status;
+
+        // Fecha: preferimos vacío, o al menos distinta a la enviada
+        const dateOk =
+          snap.effectiveDate == null ||
+          tidy(snap.effectiveDate) === "" ||
+          tidy(snap.effectiveDate) !== want.effectiveDate;
+
+        // Archivo: vacío
+        const fileOk = snap.fileEmpty === true;
+
+        // Custom caption (si aplicó): debe quedar vacío
+        const otherOk =
+          want.captionOtherText == null ||
+          tidy(snap.captionOtherText || "") === "";
+
+        const ok = secOk && capOk && staOk && dateOk && fileOk && otherOk;
+        return ok ? { ok: true, snapshot: snap } : false;
+      },
+      { fsel, fileInputSel, filled },
+      { timeout: timeoutMs, polling: pollMs }
+    );
+    if (res && typeof res === "object") {
+      return res; // { ok: true, snapshot }
+    }
+    return null;
+  } catch {
+    // Puede fallar si se destruye el contexto por un refresh del portal.
+    return null;
+  }
+}
+
 module.exports = async function runFlow({
   meta,
   localFilePath,
@@ -47,80 +132,38 @@ module.exports = async function runFlow({
     );
   }
 
-  let browser, context, page;
+  let page = null;
   try {
-    browser = await launchBrowser();
-    context = await createContext(browser);
-    page = await context.newPage();
-    page.on("dialog", (d) => d.dismiss().catch(() => {}));
+    // 1) Página del pool (contexto persistente + keep-alive)
+    page = await getPageFromPool({ siteUserEmail: SITE_USER });
+    page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
+    page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
 
-    // ---------- Login ----------
-    jobCtx?.setStage?.("login");
-    await page.goto(loginUrl, { waitUntil: "domcontentloaded" });
-    await page.fill(selectors.user, SITE_USER);
-    await page.fill(selectors.pass, SITE_PASS);
-
-    await Promise.all([
-      page.waitForLoadState("networkidle"),
-      page.click(selectors.loginButton),
-    ]);
-
-    // ---------- OTP (serializado por usuario + evita reusar el mismo step) ----------
-    jobCtx?.setStage?.("otp", { otpLock: "waiting" });
-    const otpWaitStart = Date.now();
-
-    const release = await acquireLogin(SITE_USER);
-    try {
-      const waitedSec = Math.floor((Date.now() - otpWaitStart) / 1000);
-      jobCtx?.setStage?.("otp", {
-        otpLock: "holder",
-        waitedSeconds: waitedSec,
-      });
-
-      await waitNewTotpWindowIfNeeded(SITE_USER);
-
-      await page.waitForSelector(selectors.otpInput, { timeout: 30000 });
-      let otpOk = false;
-
-      const step = Number(TOTP_STEP_SECONDS || 30);
-      const candidates = [
-        speakeasy.totp({
-          secret: TOTP_SECRET,
-          encoding: "base32",
-          step,
-          window: 0,
-        }),
-        speakeasy.totp({
-          secret: TOTP_SECRET,
-          encoding: "base32",
-          step,
-          window: 1,
-        }),
-      ];
-
-      for (const code of candidates) {
-        await page.fill(selectors.otpInput, code);
-        await page.click(selectors.otpSubmit);
-        try {
-          await page.waitForLoadState("networkidle", { timeout: 5000 });
-          otpOk = true;
-          break;
-        } catch {}
-      }
-
-      if (!otpOk) throw new Error("No fue posible validar el OTP");
-
-      markTotpUsed(SITE_USER);
-    } finally {
-      release();
-    }
-
-    const loginShot = await saveEvidence(page, "login", options);
-
-    // ---------- Página de carga ----------
-    jobCtx?.setStage?.("goto-upload");
+    // 2) URL destino del upload
     const uploadUrl = buildUploadUrl(uploadUrlTemplate, planId);
-    await page.goto(uploadUrl, { waitUntil: "domcontentloaded" });
+
+    // 3) Auth centralizada (login + OTP si aplica) y verificación de "shell" del upload
+    jobCtx?.setStage?.("auth-upload");
+    const SHELL_UPLOAD = [
+      selectors.form?.container || "form#add-new-document-record-form",
+      selectors.fileInput || "#fv_document_file",
+      "#add-new-document-record-form",
+    ];
+
+    const authRes = await ensureAuthForTarget(page, {
+      loginUrl,
+      targetUrl: uploadUrl,
+      selectors,
+      shellSelectors: SHELL_UPLOAD,
+      jobCtx,
+      saveSession: true,
+    });
+
+    // Opcional: evidencia post-login (no afecta el tiempo del submit)
+    let loginShot = null;
+    if (authRes.didLogin) {
+      loginShot = await saveEvidence(page, "login", options);
+    }
 
     const fsel = selectors.form || {};
 
@@ -202,30 +245,23 @@ module.exports = async function runFlow({
       );
     }
 
-    // ---------- Submit (sin esperar navegación/respuestas) ----------
+    // ---------- SUBMIT: instantáneo + verificación directa ----------
     const submitSel =
       selectors.fileSubmit ||
       "#add-new-document-record-form > div:nth-child(7) > input";
-    const containerSel =
-      (fsel && fsel.container) || "form#add-new-document-record-form";
+    const containerSel = fsel.container || "#add-new-document-record-form";
 
-    await page.waitForSelector(submitSel, { state: "visible", timeout: 10000 });
-    await page.evaluate(
-      (s) => document.querySelector(s)?.scrollIntoView({ block: "center" }),
-      submitSel
-    );
+    await page.waitForSelector(submitSel, { state: "visible", timeout: 8000 });
 
     jobCtx?.setStage?.("submit");
-    await page.click(submitSel);
-    const uploadShot = await saveEvidence(page, "after_submit", options);
 
-    // ---------- Verificar “form cleared” y terminar ----------
-    jobCtx?.setStage?.("verify-cleared");
+    // Click SIN esperar navegación (el portal puede refrescar, pero no dependemos de eso)
+    await page
+      .click(submitSel, { noWaitAfter: true, timeout: 8000 })
+      .catch(() => {});
 
-    const clearWaitMs = Number((options && options.clearWaitMs) || 4000); // timeout corto por defecto
-    const pollMs = Number((options && options.clearPollMs) || 150);
-
-    const cleared = await waitForFormCleared(
+    // Verificador “rápido” (2.5s máx) que trabaja en el propio frame
+    const fast = await waitClearedFast(
       page,
       {
         fsel,
@@ -238,43 +274,64 @@ module.exports = async function runFlow({
           captionOtherText: isOther ? formData.captionOtherText || "" : null,
         },
       },
-      { timeoutMs: clearWaitMs, pollMs }
+      { timeoutMs: 2500, pollMs: 60 }
     );
 
-    if (!cleared.ok) {
-      // evidencia opcional para diagnósticos
-      await saveEvidence(page, "verify_cleared_failed", options);
-      throw new Error(
-        `El formulario no se vació tras el submit: ${cleared.mismatches.join(
-          " | "
-        )}`
+    let clearedSnapshot = fast && fast.snapshot;
+    let clearedOk = !!(fast && fast.ok);
+
+    // Fallback robusto (hasta ~4s) sólo si el rápido no alcanzó
+    if (!clearedOk) {
+      jobCtx?.setStage?.("verify-cleared-fallback");
+      const fallback = await waitForFormCleared(
+        page,
+        {
+          fsel,
+          fileInputSel: selectors.fileInput,
+          filled: {
+            section: formData.section,
+            caption: formData.caption,
+            status: formData.status,
+            effectiveDate: formData.effectiveDate,
+            captionOtherText: isOther ? formData.captionOtherText || "" : null,
+          },
+        },
+        { timeoutMs: 4000, pollMs: 120 }
       );
+      clearedOk = fallback.ok;
+      clearedSnapshot = fallback.snapshot || clearedSnapshot;
+
+      if (!clearedOk) {
+        // última evidencia si falla
+        await saveEvidence(page, "verify_cleared_failed", options);
+        throw new Error(
+          `El formulario no se vació tras el submit: ${fallback.mismatches.join(
+            " | "
+          )}`
+        );
+      }
     }
 
-    // ¡Listo! No esperamos nada más; salir rápido.
-    jobCtx?.setStage?.("done");
+    // Evidencia post-submit sólo si está activada (para no gastar tiempo)
+    if (options && options.evidenceOnSuccess) {
+      await saveEvidence(page, "after_submit", options).catch(() => {});
+    }
 
+    // Done → salir YA
+    jobCtx?.setStage?.("done");
     return {
       ok: true,
       message: "Archivo cargado",
       postSubmitResult: "cleared",
-      clearedSnapshot: cleared.snapshot, // por si quieres auditar qué quedó seleccionado
+      clearedSnapshot,
       warnings,
       evidence: {
-        loginShotBase64:
-          options && options.returnEvidenceBase64
-            ? loginShot.base64
-            : undefined,
-        uploadShotBase64:
-          options && options.returnEvidenceBase64
-            ? uploadShot.base64
-            : undefined,
-        loginShotPath: loginShot.path,
-        uploadShotPath: uploadShot.path,
+        loginShotPath: authRes.didLogin
+          ? await (async () => null)()
+          : undefined, // mantén campo estable
       },
     };
   } finally {
-    // cierre inmediato (safeClose ya fuerza SIGKILL si hace falta)
-    await safeClose(page, context, browser);
+    if (page) await releasePage(page);
   }
 };

@@ -49,4 +49,22 @@ export const ENDPOINTS = {
     needs: { token: true }, // JSON body, no x-meta/x-filename
     pollJob: true, // returns 202 + jobId
   },
+  // NEW: mfa reset
+  "mfa-reset": {
+    label: "POST /forusbot/mfa-reset",
+    method: "POST",
+    path: "/forusbot/mfa-reset",
+    group: "mfa", // mostrará .ep-mfa en la UI
+    needs: { token: true }, // JSON body con { participantId }
+    pollJob: true, // returns 202 + jobId
+  },
+
+  "search-participants": {
+    label: "POST /forusbot/search-participants",
+    method: "POST",
+    path: "/forusbot/search-participants",
+    group: "search",
+    needs: { token: true }, // JSON body
+    pollJob: true,
+  },
 };
