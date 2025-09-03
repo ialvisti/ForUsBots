@@ -101,4 +101,48 @@ module.exports.FIXED = {
       nextBtn: "#search_list_next a",
     },
   },
+
+  // Página Trigger Emails (selectores exactos por tu HTML)
+  triggerEmails: {
+    url: "https://employer.forusall.com/trigger_emails",
+    selectors: {
+      form: "#trigger-emails",
+
+      // esenciales
+      planSelect: "#plan_id",
+      emailTypeSelect: "#email_type",
+      participantSelect: "#participant_id",
+      previewButton: "#previewEmail",
+
+      // onboard/new hire + generic (subtipos)
+      rkType: "#rk_type",
+      planSnapshotSelect: "#plan_snapshot",
+      emailToSend: "#email_to_send",
+      conversation: "#conversation_id",
+      attachment: "#attachment",
+
+      // statement_notice
+      statementYear: "#year",
+      statementQuarter: "#quarter",
+      statementSeason: "#season",
+
+      // sponsor_quarterly_email
+      sponsorYear: "#sponsor_qe_year",
+      sponsorQuarter: "#sponsor_qe_quarter",
+      sponsorCaNoteSubject: "#ca_note_subject",
+      sponsorCaNoteDetails: "#ca_note_details",
+      sponsorCaUrl: "#ca_url",
+      sponsorQirUrl: "#quarterly_investment_review_url",
+      sponsorNextReviewDate: "#next_quarterly_investment_review_date",
+      sponsorNextReviewTime: "#next_quarterly_investment_review_time",
+
+      // generic_email (audiencia y tipo)
+      audEnrolled: "#enrolled",
+      audNotEnrolled: "#not_enrolled",
+      audTerminated: "#terminated",
+      audIneligible: "#ineligible",
+      genericCommType: "#generic_comm_type",
+      otherEmailType: "#other_email_type",
+    },
+  },
 };

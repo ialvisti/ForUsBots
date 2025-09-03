@@ -2,7 +2,7 @@ services:
   - type: web
     name: forusbots
     env: docker
-    plan: starter
+    plan: standard
     autoDeploy: true
     dockerfilePath: ./Dockerfile
 
@@ -10,12 +10,13 @@ services:
     healthCheckTimeout: 100
 
     envVars:
+      # Modo y puerto
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
 
-      # 🔐 Secrets (define los valores en el Dashboard de Render)
+      # 🔐 Secrets (definir en el Dashboard de Render)
       - key: SHARED_TOKEN
         sync: false
       - key: SITE_USER
@@ -35,24 +36,68 @@ services:
       - key: ESTIMATE_AVG_WINDOW
         value: 10
 
-      # 📸 Evidencias (temporal, no persistente)
-      - key: EVIDENCE_DIR
-        value: /tmp/evidence
-
-      # 🖥️ Headless (tiene prioridad sobre HEADFUL)
+      # 🖥️ Headless (prod)
       - key: HEADLESS
         value: 1
+      - key: HEADFUL
+        value: 0
+      - key: SLOWMO
+        value: 0
+      - key: CLOSE_KILL_MS
+        value: 500
 
-      # 🍪 Reuso de sesión (Playwright storageState)
+      # 🍪 Contexto persistente + sesiones (en el disk)
+      - key: PERSISTENT_CONTEXT
+        value: 1
+      - key: USER_DATA_DIR
+        value: /var/lib/forusbots/user-data
+      - key: SHARED_CONTEXT
+        value: 1
+      - key: PAGE_POOL_SIZE
+        value: 3
+      - key: MAX_IDLE_PAGES
+        value: 1
+      - key: KEEPALIVE_MS
+        value: 30000
+
+      # ♻️ Reuso de storageState
       - key: SESSION_REUSE
         value: 1
       - key: SESSIONS_DIR
-        value: /data/sessions
+        value: /var/lib/forusbots/sessions
       - key: SESSION_TTL_HOURS
         value: 24
 
-    # 💾 Disco persistente para sessions (sobrevive deploys/restarts)
+      # 🚫 Evidencia por imágenes desactivada
+      - key: EVIDENCE_ENABLED
+        value: 0
+      - key: EVIDENCE_PUBLIC
+        value: false
+      - key: EVIDENCE_ADMIN_ONLY
+        value: true
+
+      # ⚡ Bloqueo de recursos pesados (rendimiento)
+      - key: SCRAPE_BLOCK_ASSETS
+        value: 1
+      - key: BLOCK_STYLESHEETS
+        value: 1
+      - key: BLOCK_THIRD_PARTY
+        value: 1
+      # - key: BLOCK_3P_LIST
+      #   value: googletagmanager.com,google-analytics.com,...
+
+      # ⏱️ Timeouts
+      - key: PW_DEFAULT_TIMEOUT
+        value: 6000
+      - key: SHELL_WAIT_MS
+        value: 2500
+      - key: OPEN_MODULE_TIMEOUT_MS
+        value: 6000
+      - key: PANEL_WAIT_MS
+        value: 2500
+
+    # 💾 Disco persistente para user-data y sessions (sobrevive deploys/restarts)
     disks:
-      - name: data
-        mountPath: /data
-        sizeGB: 1
+      - name: forusbots-state
+        mountPath: /var/lib/forusbots
+        sizeGB: 7

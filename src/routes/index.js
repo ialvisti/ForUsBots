@@ -8,6 +8,7 @@ const mfaResetRoutes = require("../bots/forusall-mfa-reset/routes");
 const forusUploadRoutes = require("../bots/forusall-upload/routes");
 const scrapeParticipantRoutes = require("../bots/forusall-scrape-participant/routes");
 const searchParticipantsRoutes = require("../bots/forusall-search-participants/routes");
+const emailTriggerRoutes = require("../bots/forusall-emailtrigger/routes");
 const queue = require("../engine/queue");
 const { getLoginLocksStatus } = require("../engine/loginLock");
 const auth = require("../middleware/auth"); // default = requireUser (compat)
@@ -424,5 +425,8 @@ router.use("/search-participants", searchParticipantsRoutes);
 
 // Monta el bot: /forusbot/mfa-reset
 router.use("/mfa-reset", mfaResetRoutes);
+
+// Monta el bot: /forusbot/emailtrigger
+router.use("/emailtrigger", emailTriggerRoutes);
 
 module.exports = router;
