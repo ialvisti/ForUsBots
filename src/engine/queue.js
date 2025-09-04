@@ -1,30 +1,46 @@
 // src/engine/queue.js
-const { randomUUID } = require('crypto');
-const { MAX_CONCURRENCY: CFG_MAX } = require('../config');
-const { getSettings } = require('./settings');
+const { randomUUID } = require("crypto");
+const { MAX_CONCURRENCY: CFG_MAX } = require("../config");
+const { getSettings } = require("./settings");
+const log = require("./logger");
+const { normalizeResultEnvelope } = require("./normalizer");
 
 // ===== Config de estimaciones (por bot, moving avg) =====
-const ESTIMATE_AVG_SECONDS = Math.max(30, parseInt(process.env.ESTIMATE_AVG_SECONDS || '120', 10));
-const ESTIMATE_AVG_WINDOW  = Math.max(3,  parseInt(process.env.ESTIMATE_AVG_WINDOW  || '10', 10));
+const ESTIMATE_AVG_SECONDS = Math.max(
+  30,
+  parseInt(process.env.ESTIMATE_AVG_SECONDS || "120", 10)
+);
+const ESTIMATE_AVG_WINDOW = Math.max(
+  3,
+  parseInt(process.env.ESTIMATE_AVG_WINDOW || "10", 10)
+);
 
 // Estado en memoria (por proceso)
-const running = []; // [{ jobId, botId, meta, startedAt, run, finishedAt, _resolve, _reject }]
-const queue   = []; // [{ jobId, botId, meta, enqueuedAt, run, _resolve, _reject }]
+const running = []; // [{ jobId, botId, meta, startedAt, run, finishedAt, _resolve, _reject, __tracker, __stagesHistory: [] }]
+const queue = []; // [{ jobId, botId, meta, enqueuedAt, run, _resolve, _reject }]
 
-// Stage por jobId (telemetría fina)
+// Stage por jobId (telemetría fina runtime /status)
 const stageByJob = new Map(); // jobId -> { name, meta, sinceISO }
 
 // Registro de jobs (para GET /jobs/:id y listados)
-const jobsById = new Map();   // jobId -> { jobId, botId, meta, state, acceptedAt, startedAt, finishedAt, result, error, createdBy }
+const jobsById = new Map(); // jobId -> { jobId, botId, meta, state, acceptedAt, startedAt, finishedAt, result, error, createdBy, stages: [], stagesSummaryMsByName?, rawResult? }
 
 // Promedios móviles por bot
 const durationsByBot = new Map(); // botId -> number[] (segundos)
 
 // ===== Utilidades tiempo =====
-function nowISO() { return new Date().toISOString(); }
+function nowISO() {
+  return new Date().toISOString();
+}
 function secondsSince(iso) {
-  try { return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000)); }
-  catch { return 0; }
+  try {
+    return Math.max(
+      0,
+      Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+    );
+  } catch {
+    return 0;
+  }
 }
 function secondsBetweenISO(aISO, bISO) {
   try {
@@ -32,42 +48,66 @@ function secondsBetweenISO(aISO, bISO) {
     const b = new Date(bISO).getTime();
     if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
     return Math.max(0, Math.floor((b - a) / 1000));
-  } catch { return null; }
+  } catch {
+    return null;
+  }
+}
+function msBetweenISO(aISO, bISO) {
+  try {
+    const a = new Date(aISO).getTime();
+    const b = new Date(bISO).getTime();
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    return Math.max(0, b - a);
+  } catch {
+    return null;
+  }
 }
 
 // ===== Concurrencia dinámica =====
 function currentMaxConcurrency() {
-  const s = getSettings && typeof getSettings === 'function' ? getSettings() : null;
+  const s =
+    getSettings && typeof getSettings === "function" ? getSettings() : null;
   const n = s && Number.isFinite(s.maxConcurrency) ? s.maxConcurrency : CFG_MAX;
   return Math.max(1, Number.isFinite(n) ? n : 3);
 }
 
 // ===== Helpers de createdBy/meta =====
 function sanitizeCreatedBy(raw) {
-  if (!raw || typeof raw !== 'object') return null;
+  if (!raw || typeof raw !== "object") return null;
   const name = raw.name ?? null;
   const role = raw.role ? String(raw.role) : null;
-  const at   = raw.at ? String(raw.at) : nowISO();
+  const at = raw.at ? String(raw.at) : nowISO();
   return { name, role, at };
 }
 function splitMeta(meta) {
-  if (!meta || typeof meta !== 'object') return { metaSansCreator: {}, createdBySan: null };
+  if (!meta || typeof meta !== "object")
+    return { metaSansCreator: {}, createdBySan: null };
   const { createdBy, ...rest } = meta;
   return { metaSansCreator: rest, createdBySan: sanitizeCreatedBy(createdBy) };
 }
 
-// ===== Stages =====
+// ===== Stages (runtime status) =====
 function setJobStage(jobId, name, meta) {
   if (!jobId) return;
-  stageByJob.set(jobId, { name: String(name || ''), meta: meta || null, sinceISO: nowISO() });
+  stageByJob.set(jobId, {
+    name: String(name || ""),
+    meta: meta || null,
+    sinceISO: nowISO(),
+  });
 }
-function clearJobStage(jobId) { stageByJob.delete(jobId); }
+function clearJobStage(jobId) {
+  stageByJob.delete(jobId);
+}
 
 // ===== Promedios =====
 function summarizeByBot() {
   const s = {};
-  for (const j of running) { (s[j.botId] ||= { running: 0, queued: 0 }).running++; }
-  for (const j of queue)   { (s[j.botId] ||= { running: 0, queued: 0 }).queued++; }
+  for (const j of running) {
+    (s[j.botId] ||= { running: 0, queued: 0 }).running++;
+  }
+  for (const j of queue) {
+    (s[j.botId] ||= { running: 0, queued: 0 }).queued++;
+  }
   return s;
 }
 function avgDurationSeconds(botId) {
@@ -78,7 +118,7 @@ function avgDurationSeconds(botId) {
 }
 function pushDuration(botId, secs) {
   if (!Number.isFinite(secs) || secs <= 0) return;
-  const key = String(botId || 'unknown');
+  const key = String(botId || "unknown");
   const arr = durationsByBot.get(key) || [];
   arr.push(Math.round(secs));
   while (arr.length > ESTIMATE_AVG_WINDOW) arr.shift();
@@ -97,7 +137,11 @@ function capacitySnapshot() {
 }
 
 // ETA avanzada: “lanes” + tiempos remanentes
-function computeEstimate(botId, snapshot, positionInQueue /* 1-based (pre-inserción) */) {
+function computeEstimate(
+  botId,
+  snapshot,
+  positionInQueue /* 1-based (pre-inserción) */
+) {
   const C = snapshot.maxConcurrency;
   const avgThis = avgDurationSeconds(botId);
 
@@ -119,8 +163,14 @@ function computeEstimate(botId, snapshot, positionInQueue /* 1-based (pre-inserc
   const aheadList = queue.slice(0, queuedAhead);
 
   function indexOfMin(arr) {
-    let idx = 0; let min = arr[0];
-    for (let i = 1; i < arr.length; i++) { if (arr[i] < min) { min = arr[i]; idx = i; } }
+    let idx = 0;
+    let min = arr[0];
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i] < min) {
+        min = arr[i];
+        idx = i;
+      }
+    }
     return idx;
   }
 
@@ -138,13 +188,188 @@ function computeEstimate(botId, snapshot, positionInQueue /* 1-based (pre-inserc
   const finishAt = new Date(now + finishSeconds * 1000).toISOString();
 
   return {
-    method: 'lanes+movingAvg',
+    method: "lanes+movingAvg",
     avgDurationSeconds: avgThis,
     startSeconds,
     finishSeconds,
     startAt,
     finishAt,
   };
+}
+
+// ===== Tracker de stages (duraciones + logs) =====
+function makeStageTracker(job) {
+  let current = null; // { name, meta, startedAt }
+  const history = []; // [{ name, startedAt, endedAt, durationMs, status, meta, error? }]
+
+  function appendHistory(entry) {
+    history.push(entry);
+    // Persistir en registro público del job
+    const reg = jobsById.get(job.jobId);
+    if (reg) {
+      reg.stages = reg.stages || [];
+      reg.stages.push(entry);
+    }
+  }
+
+  function start(name, meta) {
+    // cerrar previo (succeed implícito) si lo hubiera
+    if (current) {
+      const now = nowISO();
+      const durationMs = msBetweenISO(current.startedAt, now);
+      const entry = {
+        name: current.name,
+        startedAt: current.startedAt,
+        endedAt: now,
+        durationMs,
+        status: "succeed",
+        meta: current.meta || null,
+      };
+      appendHistory(entry);
+      log.event(
+        {
+          type: "stage.succeed",
+          jobId: job.jobId,
+          bot: job.botId,
+          stage: current.name,
+          durationMs,
+          meta: current.meta || null,
+        },
+        "info"
+      );
+    }
+    current = {
+      name: String(name || ""),
+      meta: meta || null,
+      startedAt: nowISO(),
+    };
+    setJobStage(job.jobId, current.name, current.meta);
+    log.event(
+      {
+        type: "stage.start",
+        jobId: job.jobId,
+        bot: job.botId,
+        stage: current.name,
+        meta: current.meta || null,
+      },
+      "debug"
+    );
+  }
+
+  function failCurrent(err) {
+    if (!current) return;
+    const now = nowISO();
+    const durationMs = msBetweenISO(current.startedAt, now);
+    const error = log.normalizeError(err);
+    const entry = {
+      name: current.name,
+      startedAt: current.startedAt,
+      endedAt: now,
+      durationMs,
+      status: "fail",
+      meta: current.meta || null,
+      error,
+    };
+    appendHistory(entry);
+    log.event(
+      {
+        type: "stage.fail",
+        jobId: job.jobId,
+        bot: job.botId,
+        stage: current.name,
+        durationMs,
+        meta: current.meta || null,
+        error,
+      },
+      "error"
+    );
+    current = null;
+  }
+
+  function closeFinal(ok, err) {
+    if (current) {
+      const now = nowISO();
+      const durationMs = msBetweenISO(current.startedAt, now);
+      if (ok) {
+        const entry = {
+          name: current.name,
+          startedAt: current.startedAt,
+          endedAt: now,
+          durationMs,
+          status: "succeed",
+          meta: current.meta || null,
+        };
+        appendHistory(entry);
+        log.event(
+          {
+            type: "stage.succeed",
+            jobId: job.jobId,
+            bot: job.botId,
+            stage: current.name,
+            durationMs,
+            meta: current.meta || null,
+          },
+          "info"
+        );
+      } else {
+        const error = log.normalizeError(err);
+        const entry = {
+          name: current.name,
+          startedAt: current.startedAt,
+          endedAt: now,
+          durationMs,
+          status: "fail",
+          meta: current.meta || null,
+          error,
+        };
+        appendHistory(entry);
+        log.event(
+          {
+            type: "stage.fail",
+            jobId: job.jobId,
+            bot: job.botId,
+            stage: current.name,
+            durationMs,
+            meta: current.meta || null,
+            error,
+          },
+          "error"
+        );
+      }
+      current = null;
+    }
+
+    // resumen por nombre (ms)
+    const stagesSummary = {};
+    for (const h of history) {
+      stagesSummary[h.name] =
+        (stagesSummary[h.name] || 0) + (h.durationMs || 0);
+    }
+    const reg = jobsById.get(job.jobId);
+    if (reg) {
+      reg.stagesSummaryMsByName = stagesSummary;
+    }
+
+    const totalMs =
+      job.startedAt && job.finishedAt
+        ? msBetweenISO(job.startedAt, job.finishedAt)
+        : null;
+    log.event(
+      {
+        type: "job.summary",
+        jobId: job.jobId,
+        bot: job.botId,
+        result: ok ? "Succeeded" : "Failed",
+        totalMs,
+        stages: stagesSummary,
+        stagesList: history,
+        meta: job.meta || null,
+      },
+      ok ? "info" : "error"
+    );
+  }
+
+  return { start, failCurrent, closeFinal };
 }
 
 // ===== Motor de ejecución =====
@@ -155,12 +380,33 @@ function maybeStartNext() {
     running.push(job);
 
     const reg = jobsById.get(job.jobId);
-    if (reg) { reg.state = 'running'; reg.startedAt = job.startedAt; }
+    if (reg) {
+      reg.state = "running";
+      reg.startedAt = job.startedAt;
+      reg.stages = []; // inicializa historial persistido
+    }
+
+    // tracker + ctx
+    const tracker = makeStageTracker(job);
+    job.__tracker = tracker;
+    job.__stagesHistory = []; // no expuesto; redundante con reg.stages
 
     const jobCtx = {
       jobId: job.jobId,
-      setStage: (name, meta) => setJobStage(job.jobId, name, meta),
+      setStage: (name, meta) => tracker.start(name, meta),
     };
+
+    log.event(
+      {
+        type: "job.started",
+        jobId: job.jobId,
+        bot: job.botId,
+        meta: job.meta || null,
+        running: running.length,
+        queued: queue.length,
+      },
+      "info"
+    );
 
     Promise.resolve()
       .then(() => job.run(jobCtx))
@@ -181,16 +427,78 @@ function finalize(job, err, val) {
   if (reg) {
     reg.finishedAt = job.finishedAt;
     if (err) {
-      reg.state = 'failed';
+      reg.state = "failed";
       reg.error = String(err && err.message ? err.message : err);
+      // Normalizar aún en error
+      try {
+        reg.result = normalizeResultEnvelope(reg.botId, false, null, {
+          error: reg.error,
+        });
+      } catch {
+        reg.result = {
+          ok: false,
+          code: "ERROR",
+          message: reg.error || null,
+          data: null,
+          warnings: [],
+          errors: [],
+        };
+      }
     } else {
-      reg.state = 'succeeded';
-      reg.result = val;
+      reg.state = "succeeded";
+      // Guardamos raw por depuración, pero no lo exponemos públicamente
+      reg.rawResult = val;
+      // Normalizamos a envelope canónico
+      try {
+        reg.result = normalizeResultEnvelope(reg.botId, true, val, null);
+      } catch (e) {
+        // Si algo falla, degradamos a genérico
+        reg.result = {
+          ok: true,
+          code: "OK",
+          message: null,
+          data: val ?? null,
+          warnings: [],
+          errors: [],
+        };
+      }
       if (reg.startedAt) {
         const dur = secondsBetweenISO(reg.startedAt, reg.finishedAt);
         if (dur != null) pushDuration(reg.botId, dur);
       }
     }
+  }
+
+  // cerrar tracker (emite stage.* final y job.summary)
+  if (job.__tracker) {
+    try {
+      job.__tracker.closeFinal(!err, err);
+    } catch {}
+  }
+
+  // evento de cierre
+  if (err) {
+    log.event(
+      {
+        type: "job.failed",
+        jobId: job.jobId,
+        bot: job.botId,
+        error: log.normalizeError(err),
+        meta: job.meta || null,
+      },
+      "error"
+    );
+  } else {
+    log.event(
+      {
+        type: "job.succeeded",
+        jobId: job.jobId,
+        bot: job.botId,
+        meta: job.meta || null,
+        result: (reg && reg.result) || null,
+      },
+      "info"
+    );
   }
 
   setImmediate(maybeStartNext);
@@ -201,14 +509,15 @@ function finalize(job, err, val) {
 
 // ===== API Legacy (por compat interna) =====
 function enqueue({ botId, meta = {}, run }) {
-  if (typeof run !== 'function') throw new Error('enqueue requiere un run() function');
+  if (typeof run !== "function")
+    throw new Error("enqueue requiere un run() function");
 
   // Separar createdBy y limpiar meta para persistencia
   const { metaSansCreator, createdBySan } = splitMeta(meta);
 
   const job = {
     jobId: randomUUID(),
-    botId: String(botId || 'unknown'),
+    botId: String(botId || "unknown"),
     meta: metaSansCreator, // <- ya sin createdBy
     enqueuedAt: nowISO(),
     run,
@@ -220,13 +529,14 @@ function enqueue({ botId, meta = {}, run }) {
     jobId: job.jobId,
     botId: job.botId,
     meta: job.meta, // persistimos meta sin createdBy
-    state: 'queued',
+    state: "queued",
     acceptedAt: job.enqueuedAt,
     startedAt: null,
     finishedAt: null,
     result: null,
     error: null,
     createdBy: createdBySan || null, // top-level, solo {name, role, at}
+    stages: [],
   });
 
   const p = new Promise((resolve, reject) => {
@@ -235,6 +545,18 @@ function enqueue({ botId, meta = {}, run }) {
   });
 
   queue.push(job);
+
+  log.event(
+    {
+      type: "job.accepted",
+      jobId: job.jobId,
+      bot: job.botId,
+      meta: job.meta || null,
+      mode: "legacy-enqueue",
+    },
+    "info"
+  );
+
   setImmediate(maybeStartNext);
 
   p.jobId = job.jobId;
@@ -243,7 +565,8 @@ function enqueue({ botId, meta = {}, run }) {
 
 // ===== Nueva API 202: submit =====
 function submit({ botId, meta = {}, run }) {
-  if (typeof run !== 'function') throw new Error('submit requiere un run() function');
+  if (typeof run !== "function")
+    throw new Error("submit requiere un run() function");
 
   // Separar createdBy y limpiar meta para persistencia
   const { metaSansCreator, createdBySan } = splitMeta(meta);
@@ -252,7 +575,7 @@ function submit({ botId, meta = {}, run }) {
   const acceptedAt = nowISO();
   const job = {
     jobId,
-    botId: String(botId || 'unknown'),
+    botId: String(botId || "unknown"),
     meta: metaSansCreator, // <- ya sin createdBy
     enqueuedAt: acceptedAt,
     run,
@@ -264,19 +587,19 @@ function submit({ botId, meta = {}, run }) {
     jobId,
     botId: job.botId,
     meta: job.meta, // persistimos meta sin createdBy
-    state: 'queued',
+    state: "queued",
     acceptedAt,
     startedAt: null,
     finishedAt: null,
     result: null,
     error: null,
     createdBy: createdBySan || null, // top-level, solo {name, role, at}
+    stages: [],
   });
 
   // Snapshot/posición antes de encolar (nuestra posición será el último de la cola actual + 1)
   const snap = capacitySnapshot();
   const queuePosition = queue.length + 1;
-
   const estimate = computeEstimate(job.botId, snap, queuePosition);
 
   // Encola y dispara
@@ -284,6 +607,19 @@ function submit({ botId, meta = {}, run }) {
   setImmediate(maybeStartNext);
 
   const cap2 = capacitySnapshot();
+
+  log.event(
+    {
+      type: "job.accepted",
+      jobId,
+      bot: job.botId,
+      meta: job.meta || null,
+      estimate,
+      capacitySnapshot: cap2,
+      mode: "submit",
+    },
+    "info"
+  );
 
   return {
     ok: true,
@@ -302,26 +638,38 @@ function submit({ botId, meta = {}, run }) {
  * Devuelve { ok, canceled, reason } con reason = 'queued' | 'running' | 'not_found'
  */
 function cancel(jobId) {
-  const id = String(jobId || '');
-  const idx = queue.findIndex(j => j.jobId === id);
+  const id = String(jobId || "");
+  const idx = queue.findIndex((j) => j.jobId === id);
   if (idx >= 0) {
     const [job] = queue.splice(idx, 1);
     const reg = jobsById.get(id);
     if (reg) {
-      reg.state = 'canceled';
+      reg.state = "canceled";
       reg.finishedAt = nowISO();
-      reg.error = 'canceled';
+      reg.error = "canceled";
     }
     // Rechaza promesa si existe (legacy enqueue)
-    try { job._reject && job._reject(new Error('canceled')); } catch {}
-    return { ok: true, canceled: true, reason: 'queued' };
+    try {
+      job._reject && job._reject(new Error("canceled"));
+    } catch {}
+    log.event(
+      {
+        type: "job.failed",
+        jobId: id,
+        bot: job.botId,
+        error: { name: "Canceled", message: "canceled" },
+      },
+      "warn"
+    );
+    return { ok: true, canceled: true, reason: "queued" };
   }
 
   const reg = jobsById.get(id);
-  if (!reg) return { ok: false, canceled: false, reason: 'not_found' };
-  if (reg.state === 'running') return { ok: true, canceled: false, reason: 'running' };
+  if (!reg) return { ok: false, canceled: false, reason: "not_found" };
+  if (reg.state === "running")
+    return { ok: true, canceled: false, reason: "running" };
   // Ya terminó
-  return { ok: true, canceled: false, reason: reg.state || 'done' };
+  return { ok: true, canceled: false, reason: reg.state || "done" };
 }
 
 /**
@@ -330,22 +678,22 @@ function cancel(jobId) {
  */
 function listJobs(opts = {}) {
   const { state, botId } = opts || {};
-  const limit  = Math.min(500, Math.max(1, parseInt(opts.limit  ?? '50', 10)));
-  const offset = Math.max(0, parseInt(opts.offset ?? '0', 10));
+  const limit = Math.min(500, Math.max(1, parseInt(opts.limit ?? "50", 10)));
+  const offset = Math.max(0, parseInt(opts.offset ?? "0", 10));
 
   // Tomamos todos los registros
   let arr = Array.from(jobsById.values());
 
   if (state) {
     const st = String(state).toLowerCase();
-    arr = arr.filter(r => String(r.state).toLowerCase() === st);
+    arr = arr.filter((r) => String(r.state).toLowerCase() === st);
   }
   if (botId) {
-    arr = arr.filter(r => String(r.botId) === String(botId));
+    arr = arr.filter((r) => String(r.botId) === String(botId));
   }
 
   // Orden por acceptedAt desc (más recientes primero)
-  arr.sort((a, b) => (b.acceptedAt || '').localeCompare(a.acceptedAt || ''));
+  arr.sort((a, b) => (b.acceptedAt || "").localeCompare(a.acceptedAt || ""));
 
   const total = arr.length;
   const items = arr.slice(offset, offset + limit);
@@ -365,22 +713,25 @@ function listJobs(opts = {}) {
 function getMetrics() {
   const byBot = {};
   const botIds = new Set([
-    ...Array.from(jobsById.values()).map(j => j.botId),
+    ...Array.from(jobsById.values()).map((j) => j.botId),
     ...Array.from(durationsByBot.keys()),
-    ...running.map(r => r.botId),
-    ...queue.map(q => q.botId),
+    ...running.map((r) => r.botId),
+    ...queue.map((q) => q.botId),
   ]);
 
   for (const b of botIds) {
     byBot[b] = {
-      running: running.filter(r => r.botId === b).length,
-      queued: queue.filter(q => q.botId === b).length,
+      running: running.filter((r) => r.botId === b).length,
+      queued: queue.filter((q) => q.botId === b).length,
       avgDurationSeconds: avgDurationSeconds(b),
       samples: durationsByBot.get(b) || [],
     };
   }
 
-  const finishedCount = Array.from(jobsById.values()).filter(j => j.state === 'succeeded' || j.state === 'failed' || j.state === 'canceled').length;
+  const finishedCount = Array.from(jobsById.values()).filter(
+    (j) =>
+      j.state === "succeeded" || j.state === "failed" || j.state === "canceled"
+  ).length;
 
   return {
     ok: true,
@@ -404,18 +755,18 @@ function kick() {
 
 // ===== Lectura de estado =====
 function getJob(jobId) {
-  const reg = jobsById.get(String(jobId || ''));
+  const reg = jobsById.get(String(jobId || ""));
   if (!reg) return null;
 
   const stage = stageByJob.get(reg.jobId) || null;
   let metrics = {};
 
-  if (reg.state === 'queued') {
+  if (reg.state === "queued") {
     metrics = {
       waitingSeconds: secondsSince(reg.acceptedAt),
-      position: 1 + queue.findIndex(j => j.jobId === reg.jobId),
+      position: 1 + queue.findIndex((j) => j.jobId === reg.jobId),
     };
-  } else if (reg.state === 'running') {
+  } else if (reg.state === "running") {
     metrics = {
       elapsedSeconds: reg.startedAt ? secondsSince(reg.startedAt) : null,
       stage: stage ? stage.name : null,
@@ -423,9 +774,16 @@ function getJob(jobId) {
       stageSeconds: stage ? secondsSince(stage.sinceISO) : null,
       stageMeta: stage ? stage.meta : null,
     };
-  } else if (reg.state === 'succeeded' || reg.state === 'failed' || reg.state === 'canceled') {
+  } else if (
+    reg.state === "succeeded" ||
+    reg.state === "failed" ||
+    reg.state === "canceled"
+  ) {
     metrics = {
-      totalSeconds: (reg.startedAt && reg.finishedAt) ? secondsBetweenISO(reg.startedAt, reg.finishedAt) : null,
+      totalSeconds:
+        reg.startedAt && reg.finishedAt
+          ? secondsBetweenISO(reg.startedAt, reg.finishedAt)
+          : null,
     };
   }
 

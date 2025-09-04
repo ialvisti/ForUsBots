@@ -15,12 +15,27 @@ const auth = require("../middleware/auth"); // default = requireUser (compat)
 const { requireAdmin, requireUser } = require("../middleware/auth");
 const { getSettings, patchSettings } = require("../engine/settings");
 const { _closeContextNow, getPoolStats } = require("../engine/sharedContext");
+const { normalizeResultEnvelope } = require("../engine/normalizer");
 
 /**
- * Sanitizador de payloads de Job expuestos por la API:
- * - Para mfa-reset: solo exponer meta { participantId, participantUrl }
- * - Para el resto: remueve meta.selectors
- * - Normaliza result.evidencePath { path, base64 } -> string path
+ * Determina si un `result` ya está en envelope canónico.
+ */
+function isCanonicalResult(r) {
+  return (
+    r &&
+    typeof r === "object" &&
+    typeof r.ok === "boolean" &&
+    typeof r.code === "string" &&
+    Object.prototype.hasOwnProperty.call(r, "data")
+  );
+}
+
+/**
+ * Sanitizador / normalizador de payloads de Job expuestos por la API:
+ * - Estructura *uniforme* en `result` (envelope canónico).
+ * - Incluye `stages` (persistidos por queue).
+ * - Sanitiza `meta` (no exposición de selectors).
+ * - No expone `rawResult`.
  */
 function toPublicJob(job) {
   if (!job || typeof job !== "object") return job;
@@ -47,12 +62,52 @@ function toPublicJob(job) {
     clean.meta = metaSafe;
   }
 
-  // Normalizar result.evidencePath
-  if (clean.result && clean.result.evidencePath) {
-    const ev = clean.result.evidencePath;
-    if (ev && typeof ev === "object" && typeof ev.path === "string") {
-      clean.result = { ...clean.result, evidencePath: ev.path };
+  // Normalizar result (canónico)
+  if (!isCanonicalResult(clean.result)) {
+    const ok =
+      typeof clean.ok === "boolean"
+        ? clean.ok
+        : String(clean.state).toLowerCase() === "succeeded";
+    try {
+      clean.result = normalizeResultEnvelope(
+        clean.botId,
+        ok,
+        clean.result ?? job.result ?? null,
+        clean.error ? { error: clean.error } : null
+      );
+    } catch {
+      clean.result = {
+        ok: ok === true,
+        code: ok ? "OK" : "ERROR",
+        message: clean.error || null,
+        data:
+          (clean.result &&
+            typeof clean.result === "object" &&
+            clean.result.data) ||
+          null,
+        warnings: [],
+        errors: [],
+      };
     }
+  }
+
+  // Normalizar evidencePath (si algún bot dejó objeto)
+  if (clean.result && clean.result.data && clean.result.data.evidencePath) {
+    const ev = clean.result.data.evidencePath;
+    if (ev && typeof ev === "object" && typeof ev.path === "string") {
+      clean.result = {
+        ...clean.result,
+        data: { ...clean.result.data, evidencePath: ev.path },
+      };
+    }
+  }
+
+  // Asegurar stages como arreglo (si no existen aún)
+  if (!Array.isArray(clean.stages)) clean.stages = [];
+
+  // Nunca exponer rawResult
+  if (Object.prototype.hasOwnProperty.call(clean, "rawResult")) {
+    delete clean.rawResult;
   }
 
   return clean;
@@ -102,18 +157,22 @@ router.get("/jobs", auth, (req, res) => {
     const { state, botId, limit, offset } = req.query || {};
     const out = queue.listJobs({ state, botId, limit, offset });
 
-    let payload;
-    if (Array.isArray(out)) {
-      payload = out.map(toPublicJob);
-    } else if (out && Array.isArray(out.items)) {
-      payload = { ...out, items: out.items.map(toPublicJob) };
-    } else if (out && Array.isArray(out.jobs)) {
-      payload = { ...out, jobs: out.jobs.map(toPublicJob) };
-    } else {
-      payload = out;
-    }
+    const jobs = Array.isArray(out.jobs)
+      ? out.jobs
+      : Array.isArray(out.items)
+      ? out.items
+      : Array.isArray(out)
+      ? out
+      : [];
+    const mapped = jobs.map(toPublicJob);
 
-    return res.json(payload);
+    return res.json({
+      ok: true,
+      total: out.total ?? mapped.length,
+      limit: out.limit ?? mapped.length,
+      offset: out.offset ?? 0,
+      jobs: mapped,
+    });
   } catch (e) {
     console.error("[jobs list] error", e);
     return res.status(500).json({ ok: false, error: "No se pudo listar jobs" });

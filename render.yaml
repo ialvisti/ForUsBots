@@ -1,3 +1,12 @@
+databases:
+  - name: forusbots
+    databaseName: forusbots
+    user: alvisbot
+    plan: basic
+    region: oregon
+    postgresMajorVersion: "17"
+    ipAllowList: [] # solo red privada de Render
+
 services:
   - type: web
     name: forusbots
@@ -15,6 +24,22 @@ services:
         value: production
       - key: PORT
         value: 10000
+
+      # 📜 Logging estandarizado
+      - key: LOG_LEVEL # debug | info | warn | error
+        value: info
+      - key: LOG_FORMAT # json | pretty
+        value: json
+      - key: SERVICE_NAME
+        value: forusbots
+      - key: LOG_MAX_META_CHARS
+        value: 4000
+      - key: LOG_MAX_ERR_STACK_CHARS
+        value: 4000
+
+      # Cookies seguras en prod
+      - key: COOKIE_SECURE
+        value: 1
 
       # 🔐 Secrets (definir en el Dashboard de Render)
       - key: SHARED_TOKEN
@@ -68,7 +93,7 @@ services:
       - key: SESSION_TTL_HOURS
         value: 24
 
-      # 🚫 Evidencia por imágenes desactivada
+      # 🚫 Evidencia por imágenes desactivada (solo logs)
       - key: EVIDENCE_ENABLED
         value: 0
       - key: EVIDENCE_PUBLIC
@@ -95,6 +120,23 @@ services:
         value: 6000
       - key: PANEL_WAIT_MS
         value: 2500
+
+      # 🔌 Postgres (inyectado desde el recurso "forusbots")
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forusbots
+          property: connectionString
+      - key: DATABASE_POOL_URL
+        fromDatabase:
+          name: forusbots
+          property: pooledConnectionString
+      - key: DB_SCHEMA
+        value: public
+      - key: PGSSLMODE
+        value: require
+      # Activa almacenamiento en DB si tu código lo soporta (audit)
+      - key: AUDIT_DB
+        value: 1
 
     # 💾 Disco persistente para user-data y sessions (sobrevive deploys/restarts)
     disks:

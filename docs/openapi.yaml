@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ForUsBots API
-  version: 2.2.0
+  version: 2.3.0
 servers:
   - url: http://localhost:10000
 paths:
@@ -46,7 +46,22 @@ paths:
           name: offset
           schema: { type: integer, minimum: 0 }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, total, limit, offset, jobs]
+                properties:
+                  ok: { type: boolean }
+                  total: { type: integer }
+                  limit: { type: integer }
+                  offset: { type: integer }
+                  jobs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Job'
         '401': { description: Unauthorized }
 
   /forusbot/jobs/{id}:
@@ -62,7 +77,12 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
         '401': { description: Unauthorized }
         '404': { description: Not Found }
     delete:
@@ -293,6 +313,7 @@ paths:
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
         '500': { description: Internal Server Error }
+
   /forusbot/openapi:
     get:
       summary: Serve this OpenAPI (YAML)
@@ -337,3 +358,89 @@ paths:
         '401': { description: Unauthorized }
         '422': { description: Unprocessable Entity }
         '500': { description: Internal Server Error }
+
+components:
+  schemas:
+    ResultEnvelope:
+      type: object
+      required: [ok, code, data, warnings, errors]
+      properties:
+        ok: { type: boolean }
+        code: { type: string, example: SEARCH_OK }
+        message: { type: string, nullable: true }
+        data:
+          type: object
+          nullable: true
+          description: Payload normalizado por bot
+        warnings:
+          type: array
+          items: {}
+        errors:
+          type: array
+          items: {}
+
+    StageEntry:
+      type: object
+      required: [name, startedAt, endedAt, durationMs, status]
+      properties:
+        name: { type: string }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+        durationMs: { type: integer, minimum: 0 }
+        status: { type: string, enum: [succeed, fail] }
+        meta: { type: object, nullable: true }
+        error:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string }
+            message: { type: string }
+            stack: { type: string }
+
+    Job:
+      type: object
+      required:
+        [ ok, jobId, botId, state, acceptedAt, result, meta, stages ]
+      properties:
+        ok:
+          type: boolean
+          description: Siempre true para el wrapper de GET /jobs/:id; útil si se reutiliza en otras respuestas
+          example: true
+        jobId: { type: string, format: uuid }
+        botId: { type: string }
+        state: { type: string, enum: [queued, running, succeeded, failed, canceled] }
+        acceptedAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time, nullable: true }
+        finishedAt: { type: string, format: date-time, nullable: true }
+        createdBy:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string, nullable: true }
+            role: { type: string, nullable: true }
+            at:   { type: string, format: date-time, nullable: true }
+        meta:
+          type: object
+          description: Meta sanitizada (sin selectors)
+        result:
+          $ref: '#/components/schemas/ResultEnvelope'
+        error:
+          type: string
+          nullable: true
+        stages:
+          type: array
+          description: Historial completo de stages del job
+          items:
+            $ref: '#/components/schemas/StageEntry'
+        stagesSummaryMsByName:
+          type: object
+          additionalProperties: { type: integer }
+          description: (Opcional) Suma de ms por nombre de stage
+        waitingSeconds: { type: integer, nullable: true }
+        position: { type: integer, nullable: true }
+        elapsedSeconds: { type: integer, nullable: true }
+        stage: { type: string, nullable: true }
+        stageSince: { type: string, format: date-time, nullable: true }
+        stageSeconds: { type: integer, nullable: true }
+        stageMeta: { type: object, nullable: true }
+        totalSeconds: { type: integer, nullable: true }
