@@ -26,8 +26,7 @@ const MAX_ERR_STACK_CHARS = Math.max(
 // Carga perezosa/segura del audit (no rompe si el archivo no existe)
 let audit = null;
 try {
-  // Ruta relativa a este archivo
-  audit = require("./audit");
+  audit = require("./audit"); // mismo directorio
 } catch {
   audit = null;
 }
@@ -69,30 +68,58 @@ function base() {
   return { ts: ts(), service: SERVICE_NAME, env: ENV, pid: process.pid };
 }
 
-// Intenta despachar al módulo de auditoría (si existe y está habilitado)
+// ======== Canal a auditoría ========
+// Nota: ahora soporta 'trackEvent' (tu audit.js actual) y también alias comunes.
+function getAuditFn() {
+  if (!audit) return null;
+  return (
+    audit.trackEvent || // 👈 el tuyo
+    audit.onLogEvent ||
+    audit.capture ||
+    audit.record ||
+    audit.logEvent ||
+    audit.write ||
+    audit.event ||
+    audit.emit ||
+    null
+  );
+}
+
+// Buffer opcional para poder “flush” en pruebas (no bloquea el request loop)
+const auditQueue = [];
+let flushing = false;
+
 function forwardToAudit(rec) {
   if (!AUDIT_ENABLED || !audit) return;
-  try {
-    // Acepta varias firmas posibles para no romper compat:
-    const fn =
-      audit.onLogEvent ||
-      audit.capture ||
-      audit.record ||
-      audit.logEvent ||
-      audit.write ||
-      audit.event ||
-      audit.emit;
+  const fn = getAuditFn();
+  if (typeof fn !== "function") return;
+  // Encolamos para no bloquear; se puede forzar flush en tests
+  auditQueue.push(rec);
+  // Disparamos un flush asíncrono best-effort
+  if (!flushing) flushAudit().catch(() => {});
+}
 
-    if (typeof fn === "function") {
-      fn.call(audit, rec);
+async function flushAudit() {
+  if (flushing) return;
+  flushing = true;
+  try {
+    const fn = getAuditFn();
+    if (typeof fn !== "function") return;
+    while (auditQueue.length) {
+      const rec = auditQueue.shift();
+      // Si fn devuelve promesa, esperamos; si no, sigue
+      await Promise.resolve(fn.call(audit, rec));
     }
-  } catch {
-    // Nunca interrumpir el flujo de logging por fallos de auditoría
+  } finally {
+    flushing = false;
   }
 }
 
 function emit(obj, lvl = "info") {
   const rec = { ...base(), level: lvl, ...obj };
+
+  // Enviar SIEMPRE a auditoría (independiente del nivel de log a stdout)
+  forwardToAudit(rec);
   if (!enabled(lvl)) return;
 
   if (LOG_FORMAT === "pretty") {
@@ -117,8 +144,6 @@ function emit(obj, lvl = "info") {
 }
 
 function safeTruncateObj(obj, maxChars) {
-  // Devuelve el objeto original si serializa chico;
-  // si no, devuelve un string truncado (para no romper JSON.parse).
   try {
     const s = safeJson(obj);
     if (s.length <= maxChars) return obj;
@@ -129,12 +154,10 @@ function safeTruncateObj(obj, maxChars) {
 }
 
 function event(obj, lvl = "info") {
-  // Truncado suave de meta/details si fueran enormes
   const rec = { ...obj };
 
   if (rec.meta != null) {
     const t = safeTruncateObj(rec.meta, MAX_META_CHARS);
-    // Si es string (truncado), lo dejamos como string; si es objeto, lo dejamos objeto.
     rec.meta = t;
   }
   if (rec.details != null) {
@@ -142,7 +165,6 @@ function event(obj, lvl = "info") {
     rec.details = t;
   }
 
-  // Normalización de error si viniera crudo
   if (rec.error && (rec.error.stack || typeof rec.error === "object")) {
     rec.error = normalizeError(rec.error);
   }
@@ -157,4 +179,6 @@ module.exports = {
   warn: (o) => event(o, "warn"),
   error: (o) => event(o, "error"),
   normalizeError,
+  // utilidades de test
+  flushAudit,
 };

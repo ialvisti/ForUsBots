@@ -473,8 +473,17 @@ router.post(
   }
 );
 
+// Monta /forusbot/admin auth (login/whoami/logout, sin cookies)
+router.use('/admin', require('../routes/admin-auth'));
+
 // Monta el bot: /forusbot/vault-file-upload
 router.use("/vault-file-upload", forusUploadRoutes);
+
+// Monta /forusbot/admin métricas desde BD
+router.use('/admin', require('../routes/admin-metrics-db')); 
+
+// Monta /forusbot/admin jobs desde BD
+router.use('/admin', require('../routes/admin-jobs-db'));
 
 // Monta el bot: /forusbot/scrape-participant
 router.use("/scrape-participant", scrapeParticipantRoutes);

@@ -552,6 +552,7 @@ function enqueue({ botId, meta = {}, run }) {
       jobId: job.jobId,
       bot: job.botId,
       meta: job.meta || null,
+      executedBy: createdBySan || null,
       mode: "legacy-enqueue",
     },
     "info"
@@ -614,6 +615,7 @@ function submit({ botId, meta = {}, run }) {
       jobId,
       bot: job.botId,
       meta: job.meta || null,
+      executedBy: createdBySan || null,
       estimate,
       capacitySnapshot: cap2,
       mode: "submit",
