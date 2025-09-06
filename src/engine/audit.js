@@ -275,6 +275,7 @@ async function saveStage(rec, status) {
   const sql = `
   INSERT INTO job_stages (job_id, stage_name, status, started_at, ended_at, duration_ms, meta, error)
   VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+  ON CONFLICT (job_id, stage_name, status, started_at, ended_at) DO NOTHING
   `;
   await p.query(sql, [
     jobId,
