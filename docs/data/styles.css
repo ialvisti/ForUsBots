@@ -1,0 +1,10 @@
+/* Reutiliza los estilos de admin sin duplicarlos */
+@import url("../admin/styles.css");
+
+/* (Opcional) pequeñas diferencias visuales para /datos */
+.topbar .brand strong::after {
+    content: " · Read-only";
+    font-weight: 400;
+    color: var(--muted);
+    margin-left: 6px;
+}

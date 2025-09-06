@@ -17,6 +17,9 @@ const { getSettings, patchSettings } = require("../engine/settings");
 const { _closeContextNow, getPoolStats } = require("../engine/sharedContext");
 const { normalizeResultEnvelope } = require("../engine/normalizer");
 
+const dataMetrics = require("./data-metrics-db");
+const dataJobs = require("./data-jobs-db");
+
 /**
  * Determina si un `result` ya está en envelope canónico.
  */
@@ -496,5 +499,8 @@ router.use("/mfa-reset", mfaResetRoutes);
 
 // Monta el bot: /forusbot/emailtrigger
 router.use("/emailtrigger", emailTriggerRoutes);
+
+router.use("/data", dataMetrics);
+router.use("/data", dataJobs);
 
 module.exports = router;

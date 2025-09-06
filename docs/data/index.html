@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>ForUsBots • Data</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="/docs/images/icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Login -->
+      <section id="login-view" class="card">
+        <h1>Log In</h1>
+        <p class="muted">Use your token to access the data.</p>
+        <form id="login-form">
+          <label>
+            Token
+            <input
+              id="data-token"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Your token here"
+              required
+            />
+          </label>
+          <button id="btn-login" type="submit">Go</button>
+          <p id="login-error" class="error" hidden></p>
+        </form>
+      </section>
+
+      <!-- Vista de datos (solo lectura) -->
+      <section id="data-view" class="hidden">
+        <header class="topbar">
+          <div class="brand">
+            <img src="/docs/images/icon.png" alt="logo" />
+            <strong>ForUsBots Data</strong>
+          </div>
+          <nav class="tabs">
+            <button data-tab="dashboard" class="active">Dashboard</button>
+            <button data-tab="jobs">Jobs</button>
+          </nav>
+          <div class="spacer"></div>
+          <button id="btn-logout" class="secondary">Log out</button>
+        </header>
+
+        <main class="content">
+          <section id="tab-dashboard" class="tab active">
+            <div id="metrics-root" class="grid"></div>
+          </section>
+
+          <section id="tab-jobs" class="tab">
+            <div id="jobs-root" class="stack"></div>
+            <br />
+            <div id="job-detail-root" class="stack"></div>
+          </section>
+        </main>
+
+        <footer class="foot muted"><br /></footer>
+      </section>
+    </div>
+
+    <!-- Reutilizamos la misma lib de admin -->
+    <script src="../admin/js/lib/chart.js"></script>
+
+    <!-- APIs / auth del módulo datos -->
+    <script src="./js/api.js"></script>
+    <script src="./js/data-api.js"></script>
+    <script src="./js/auth.js"></script>
+
+    <!-- Componentes UI -->
+    <script src="./js/components/metrics.js"></script>
+    <script src="./js/components/job-detail.js"></script>
+    <script src="./js/components/jobs.js"></script>
+
+    <!-- App -->
+    <script src="./js/main.js"></script>
+  </body>
+</html>

@@ -138,9 +138,7 @@ function emit(obj, lvl = "info") {
     // eslint-disable-next-line no-console
     console.log(safeJson(rec));
   }
-
-  // Enviar a auditoría (si procede) exactamente lo que emitimos
-  forwardToAudit(rec);
+  
 }
 
 function safeTruncateObj(obj, maxChars) {
