@@ -103,6 +103,44 @@ async function waitForSearchFinish(page, sel, timeout = 12000) {
   }
 }
 
+/**
+ * Determina el estado de la compañía a partir de la primera celda:
+ *  - Ongoing: no hay <span.plan-tootip> ni clases de estado en el <a>
+ *  - Terminated: existe clase 'text-terminated-plan'
+ *  - Pending Termination: existe clase 'text-pending-termination-plan'
+ * Además, si hay <span.plan-tootip>, extrae su data-content como detalle.
+ */
+function detectCompanyStatus(planTd, planA) {
+  let companyStatus = "Ongoing";
+  let companyStatusDetail = null;
+
+  if (planTd && planTd.querySelector) {
+    const tip = planTd.querySelector("span.plan-tootip");
+    // Revisar clases en el <span> si existe
+    if (tip) {
+      const cls = String(tip.className || "");
+      if (/\btext-terminated-plan\b/.test(cls)) {
+        companyStatus = "Terminated";
+      } else if (/\btext-pending-termination-plan\b/.test(cls)) {
+        companyStatus = "Pending Termination";
+      }
+      companyStatusDetail = tip.getAttribute("data-content") || null;
+      return { companyStatus, companyStatusDetail };
+    }
+  }
+
+  // Fallback: revisar clases del <a> (por robustez)
+  if (planA && planA.classList) {
+    if (planA.classList.contains("text-terminated-plan")) {
+      companyStatus = "Terminated";
+    } else if (planA.classList.contains("text-pending-termination-plan")) {
+      companyStatus = "Pending Termination";
+    }
+  }
+
+  return { companyStatus, companyStatusDetail };
+}
+
 async function extractRowsFromPage(page, sel, limit = 25) {
   const { table } = sel;
   const rows = await page.$$eval(
@@ -112,15 +150,40 @@ async function extractRowsFromPage(page, sel, limit = 25) {
       for (const tr of trs) {
         if (!tr || !tr.querySelector) continue;
 
-        // Plan
-        const planA = tr.querySelector('td:nth-child(1) a[href^="/plans/"]');
+        // --- Columna 1: Company / Plan ---
+        const planTd = tr.querySelector("td:nth-child(1)");
+        const planA = planTd && planTd.querySelector('a[href^="/plans/"]');
         const planName = planA ? (planA.textContent || "").trim() : null;
         let planId = null;
         const hrefPlan = planA && planA.getAttribute("href");
         const mp = hrefPlan && hrefPlan.match(/\/plans\/(\d+)\b/);
         if (mp) planId = mp[1];
 
-        // First / Last
+        // Estado de la compañía (y detalle si aplica)
+        let companyStatus = "Ongoing";
+        let companyStatusDetail = null;
+        if (planTd) {
+          const tip = planTd.querySelector("span.plan-tootip");
+          if (tip) {
+            const cls = String(tip.className || "");
+            if (/\btext-terminated-plan\b/.test(cls)) {
+              companyStatus = "Terminated";
+            } else if (/\btext-pending-termination-plan\b/.test(cls)) {
+              companyStatus = "Pending Termination";
+            }
+            companyStatusDetail = tip.getAttribute("data-content") || null;
+          } else if (planA) {
+            // Fallback por robustez si no hubiera <span>
+            const clsA = String(planA.className || "");
+            if (/\btext-terminated-plan\b/.test(clsA)) {
+              companyStatus = "Terminated";
+            } else if (/\btext-pending-termination-plan\b/.test(clsA)) {
+              companyStatus = "Pending Termination";
+            }
+          }
+        }
+
+        // --- Columnas siguientes ---
         const firstA = tr.querySelector(
           'td:nth-child(2) a[href^="/participants/"]'
         );
@@ -159,6 +222,9 @@ async function extractRowsFromPage(page, sel, limit = 25) {
         out.push({
           planName,
           planId,
+          // Nuevo: estado de la compañía del plan
+          companyStatus, // "Ongoing" | "Pending Termination" | "Terminated"
+          companyStatusDetail, // null si Ongoing; string con data-content del span si aplica
           firstName,
           lastName,
           participantId,
@@ -361,7 +427,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
           : null,
       },
       count: rows.length,
-      rows, // SOLO los campos pedidos
+      rows, // incluye companyStatus y companyStatusDetail además de los campos existentes
       evidencePath:
         ((evAfter || evBefore) && (evAfter?.path || evBefore?.path)) || null,
     };
