@@ -81,8 +81,8 @@ const AuthUI = (() => {
       if (!w || !w.isAdmin) {
         throw new Error(
           w && w.role
-            ? `El token tiene rol "${w.role}" y se requiere "admin".`
-            : "Token inválido o no reconocido."
+            ? `Your token has "${w.role}" role but "admin" is required.`
+            : "Token not valid or expired."
         );
       }
 
