@@ -5,7 +5,8 @@
 // - Si recibimos "Projected Plan Entry Date" (yyyy-mm-dd), desmarcamos el checkbox y seteamos la fecha.
 // - Preferred names: validar si inputs están listos; si no, click en #add-preferred-name y luego llenar.
 // - Fechas: usar setEffectiveDate (datepicker-safe) para todos los campos de fecha.
-// - ÉXITO: dar OK al alert (dialog/modal). Fallback: alerta inline efímera.
+// - ÉXITO: validar que el alert sea EXACTAMENTE "Participant updated successfully." (si no, FAIL).
+//   Fallback: alerta inline efímera.
 // NOTA: El bloqueo de recursos (imágenes, media, etc.) se maneja vía .env global.
 
 const speakeasy = require("speakeasy");
@@ -78,6 +79,9 @@ const PW_DEFAULT_TIMEOUT = Math.max(
   2000,
   parseInt(process.env.PW_DEFAULT_TIMEOUT || "5000", 10)
 );
+
+// ✅ Éxito SOLO cuando el alert trae EXACTAMENTE este texto (trim estricto).
+const SUCCESS_ALERT_TEXT = "Participant updated successfully.";
 
 async function quickStateCheck(page) {
   return await page.evaluate(() => {
@@ -531,17 +535,32 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       await saveTask;
     } catch {}
 
+    // ✅ Validación estricta del texto del alert
+    const confirmText = String(confirm?.text ?? "").trim();
+    if (confirmText !== SUCCESS_ALERT_TEXT) {
+      const err = new Error(confirmText || "La confirmación no indicó éxito.");
+      err.code = "UPDATE_NOT_CONFIRMED";
+      err.detail = {
+        confirmMode: confirm?.mode || null,
+        confirmText,
+        participantId,
+        participantUrl: url,
+        updatesApplied: applied,
+      };
+      throw err;
+    }
+
     jobCtx?.setStage?.("done");
     return {
       ok: true,
       code: "UPDATE_OK",
-      message: confirm.text || "Saved",
+      message: confirmText, // "Participant updated successfully."
       data: {
         participantId,
         participantUrl: url,
         updatesApplied: applied,
         confirmMode: confirm.mode,
-        confirmText: confirm.text || null,
+        confirmText, // guardamos el texto exacto que validamos
       },
       warnings: [],
       errors: [],
