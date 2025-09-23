@@ -358,6 +358,70 @@ paths:
         '401': { description: Unauthorized }
         '422': { description: Unprocessable Entity }
         '500': { description: Internal Server Error }
+    
+  /forusbot/update-participant:
+    post:
+      summary: Update participant (Census tab) with note
+      description: |
+        Abre el perfil del participante y actualiza los campos indicados en *Census*. La **nota** es obligatoria y se envía en el modal de confirmación. El **éxito** se determina exclusivamente por la aparición del alert en `data-alerts="alerts"`.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participantId, note, updates]
+              properties:
+                participantId:
+                  type: string
+                  description: Portal participant ID
+                note:
+                  type: string
+                  description: Nota obligatoria con el motivo del cambio
+                updates:
+                  type: object
+                  description: Al menos 1 campo permitido
+                  properties:
+                    firstName: { type: string, nullable: true }
+                    lastName: { type: string, nullable: true }
+                    preferredFirstName: { type: string, nullable: true }
+                    preferredLastName: { type: string, nullable: true }
+                    eligibilityStatus:
+                      type: string
+                      enum: [A, D, I, X, U]
+                    birthDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+                    hireDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
+                    rehireDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    terminationDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    useProjectedEntryDefault: { type: boolean }
+                    projectedPlanEntryDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    address1: { type: string, nullable: true }
+                    address2: { type: string, nullable: true }
+                    city: { type: string, nullable: true }
+                    state: { type: string, minLength: 2, maxLength: 2, nullable: true }
+                    zipcode: { type: string, nullable: true }
+                    email: { type: string, nullable: true }
+                    homeEmail: { type: string, nullable: true }
+                    phone: { type: string, nullable: true }
+                options:
+                  type: object
+                  nullable: true
+                  properties:
+                    evidenceOnSuccess: { type: boolean }
+                created_by:
+                  type: string
+                  nullable: true
+      responses:
+        '202': { description: Accepted (returns jobId) }
+        '400': { description: Bad Request }
+        '401': { description: Unauthorized }
+        '500': { description: Internal Server Error }
+
 
 components:
   schemas:

@@ -59,6 +59,11 @@
               <option value="sandbox-upload">
                 POST /forusbot/sandbox/vault-file-upload (dry-run)
               </option>
+
+              <option value="update-participant">
+                POST /forusbot/forusall-update-participant
+              </option>
+
               <!-- NEW -->
               <option value="scrape-participant">
                 POST /forusbot/scrape-participant
@@ -188,6 +193,39 @@
                 type="text"
                 placeholder="Describe the document"
               />
+            </div>
+          </div>
+
+          <!-- Update Participant builder -->
+          <div class="ep ep-update hidden">
+            <div class="field">
+              <label>participantId</label>
+              <input
+                id="upParticipantId"
+                type="text"
+                placeholder="e.g. 340647"
+              />
+            </div>
+
+            <div class="field">
+              <label>note</label>
+              <textarea
+                id="upNote"
+                rows="2"
+                placeholder="Reason for census update"
+              ></textarea>
+            </div>
+
+            <div class="field">
+              <label>updates</label>
+              <div id="upRows" class="stack"></div>
+              <button class="btn ghost small" id="upAddRow">Add field</button>
+              <div class="help">
+                Selecciona los campos del módulo <b>Census</b> y escribe el
+                valor. Fechas usan formato <code>yyyy-mm-dd</code>; si las dejas
+                vacías se envía <code>""</code> para limpiar. <br />Eligibility
+                Status acepta: <code>A, D, I, X, U</code>.
+              </div>
             </div>
           </div>
 
@@ -359,8 +397,8 @@
 
             <div class="help">
               <em>Tip:</em> If you enable <code>fetchAllPages</code> and leave
-              <code>maxRows</code> at 25, the sandbox will automatically adjust it to
-              <code>25 × pageLimit</code> to cover those pages. You can
+              <code>maxRows</code> at 25, the sandbox will automatically adjust
+              it to <code>25 × pageLimit</code> to cover those pages. You can
               override <code>maxRows</code> if you want to limit the total.
             </div>
           </div>

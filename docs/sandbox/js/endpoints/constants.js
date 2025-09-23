@@ -1,5 +1,15 @@
 // docs/sandbox/js/endpoints/constants.js
 export const ENDPOINTS = {
+
+  "update-participant": {
+    label: "POST /forusbot/update-participant",
+    method: "POST",
+    path: "/forusbot/update-participant",
+    group: "update",
+    needs: { token: true }, // JSON body
+    pollJob: true,
+  },
+
   "vault-upload": {
     label: "POST /forusbot/vault-file-upload",
     method: "POST",

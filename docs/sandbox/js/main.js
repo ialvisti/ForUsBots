@@ -22,6 +22,11 @@ import { startPolling } from "./endpoints/jobs.js";
 import { runDryUpload } from "./endpoints/upload.js";
 import { wireScrapeUI, buildScrapeBodyStr } from "./core/scrape-ui.js";
 import {
+  wireUpdateUI,
+  buildUpdateBodyStr as buildUpdateBodyStrUP,
+} from "./core/update-ui.js";
+
+import {
   wireSearchUI,
   buildSearchBodyStr as buildSearchBodyStrSP,
 } from "./core/search-ui.js";
@@ -160,6 +165,8 @@ function refreshAllOutputs() {
   } else if (endpointSel.value === "mfa-reset") {
     const pid = (mfaParticipantId?.value || "").trim();
     jsonBodyStr = JSON.stringify({ participantId: pid });
+  } else if (endpointSel.value === "update-participant") {
+    jsonBodyStr = buildUpdateBodyStrUP(false);
   }
 
   renderHeaders(metaStr, jsonBodyStr);
@@ -205,6 +212,9 @@ wireScrapeUI({
 
 // Search UI
 wireSearchUI({ onChange: refreshAllOutputs });
+
+// Update Participant UI
+wireUpdateUI({ onChange: refreshAllOutputs });
 
 document.querySelectorAll("[data-copy]").forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -336,6 +346,22 @@ runBtn.addEventListener("click", async (e) => {
       jsonBodyStr = JSON.stringify({ participantId: pid });
     }
 
+    // update-participant: participantId, note y and at least 1 update
+    if (endpointSel.value === "update-participant") {
+      jsonBodyStr = buildUpdateBodyStrUP(false);
+      const bodyTest = JSON.parse(jsonBodyStr || "{}");
+      const pid = String(bodyTest.participantId || "").trim();
+      const note = String(bodyTest.note || "").trim();
+      const ups =
+        bodyTest.updates && typeof bodyTest.updates === "object"
+          ? bodyTest.updates
+          : {};
+      if (!pid) throw new Error("participantId is required for this endpoint.");
+      if (!note) throw new Error("note is required for this endpoint.");
+      const keys = Object.keys(ups);
+      if (!keys.length) throw new Error("Add at least one update field.");
+    }
+
     // search-participants: at least one criteria must exist
     if (endpointSel.value === "search-participants") {
       jsonBodyStr = buildSearchBodyStrSP(false);
@@ -366,6 +392,7 @@ runBtn.addEventListener("click", async (e) => {
     if (endpointSel.value === "scrape-participant") body = jsonBodyStr;
     if (endpointSel.value === "mfa-reset") body = jsonBodyStr;
     if (endpointSel.value === "search-participants") body = jsonBodyStr;
+    if (endpointSel.value === "update-participant") body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });
     const text = await res.text();
