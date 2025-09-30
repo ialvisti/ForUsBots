@@ -11,13 +11,13 @@ function prevalidate(metaIn, hasBinary) {
   const f = metaIn?.formData || {};
   const status = String(f.status || '').trim();
   if (!metaIn?.options?.skipPrevalidation && hasBinary && /^document\s+missing$/i.test(status)) {
-    const err = new Error("Status 'Document Missing' no es válido cuando se adjunta un archivo");
+    const err = new Error("Status 'Document Missing' is not valid when a file is attached");
     err.http = 422;
     err.payload = {
       ok: false,
       errorType: 'validation',
       error: err.message,
-      hint: "Usa 'Audit Ready' u otro estado permitido por el portal",
+      hint: "Use 'Audit Ready' or another status allowed by the portal",
     };
     throw err;
   }
@@ -28,7 +28,7 @@ module.exports = async function controller(req, res) {
   try {
     const filenameHdr = req.header('x-filename');
     if (!filenameHdr) {
-      return res.status(400).json({ ok: false, error: 'Falta header x-filename', warnings });
+      return res.status(400).json({ ok: false, error: 'Missing header x-filename', warnings });
     }
 
     // ✅ Validación temprana del nombre: debe traer extensión .pdf (case-insensitive)
@@ -38,8 +38,8 @@ module.exports = async function controller(req, res) {
       return res.status(400).json({
         ok: false,
         errorType: 'validation',
-        error: "Header x-filename debe incluir la extensión del archivo (p. ej. 'documento.pdf')",
-        hint: "Ejemplo válido: x-filename: reporte_2025-08-18.pdf",
+        error: "Header x-filename must include the file extension (e.g. 'document.pdf')",
+        hint: "Valid example: x-filename: report_2025-08-18.pdf",
         warnings,
       });
     }
@@ -47,15 +47,15 @@ module.exports = async function controller(req, res) {
       return res.status(400).json({
         ok: false,
         errorType: 'validation',
-        error: "Solo se aceptan PDF: x-filename debe terminar en '.pdf'",
-        hint: "Ejemplo válido: x-filename: contrato_1704-02-29.pdf",
+        error: "Only PDF files are accepted: x-filename must end with '.pdf'",
+        hint: "Valid example: x-filename: contract_1704-02-29.pdf",
         warnings,
       });
     }
 
     const metaHdr = req.header('x-meta');
     if (!metaHdr) {
-      return res.status(400).json({ ok: false, error: 'Falta header x-meta', warnings });
+      return res.status(400).json({ ok: false, error: 'Missing header x-meta', warnings });
     }
 
     // 1) Parse
@@ -68,7 +68,7 @@ module.exports = async function controller(req, res) {
         errorType: 'parse',
         error: 'x-meta no es JSON válido',
         parseMessage: err && err.message ? err.message : String(err),
-        hint: 'Envía x-meta en UNA sola línea, con comillas dobles, sin comillas simples y sin saltos de línea.',
+        hint: 'Send x-meta in a single line, with double quotes, without single quotes and without line breaks.',
         exampleMeta: {
           planId: 580,
           formData: {
@@ -76,7 +76,7 @@ module.exports = async function controller(req, res) {
             caption: 'Recordkeeper Agreement',
             status: 'Audit Ready',
             effectiveDate: '2025-05-02',
-            captionOtherText: '(solo si caption=Other)'
+            captionOtherText: '(Only if caption=Other)'
           }
         },
         warnings,
@@ -106,9 +106,9 @@ module.exports = async function controller(req, res) {
       return res.status(400).json({
         ok: false,
         errorType: 'validation',
-        error: 'Campos faltantes o vacíos en x-meta',
+        error: 'Missing or empty fields in x-meta',
         missing,
-        hint: 'Asegúrate de enviar todos los campos requeridos en x-meta (una sola línea JSON).',
+        hint: 'Make sure to send all required fields in x-meta (single line JSON).',
         exampleMeta: {
           planId: 580,
           formData: {
@@ -125,14 +125,14 @@ module.exports = async function controller(req, res) {
 
     // 3) Binario
     if (!req.body || !req.body.length) {
-      return res.status(400).json({ ok: false, error: 'Body vacío (faltó el binario)', warnings });
+      return res.status(400).json({ ok: false, error: 'Empty body (Binary file missing)', warnings });
     }
 
     // 4) Warning para captionOtherText cuando caption != Other
     const isOther = String(metaIn.formData.caption || '').trim().toLowerCase() === 'other';
     if (!isOther && metaIn.formData.captionOtherText && String(metaIn.formData.captionOtherText).trim() !== '') {
       if (!(metaIn.options && metaIn.options.suppressCaptionOtherMismatch)) {
-        warnings.push("captionOtherText fue ignorado porque caption != 'Other'");
+        warnings.push("captionOtherText was ingnored since caption != 'Other'");
       }
     }
 
@@ -150,7 +150,7 @@ module.exports = async function controller(req, res) {
       const title = path.parse(safeBase).name;
       await setPdfTitle(filePath, title);
     } catch (e) {
-      warnings.push(`No se pudo actualizar el título interno del PDF: ${e.message}`);
+      warnings.push(`Unable to update the internal PDF title: ${e.message}`);
     }
 
     // 6.2) Leer el archivo ya titulado para subir con NOMBRE ORIGINAL (no el temp)
@@ -158,7 +158,7 @@ module.exports = async function controller(req, res) {
     try {
       fileBuffer = await fs.readFile(filePath);
     } catch (e) {
-      return res.status(500).json({ ok: false, error: `No se pudo preparar el archivo: ${e.message}`, warnings });
+      return res.status(500).json({ ok: false, error: `Unable to prepare the file: ${e.message}`, warnings });
     }
 
     // === NUEVO: resolver createdBy de forma robusta ===
