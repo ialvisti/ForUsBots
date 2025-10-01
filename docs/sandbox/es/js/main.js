@@ -1,4 +1,4 @@
-// docs/sandbox/js/main.js
+// docs/sandbox/es/js/main.js
 import { initTheme } from "./core/theme.js";
 import {
   $,
@@ -81,6 +81,21 @@ const jobJson = $("#jobJson pre");
 // ==== Toast ====
 const toast = $("#toast");
 
+// Allow-list (mantener en sync con validate.js)
+const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+const ALLOWED_MIMES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "text/csv",
+]);
+const getExt = (name) => {
+  const m = String(name || "")
+    .trim()
+    .match(/(\.[^.]+)$/);
+  return m ? m[1].toLowerCase() : "";
+};
+
 // ---- helpers ----
 function renderHeaders(metaStr, jsonBodyStr = null) {
   const ep = ENDPOINTS[endpointSel.value];
@@ -88,7 +103,7 @@ function renderHeaders(metaStr, jsonBodyStr = null) {
   const kv = [
     [
       "Content-Type",
-      ep.group === "upload" ? "application/pdf" : "application/json",
+      ep.group === "upload" ? "application/octet-stream" : "application/json",
     ],
   ];
   if (ep.needs?.token) kv.push(["x-auth-token", token.value || "(empty)"]);
@@ -152,11 +167,11 @@ function refreshAllOutputs() {
   }
 
   if (endpointSel.value === "search-participants") {
-    jsonBodyStr = buildSearchBodyStrSP(false); // compact
+    jsonBodyStr = buildSearchBodyStrSP(false);
   }
 
   if (endpointSel.value === "scrape-participant") {
-    jsonBodyStr = buildScrapeBodyStr(false); // compact
+    jsonBodyStr = buildScrapeBodyStr(false);
   } else if (endpointSel.value === "mfa-reset") {
     const pid = (mfaParticipantId?.value || "").trim();
     jsonBodyStr = JSON.stringify({ participantId: pid });
@@ -196,7 +211,7 @@ status.addEventListener("change", refreshAllOutputs);
   (el) => el && el.addEventListener("input", refreshAllOutputs)
 );
 
-// Scrape UI (strict default ON, hide timeout)
+// Scrape UI
 wireScrapeUI({
   onChange: refreshAllOutputs,
   strictDefault: true,
@@ -206,6 +221,7 @@ wireScrapeUI({
 // Search UI
 wireSearchUI({ onChange: refreshAllOutputs });
 
+// Copy buttons
 document.querySelectorAll("[data-copy]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const pre = document.querySelector(btn.getAttribute("data-copy"));
@@ -222,6 +238,7 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
     setFile(f, pdfFile, xFilename, fileNameEl, runResult);
   };
   pdfFile.addEventListener("change", fChange);
+
   const click = () => pdfFile.click();
   dropzone.addEventListener("click", click);
   dropzone.addEventListener("keydown", (e) => {
@@ -230,6 +247,7 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
       click();
     }
   });
+
   dropzone.addEventListener("dragover", (e) => {
     e.preventDefault();
     dropzone.classList.add("dragover");
@@ -237,13 +255,19 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
   ["dragleave", "dragend"].forEach((ev) =>
     dropzone.addEventListener(ev, () => dropzone.classList.remove("dragover"))
   );
+
   dropzone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropzone.classList.remove("dragover");
-    const f = [...e.dataTransfer.files].find(
-      (x) => x && (x.type === "application/pdf" || /\.pdf$/i.test(x.name))
-    );
-    setFile(f, pdfFile, xFilename, fileNameEl, runResult);
+
+    // primera coincidencia por MIME o extensión
+    const file = [...e.dataTransfer.files].find((x) => {
+      if (!x) return false;
+      const ext = getExt(x.name);
+      return ALLOWED_MIMES.has(x.type) || ALLOWED_EXTS.has(ext);
+    });
+
+    setFile(file, pdfFile, xFilename, fileNameEl, runResult);
   });
 })();
 
@@ -316,7 +340,7 @@ runBtn.addEventListener("click", async (e) => {
         captionOtherText,
       });
 
-    // scrape: participantId must exist
+    // scrape: participantId required
     let jsonBodyStr = null;
     if (endpointSel.value === "scrape-participant") {
       jsonBodyStr = buildScrapeBodyStr(false);
@@ -324,19 +348,11 @@ runBtn.addEventListener("click", async (e) => {
       if (
         !bodyTest.participantId ||
         String(bodyTest.participantId).trim() === ""
-      ) {
+      )
         throw new Error("participantId is required for this endpoint.");
-      }
     }
 
-    // mfa-reset: participantId must exist
-    if (endpointSel.value === "mfa-reset") {
-      const pid = (mfaParticipantId?.value || "").trim();
-      if (!pid) throw new Error("participantId is required for this endpoint.");
-      jsonBodyStr = JSON.stringify({ participantId: pid });
-    }
-
-    // search-participants: at least one criteria must exist
+    // search-participants: at least one criteria
     if (endpointSel.value === "search-participants") {
       jsonBodyStr = buildSearchBodyStrSP(false);
       const bodyTest = JSON.parse(jsonBodyStr);
@@ -364,7 +380,6 @@ runBtn.addEventListener("click", async (e) => {
     const url = ep.path.replace(":id", jobId.value || "");
     let body = bodyPromise ? await bodyPromise : undefined;
     if (endpointSel.value === "scrape-participant") body = jsonBodyStr;
-    if (endpointSel.value === "mfa-reset") body = jsonBodyStr;
     if (endpointSel.value === "search-participants") body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });

@@ -111,11 +111,11 @@
           <!-- Upload: file + x-filename -->
           <div class="two ep ep-upload">
             <div class="field">
-              <label>PDF to upload</label>
+              <label>File to upload</label>
               <input
                 id="pdfFile"
                 type="file"
-                accept="application/pdf"
+                accept=".pdf,.xlsx,.csv,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                 class="file-input-hidden"
               />
               <div
@@ -123,9 +123,10 @@
                 class="dropzone"
                 tabindex="0"
                 role="button"
-                aria-label="Upload PDF"
+                aria-label="Upload file"
               >
-                Click or drag a <b>PDF</b> here
+                Click or drag a <b>file</b> here
+                <span class="muted">(allowed: .pdf, .xlsx, .csv, .xls)</span>
               </div>
               <div id="fileName" class="file-name muted">No file selected.</div>
               <div class="help">
@@ -223,8 +224,8 @@
               <div class="help">
                 Select the fields of each module <b>Census</b> and enter the
                 value. Dates use the format <code>yyyy-mm-dd</code>; if left
-                empty, <code>""</code> is sent to clear the current value. <br />Eligibility
-                Status accepts: <code>A, D, I, X, U</code>.
+                empty, <code>""</code> is sent to clear the current value.
+                <br />Eligibility Status accepts: <code>A, D, I, X, U</code>.
               </div>
             </div>
           </div>

@@ -86,6 +86,21 @@ const jobJson = $("#jobJson pre");
 // ==== Toast ====
 const toast = $("#toast");
 
+// Allow-list for upload types (keep in sync with validate.js)
+const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+const ALLOWED_MIMES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "text/csv",
+]);
+const getExt = (name) => {
+  const m = String(name || "")
+    .trim()
+    .match(/(\.[^.]+)$/);
+  return m ? m[1].toLowerCase() : "";
+};
+
 // ---- helpers ----
 function renderHeaders(metaStr, jsonBodyStr = null) {
   const ep = ENDPOINTS[endpointSel.value];
@@ -93,7 +108,8 @@ function renderHeaders(metaStr, jsonBodyStr = null) {
   const kv = [
     [
       "Content-Type",
-      ep.group === "upload" ? "application/pdf" : "application/json",
+      // Binary for uploads; JSON otherwise
+      ep.group === "upload" ? "application/octet-stream" : "application/json",
     ],
   ];
   if (ep.needs?.token) kv.push(["x-auth-token", token.value || "(empty)"]);
@@ -232,6 +248,7 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
     setFile(f, pdfFile, xFilename, fileNameEl, runResult);
   };
   pdfFile.addEventListener("change", fChange);
+
   const click = () => pdfFile.click();
   dropzone.addEventListener("click", click);
   dropzone.addEventListener("keydown", (e) => {
@@ -240,6 +257,7 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
       click();
     }
   });
+
   dropzone.addEventListener("dragover", (e) => {
     e.preventDefault();
     dropzone.classList.add("dragover");
@@ -247,13 +265,19 @@ document.querySelectorAll("[data-copy]").forEach((btn) => {
   ["dragleave", "dragend"].forEach((ev) =>
     dropzone.addEventListener(ev, () => dropzone.classList.remove("dragover"))
   );
+
   dropzone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropzone.classList.remove("dragover");
-    const f = [...e.dataTransfer.files].find(
-      (x) => x && (x.type === "application/pdf" || /\.pdf$/i.test(x.name))
-    );
-    setFile(f, pdfFile, xFilename, fileNameEl, runResult);
+
+    // pick first allowed file by mime OR extension
+    const file = [...e.dataTransfer.files].find((x) => {
+      if (!x) return false;
+      const ext = getExt(x.name);
+      return ALLOWED_MIMES.has(x.type) || ALLOWED_EXTS.has(ext);
+    });
+
+    setFile(file, pdfFile, xFilename, fileNameEl, runResult);
   });
 })();
 
@@ -360,18 +384,6 @@ runBtn.addEventListener("click", async (e) => {
       if (!note) throw new Error("note is required for this endpoint.");
       const keys = Object.keys(ups);
       if (!keys.length) throw new Error("Add at least one update field.");
-    }
-
-    // search-participants: at least one criteria must exist
-    if (endpointSel.value === "search-participants") {
-      jsonBodyStr = buildSearchBodyStrSP(false);
-      const bodyTest = JSON.parse(jsonBodyStr);
-      const c = bodyTest.criteria || {};
-      const hasAny = Object.values(c).some(
-        (v) => v != null && String(v).trim() !== ""
-      );
-      if (!hasAny)
-        throw new Error("Provide at least one search criteria field.");
     }
 
     renderHeaders(metaStr, jsonBodyStr);

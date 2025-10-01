@@ -1,4 +1,4 @@
-// docs/sandbox/js/core/ui.js
+// docs/sandbox/es/js/core/ui.js
 // UI helpers shared by sandbox
 export function renderBadges(endpointSel, endpointBadges, ENDPOINTS) {
   const ep = ENDPOINTS[endpointSel.value];
@@ -133,15 +133,39 @@ export function updateFileNameUI(pdfFile, fileNameEl) {
   fileNameEl.textContent = f ? f.name : "No file selected.";
 }
 
+const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+const ALLOWED_MIMES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "text/csv",
+]);
+
+const getExt = (name) => {
+  const m = String(name || "")
+    .trim()
+    .match(/(\.[^.]+)$/);
+  return m ? m[1].toLowerCase() : "";
+};
+
 export function setFile(f, pdfFile, xFilename, fileNameEl, runResult) {
   if (!f) return;
-  if (!(f.type === "application/pdf" || /\.pdf$/i.test(f.name))) {
-    runResult.textContent = "Error: please drag/select a valid PDF.";
+
+  const ext = getExt(f.name);
+  const allowed = ALLOWED_MIMES.has(f.type) || ALLOWED_EXTS.has(ext);
+
+  if (!allowed) {
+    runResult.textContent =
+      "Error: please drag/select a valid file (.pdf, .xlsx, .csv, .xls).";
     return;
   }
+
   const dt = new DataTransfer();
   dt.items.add(f);
   pdfFile.files = dt.files;
+
   updateFileNameUI(pdfFile, fileNameEl);
+
+  // Autofill x-filename if empty
   if (!xFilename.value) xFilename.value = f.name;
 }

@@ -1,4 +1,4 @@
-// docs/sandbox/js/core/snippets.js
+// docs/sandbox/es/js/core/snippets.js
 export function buildSnippets(
   ep,
   baseUrl,
@@ -15,7 +15,7 @@ export function buildSnippets(
   const isJsonWithBody =
     !isUpload && typeof jsonBodyStr === "string" && jsonBodyStr.length > 0;
 
-  // helpers to safely inline JSON into single-quoted shell/js/py strings
+  // helpers to safely inline JSON
   const escShell = (s) => s.replace(/'/g, `'\\''`);
   const escJs = (s) =>
     s.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/'/g, "\\'");
@@ -23,7 +23,7 @@ export function buildSnippets(
 
   // cURL
   let curl = `curl -X ${ep.method} "${base}${url}" \\\n  -H "Content-Type: ${
-    isUpload ? "application/pdf" : "application/json"
+    isUpload ? "application/octet-stream" : "application/json"
   }"`;
   if (ep.needs?.token) curl += ` \\\n  -H "x-auth-token: ${tokLiteral}"`;
   if (ep.needs?.xfilename) curl += ` \\\n  -H "x-filename: ${fileName}"`;
@@ -36,7 +36,7 @@ export function buildSnippets(
 
   // HTTPie
   let httpie = `http --body ${ep.method} ${base}${url} \\\n  Content-Type:${
-    isUpload ? "application/pdf" : "application/json"
+    isUpload ? "application/octet-stream" : "application/json"
   }`;
   if (ep.needs?.token) httpie += ` \\\n  "x-auth-token:${tokLiteral}"`;
   if (ep.needs?.xfilename) httpie += ` \\\n  "x-filename:${fileName}"`;
@@ -44,7 +44,6 @@ export function buildSnippets(
   if (isUpload) {
     httpie += ` \\\n  < ./${fileName}`;
   } else if (isJsonWithBody) {
-    // Here-string (bash); good for examples
     httpie = `http --body ${
       ep.method
     } ${base}${url} Content-Type:application/json <<< '${escShell(
@@ -60,7 +59,7 @@ const res = await fetch(base + '${url}', {
   method: '${ep.method}',
   headers: {${
     isUpload
-      ? `\n    'Content-Type': 'application/pdf',`
+      ? `\n    'Content-Type': 'application/octet-stream',`
       : `\n    'Content-Type': 'application/json',`
   }${ep.needs?.token ? `\n    'x-auth-token': token,` : ""}${
     ep.needs?.xfilename ? `\n    'x-filename': '${fileName}',` : ""
@@ -83,7 +82,7 @@ token='${tokLiteral}'
 url='${url.replace(/'/g, "\\'")}'
 headers={${
     isUpload
-      ? `'Content-Type':'application/pdf'`
+      ? `'Content-Type':'application/octet-stream'`
       : `'Content-Type':'application/json'`
   }${ep.needs?.token ? `,'x-auth-token':token` : ""}${
     ep.needs?.xfilename ? `,'x-filename':'${fileName}'` : ""
