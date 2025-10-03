@@ -7,7 +7,7 @@
       "topic": "Flowcharts",
       "items": [
         {
-          "title": "[1] Onboarding Flowchart",
+          "title": "Onboarding Flowchart",
           "detail": "<div style=\"width:100%; height:450px; margin:10px 0;\">\n  <iframe allowfullscreen frameborder=\"0\" style=\"width:100%; height:100%;\" src=\"https://lucid.app/documents/embedded/d42c6223-d827-485c-ada1-92097eb70455\"></iframe>\n</div>"
         }
       ]

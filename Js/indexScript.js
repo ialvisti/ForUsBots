@@ -15,7 +15,7 @@ function renderIndex(list) {
   sugList.innerHTML = "";
   list.slice(0, 3).forEach((a) => {
     const li = document.createElement("li");
-    li.innerHTML = `<a href="article.html?id=${encodeURIComponent(
+    li.innerHTML = `<a class="article-card" href="article.html?id=${encodeURIComponent(
       a.id
     )}">${formatText(a.title)}</a>`;
     sugList.appendChild(li);
@@ -39,7 +39,7 @@ function renderIndex(list) {
   }
   display.forEach((a) => {
     const li = document.createElement("li");
-    li.innerHTML = `<a href="article.html?id=${encodeURIComponent(
+    li.innerHTML = `<a class="article-card" href="article.html?id=${encodeURIComponent(
       a.id
     )}">${formatText(a.title)}</a>`;
     allList.appendChild(li);
