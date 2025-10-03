@@ -151,7 +151,7 @@ function listUsersPublic() {
       name,
       email: meta.email || "",
       role: meta.role,
-      img: `/docs/Knwoledge_Database/Images/people/${imgSlug}.png`,
+      img: `/docs/knowledge-database/Images/people/${imgSlug}.png`,
     });
   }
   return out;

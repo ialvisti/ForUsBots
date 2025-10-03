@@ -207,7 +207,7 @@ function renderBuilderPreview(articleObj) {
         wrap.style.marginRight = ".35rem";
 
         const img = document.createElement("img");
-        img.src = x.img || "/docs/Knwoledge_Database/Images/people/default.png";
+        img.src = x.img || "/docs/knowledge-database/Images/people/default.png";
         img.alt = x.name || x.id || "user";
         img.title = x.name || x.id || "";
 
