@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Article Builder</title>
+    <link rel="stylesheet" href="/docs/Knwoledge_Database/Css/styles.css" />
+    <link rel="stylesheet" href="/docs/Knwoledge_Database/Css/builder.css" />
+    <link rel="icon" href="Images/forusall_logo.png" type="image/x-icon" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Manrope:wght@300&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="logo">
+        <a href="index.html"
+          ><img src="Images/forusall_logo.png" alt="Logo"
+        /></a>
+      </div>
+      <div class="search-container">
+        <div class="autocomplete-wrapper">
+          <input
+            type="text"
+            disabled
+            placeholder="Search disabled in builder"
+          />
+          <div class="autocomplete-items" style="display: none"></div>
+        </div>
+        <button disabled>Search</button>
+      </div>
+      <div class="suggest-link"><a href="index.html">Back to KDB</a></div>
+    </nav>
+
+    <main id="builderRoot">
+      <!-- Start panel (aparece tras login único) -->
+      <div
+        id="startPanel"
+        class="start-panel"
+        role="dialog"
+        aria-modal="true"
+        style="display: none"
+      >
+        <div class="start-card">
+          <h2>Article Builder</h2>
+          <p>
+            Create a new draft, open an existing draft, or clone from current
+            articles.
+          </p>
+          <div class="start-actions">
+            <button id="btnCreateNew">Create new article</button>
+
+            <div class="open-draft">
+              <select
+                id="savedDraftsSelect"
+                aria-label="Open saved draft"
+              ></select>
+              <button id="btnOpenDraft">Open saved draft</button>
+            </div>
+
+            <div class="open-article">
+              <select
+                id="existingArticlesSelect"
+                aria-label="Clone from existing article"
+              ></select>
+              <button id="btnCloneArticle">Clone from articles</button>
+            </div>
+
+            <div class="import-export">
+              <input
+                type="file"
+                id="importFileInput"
+                accept=".js,.json"
+                style="display: none"
+              />
+              <button id="btnImportDrafts">Import Drafts</button>
+              <button id="btnExportDrafts">Export drafts.js</button>
+            </div>
+
+            <div id="startMessages" class="assist" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Builder workspace -->
+      <div id="builderWorkspace" class="builder-grid" style="display: none">
+        <section class="editor-pane">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="basicsTab">Basics</button>
+            <button class="tab-btn" data-tab="groupsTab">
+              Groups & Dropdowns
+            </button>
+            <button class="tab-btn" data-tab="detailTab">
+              Dropdown Detail
+            </button>
+            <button class="tab-btn" data-tab="reviewTab">Review & Save</button>
+          </div>
+
+          <div class="tab-content">
+            <!-- Basics -->
+            <div
+              id="basicsTab"
+              class="tab-panel active"
+              aria-labelledby="basics-tab"
+            >
+              <form class="form-grid" onsubmit="return false;">
+                <div class="form-row">
+                  <label for="inpArticleId">Article ID</label>
+                  <input
+                    id="inpArticleId"
+                    type="text"
+                    placeholder="e.g. proc_distributions"
+                    aria-describedby="idHelp"
+                  />
+                  <small id="idHelp" class="assist" aria-live="polite"></small>
+                </div>
+                <div class="form-row">
+                  <label for="inpTitle">Title</label>
+                  <input
+                    id="inpTitle"
+                    type="text"
+                    placeholder="Article title"
+                  />
+                </div>
+                <div class="form-row">
+                  <label for="inpDesc">Description</label>
+                  <textarea
+                    id="inpDesc"
+                    rows="6"
+                    placeholder="Supports **bold**, *italic*, _underline_"
+                  ></textarea>
+                </div>
+
+                <!-- Owners & Experts -->
+                <div class="form-row">
+                  <label>Article owners</label>
+                  <div id="ownersPicker" class="people-picker"></div>
+                </div>
+                <div class="form-row">
+                  <label>Subject experts</label>
+                  <div id="expertsPicker" class="people-picker"></div>
+                </div>
+
+                <div class="assist" id="createdByInfo"></div>
+              </form>
+            </div>
+
+            <!-- Groups & Dropdowns -->
+            <div id="groupsTab" class="tab-panel" aria-labelledby="groups-tab">
+              <div class="groups-toolbar">
+                <input
+                  id="newGroupTopic"
+                  type="text"
+                  placeholder="New group topic"
+                />
+                <button id="btnAddGroup">Add group</button>
+              </div>
+              <div id="groupsList" class="groups-list" aria-live="polite"></div>
+            </div>
+
+            <!-- Dropdown Detail -->
+            <div id="detailTab" class="tab-panel" aria-labelledby="detail-tab">
+              <div class="detail-header">
+                <label for="selActiveDropdown">Edit dropdown</label>
+                <select id="selActiveDropdown"></select>
+              </div>
+              <div id="blockToolbar" class="block-toolbar">
+                <button data-block="paragraph" class="btn-add">
+                  + Paragraph
+                </button>
+                <button data-block="table" class="btn-add">+ Table</button>
+                <button data-block="tabs" class="btn-add">+ Tabs</button>
+                <button data-block="raw" class="btn-add">+ Raw HTML</button>
+                <button
+                  data-block="flowchart"
+                  id="btnFlowchart"
+                  style="display: none"
+                >
+                  + Flowchart Embed
+                </button>
+              </div>
+              <div id="blocksList" class="blocks-list" aria-live="polite"></div>
+            </div>
+
+            <!-- Review & Save -->
+            <div id="reviewTab" class="tab-panel" aria-labelledby="review-tab">
+              <div class="review-actions">
+                <button id="btnSaveDraft">Save</button>
+                <button id="btnPublish">Publish</button>
+                <button id="btnExportDrafts2">Export drafts.js</button>
+                <label class="import-inline">
+                  <input
+                    type="file"
+                    id="importFileInput2"
+                    accept=".js,.json"
+                    style="display: none"
+                  />
+                  <span id="btnImportDrafts2" role="button" tabindex="0"
+                    >Import drafts</span
+                  >
+                </label>
+                <button id="btnDeleteDraft" class="danger" disabled>
+                  Delete draft
+                </button>
+                <div
+                  id="reviewMessages"
+                  class="assist"
+                  aria-live="polite"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="preview-pane">
+          <div class="preview-header"><h3>Live preview</h3></div>
+          <div id="builderPreview" class="article-content">
+            <h1
+              id="title"
+              class="tip-box-h3"
+              style="
+                font-family: 'Abril Fatface', serif;
+                font-weight: 400;
+                font-style: normal;
+              "
+            ></h1>
+            <br />
+            <div class="tip-box"><p id="desc"></p></div>
+            <div id="dropdowns"></div>
+            <div id="rolesContainer"></div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- Builder modules in dependency order -->
+    <script src="Js/builder/builderUtils.js" defer></script>
+    <script src="Js/builder/builderState.js" defer></script>
+    <script src="Js/builder/builderPreview.js" defer></script>
+    <script src="Js/builder/builderBlocks.js" defer></script>
+    <script src="Js/builder/builderUI.js" defer></script>
+    <!-- Main coordinator loads last -->
+    <script src="Js/articleBuilder.js" defer></script>
+  </body>
+  <footer class="footer">Powered by <strong>ForUsAll</strong></footer>
+</html>

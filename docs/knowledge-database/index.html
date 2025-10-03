@@ -1,0 +1,72 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Knowledge Base</title>
+    <link rel="stylesheet" href="/docs/Knwoledge_Database/Css/styles.css" />
+    <link
+      rel="icon"
+      href="/docs/Knwoledge_Database/Images/forusall_logo.png"
+      type="image/x-icon"
+    />
+
+    <!-- Google fonts -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Abril+Fatface&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="logo">
+        <a href="index.html"
+          ><img
+            src="/docs/Knwoledge_Database/Images/forusall_logo.png"
+            alt="Logo"
+        /></a>
+      </div>
+      <div class="search-container">
+        <div class="autocomplete-wrapper">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search articles..."
+            autocomplete="off"
+          />
+          <div id="autocomplete-list" class="autocomplete-items"></div>
+        </div>
+        <button id="searchBtn">Search</button>
+      </div>
+      <div class="suggest-link">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdPTTwbt1GdRyKhnWIcuz-6nYzTNLChDoiBz8GscNu7uReChw/viewform?usp=dialog">Any suggestion?</a>
+      </div>
+    </nav>
+
+    <main>
+      <br />
+      <br />
+
+      <section id="suggestions">
+        <h2>Suggested articles</h2>
+        <ul id="suggestedList"></ul>
+      </section>
+
+      <section id="articlesListSection">
+        <h2>All Articles</h2>
+        <!-- Aquí usamos un UL igual que en suggestedList -->
+        <ul id="articlesList"></ul>
+      </section>
+    </main>
+
+    <footer class="footer">Powered by <strong>ForUsAll</strong></footer>
+
+    <!-- index.html -->
+    <script type="module" src="Js/searchComponent.js"></script>
+    <script type="module" src="Js/indexScript.js"></script>
+  </body>
+</html>
