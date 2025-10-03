@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const { requireAdmin } = require("../middleware/auth");
 
-const KB_DIR = path.join(__dirname, "..", "..", "docs", "Knwoledge_Database", "Articles");
+const KB_DIR = path.join(__dirname, "..", "..", "docs", "knowledge-database", "Articles");
 
 function ensureKbDir() {
   try {

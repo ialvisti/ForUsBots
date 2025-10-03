@@ -22,7 +22,7 @@ function requirePublisherRole(req, res, next) {
 
 // Directorios
 const DOCS_DIR = path.join(__dirname, "..", "..", "docs");
-const KB_DIR = path.join(DOCS_DIR, "Knwoledge_Database"); // (sic)
+const KB_DIR = path.join(DOCS_DIR, "knowledge-database"); // (sic)
 const DRAFT_DIR = path.join(KB_DIR, "Articles_Draft");
 const PUBLISHED_DIR = path.join(KB_DIR, "Articles");
 
