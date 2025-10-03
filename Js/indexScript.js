@@ -1,52 +1,60 @@
-// Js/indexScript.js
-// Asume que Js/articlesData.js y Js/searchComponent.js ya fueron cargados antes
+// Js/indexScript.js (solo API)
+import { initSearchComponent, loadArticlesList } from "./searchComponent.js";
 
-/**
- * Convierte markdown ligero a HTML
- */
 function formatText(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/_(.*?)_/g, '<u>$1</u>')
-    .replace(/\n/g, '<br>');
+  return String(text || "")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/_(.*?)_/g, "<u>$1</u>")
+    .replace(/\n/g, "<br>");
 }
 
-/**
- * Renderiza la lista de Suggested y All Articles
- */
-function renderIndex() {
-  // Suggested (primeros 3)
-  const sugList = document.getElementById('suggestedList');
-  sugList.innerHTML = '';
-  articles.slice(0, 3).forEach(a => {
-    const li = document.createElement('li');
-    li.innerHTML = `<a href="article.html?id=${a.id}">${formatText(a.title)}</a>`;
+function renderIndex(list) {
+  // Suggested
+  const sugList = document.getElementById("suggestedList");
+  sugList.innerHTML = "";
+  list.slice(0, 3).forEach((a) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="article.html?id=${encodeURIComponent(
+      a.id
+    )}">${formatText(a.title)}</a>`;
     sugList.appendChild(li);
   });
 
-  // All Articles (aplica filtro si existe)
-  let display = articles;
-  const stored = localStorage.getItem('searchResults');
+  // All (respeta búsqueda previa)
+  let display = list;
+  const stored = localStorage.getItem("searchResults");
   if (stored) {
-    try { display = JSON.parse(stored); } catch {}
-    localStorage.removeItem('searchResults');
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) display = parsed;
+    } catch {}
+    localStorage.removeItem("searchResults");
   }
-  const allList = document.getElementById('articlesList');
-  allList.innerHTML = '';
-  display.forEach(a => {
-    const li = document.createElement('li');
-    li.innerHTML = `<a href="article.html?id=${a.id}">${formatText(a.title)}</a>`;
+  const allList = document.getElementById("articlesList");
+  allList.innerHTML = "";
+  if (!display.length) {
+    allList.innerHTML = `<li style="opacity:.7">No articles yet. Add JSON files under <code>docs/Knwoledge_Database/Articles/</code>.</li>`;
+    return;
+  }
+  display.forEach((a) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="article.html?id=${encodeURIComponent(
+      a.id
+    )}">${formatText(a.title)}</a>`;
     allList.appendChild(li);
   });
 }
 
-/**
- * Inicializa la página de índice
- */
-function initIndex() {
+async function initIndex() {
   initSearchComponent();
-  renderIndex();
+  try {
+    const list = await loadArticlesList();
+    renderIndex(list);
+  } catch (err) {
+    console.error("[index] load error", err);
+    renderIndex([]); // mensaje “no articles”
+  }
 }
 
-document.addEventListener('DOMContentLoaded', initIndex);
+document.addEventListener("DOMContentLoaded", initIndex);
