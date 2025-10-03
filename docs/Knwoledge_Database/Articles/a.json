@@ -1,0 +1,18 @@
+{
+  "id": "a",
+  "title": "a",
+  "desc": "a",
+  "dropdownGroups": [],
+  "owners": [],
+  "experts": [],
+  "meta": {
+    "status": "draft",
+    "createdAt": "2025-10-02T22:57:34.034Z",
+    "createdBy": {
+      "id": "u_jeri.hanssmann",
+      "name": "Jeri Hanssmann",
+      "email": "jeri.hansmann@forusall.com",
+      "role": "ld"
+    }
+  }
+}
