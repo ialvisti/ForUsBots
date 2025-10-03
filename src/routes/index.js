@@ -21,6 +21,9 @@ const { normalizeResultEnvelope } = require("../engine/normalizer");
 const dataMetrics = require("./data-metrics-db");
 const dataJobs = require("./data-jobs-db");
 
+// 🆕 Rutas de artículos (FS)
+const articlesRoutes = require("./articles-files");
+
 /**
  * Determina si un `result` ya está en envelope canónico.
  */
@@ -478,16 +481,16 @@ router.post(
 );
 
 // Monta /forusbot/admin auth (login/whoami/logout, sin cookies)
-router.use('/admin', require('../routes/admin-auth'));
+router.use("/admin", require("../routes/admin-auth"));
 
 // Monta el bot: /forusbot/vault-file-upload
 router.use("/vault-file-upload", forusUploadRoutes);
 
 // Monta /forusbot/admin métricas desde BD
-router.use('/admin', require('../routes/admin-metrics-db')); 
+router.use("/admin", require("../routes/admin-metrics-db"));
 
 // Monta /forusbot/admin jobs desde BD
-router.use('/admin', require('../routes/admin-jobs-db'));
+router.use("/admin", require("../routes/admin-jobs-db"));
 
 // Monta el bot: /forusbot/scrape-participant
 router.use("/scrape-participant", scrapeParticipantRoutes);
@@ -503,6 +506,14 @@ router.use("/emailtrigger", emailTriggerRoutes);
 
 // Monta el bot: /forusbot/update-participant
 router.use("/update-participant", updateParticipantRoutes);
+
+// 🆕 Monta /forusbot/articles (FS)
+router.use("/articles", articlesRoutes);
+
+// Borradores de artículos (ADMIN)
+router.use('/articles-draft', require('./articles-draft'));
+
+
 
 router.use("/data", dataMetrics);
 router.use("/data", dataJobs);

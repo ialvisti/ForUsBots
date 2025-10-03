@@ -4,11 +4,11 @@ const path = require("path");
 const fs = require("fs");
 
 const { getSettings } = require("./engine/settings");
-const { resolveRole } = require("./middleware/auth");
+const { resolveRole, listUsersPublic } = require("./middleware/auth");
 
 const app = express();
 
-// ===== Body parsers (para PATCH /settings y demás JSON) =====
+// ===== Body parsers =====
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: false }));
 
@@ -44,11 +44,17 @@ function isSecureReq(req) {
   return req.secure || xfwd.includes("https");
 }
 
-// Cookie para evidencia (existente)
-function setAuthCookie(req, res, token, maxAgeSeconds = 60 * 60 * 24 * 7) {
+// Cookie helpers (evidence/admin)
+function setCookieGeneric(
+  req,
+  res,
+  name,
+  token,
+  maxAgeSeconds = 60 * 60 * 24 * 7
+) {
   const secure = process.env.COOKIE_SECURE === "1" || isSecureReq(req);
   const pieces = [
-    `forusbot_token=${encodeURIComponent(token)}`,
+    `${name}=${encodeURIComponent(token)}`,
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
@@ -57,10 +63,10 @@ function setAuthCookie(req, res, token, maxAgeSeconds = 60 * 60 * 24 * 7) {
   if (secure) pieces.push("Secure");
   res.setHeader("Set-Cookie", pieces.join("; "));
 }
-function clearAuthCookie(req, res) {
+function clearCookieGeneric(req, res, name) {
   const secure = process.env.COOKIE_SECURE === "1" || isSecureReq(req);
   const pieces = [
-    "forusbot_token=",
+    `${name}=`,
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
@@ -70,40 +76,22 @@ function clearAuthCookie(req, res) {
   res.setHeader("Set-Cookie", pieces.join("; "));
 }
 
-// Cookie para ADMIN UI (nueva, independiente)
-function setAdminCookie(req, res, token, maxAgeSeconds = 60 * 60 * 24 * 7) {
-  const secure = process.env.COOKIE_SECURE === "1" || isSecureReq(req);
-  const pieces = [
-    `forusbot_admin=${encodeURIComponent(token)}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    `Max-Age=${maxAgeSeconds}`,
-  ];
-  if (secure) pieces.push("Secure");
-  res.setHeader("Set-Cookie", pieces.join("; "));
-}
-function clearAdminCookie(req, res) {
-  const secure = process.env.COOKIE_SECURE === "1" || isSecureReq(req);
-  const pieces = [
-    "forusbot_admin=",
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    "Max-Age=0",
-  ];
-  if (secure) pieces.push("Secure");
-  res.setHeader("Set-Cookie", pieces.join("; "));
-}
+const setAuthCookie = (req, res, t) =>
+  setCookieGeneric(req, res, "forusbot_token", t);
+const clearAuthCookie = (req, res) =>
+  clearCookieGeneric(req, res, "forusbot_token");
+const setAdminCookie = (req, res, t) =>
+  setCookieGeneric(req, res, "forusbot_admin", t);
+const clearAdminCookie = (req, res) =>
+  clearCookieGeneric(req, res, "forusbot_admin");
 
-// === Auto-logout previo: sólo borra cookie de evidencia al salir de /evidence ===
+// === Auto-logout previo para evidencia
 app.use((req, res, next) => {
   const p = req.path || "";
   const inEvidenceArea =
     p === "/evidence" ||
     p.startsWith("/evidence/") ||
     p === "/forusbot/evidence/login";
-  // Mantener cookie ADMIN: no se borra aquí
   if (!inEvidenceArea && readCookie(req, "forusbot_token")) {
     clearAuthCookie(req, res);
   }
@@ -114,7 +102,7 @@ app.use((req, res, next) => {
 const DOCS_DIR = path.join(__dirname, "..", "docs");
 app.use("/docs", express.static(DOCS_DIR, { index: "index.html" }));
 
-// Evidence (configurable) – con fallback si falta serve-index
+// Evidence (configurable)
 const EVIDENCE_DIR = process.env.EVIDENCE_DIR || "/tmp/evidence";
 try {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
@@ -123,11 +111,10 @@ try {
 let serveIndex = null;
 try {
   serveIndex = require("serve-index");
-} catch (_) {
+} catch {
   serveIndex = null;
 }
 
-// Gate por flags y rol (acepta header o cookie) — Evidence
 function evidenceGate(req, res, next) {
   const flags = getSettings().flags || {};
   if (flags.evidencePublic) return next();
@@ -141,7 +128,7 @@ function evidenceGate(req, res, next) {
   return next();
 }
 
-// ===== Login para /evidence (set-cookie). NO hay /logout (auto-logout) =====
+// Evidence login (usa cualquier token válido)
 app.post("/forusbot/evidence/login", (req, res) => {
   try {
     const token = req.header("x-auth-token") || (req.body && req.body.token);
@@ -160,7 +147,7 @@ app.post("/forusbot/evidence/login", (req, res) => {
   }
 });
 
-// ===== Montaje de /evidence (protegido por gate) =====
+// Evidence static
 if (serveIndex) {
   app.use("/evidence", noCache, evidenceGate, express.static(EVIDENCE_DIR));
   app.use(
@@ -173,14 +160,13 @@ if (serveIndex) {
   app.use("/evidence", noCache, evidenceGate, express.static(EVIDENCE_DIR));
 }
 
-// ===== ADMIN UI: login/logout + whoami (cookie admin) =====
+// ===== ADMIN UI cookies =====
 app.post("/forusbot/admin/login", (req, res) => {
   try {
     const token = req.header("x-auth-token") || (req.body && req.body.token);
     const role = resolveRole(token);
-    if (role !== "admin") {
+    if (role !== "admin")
       return res.status(401).json({ ok: false, error: "unauthorized" });
-    }
     setAdminCookie(req, res, token);
     return res.json({ ok: true, role: "admin" });
   } catch (e) {
@@ -209,11 +195,42 @@ app.get("/forusbot/admin/whoami", (req, res) => {
   }
 });
 
-// ===== Header injection para /forusbot: si hay cookie admin, úsala como x-auth-token =====
+/* ======================================================
+   NUEVO: Auth & Users (sin L&D)
+   - /forusbot/auth/whoami  → valida token (cualquier rol)
+   - /forusbot/users        → lista pública (cualquier rol)
+====================================================== */
+app.get("/forusbot/auth/whoami", (req, res) => {
+  try {
+    const token = req.header("x-auth-token");
+    const role = resolveRole(token);
+    if (!role)
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    return res.json({ ok: true, role });
+  } catch (e) {
+    console.error("[auth whoami] error", e);
+    return res.status(500).json({ ok: false, error: "whoami error" });
+  }
+});
+
+app.get("/forusbot/users", (req, res) => {
+  try {
+    const token = req.header("x-auth-token");
+    const role = resolveRole(token);
+    if (!role)
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    return res.json({ ok: true, users: listUsersPublic() });
+  } catch (e) {
+    console.error("[users] error", e);
+    return res.status(500).json({ ok: false, error: "users error" });
+  }
+});
+
+// Header injection: SOLO admin cookie (para consola admin)
 app.use("/forusbot", (req, _res, next) => {
   if (!req.headers["x-auth-token"]) {
-    const t = readCookie(req, "forusbot_admin");
-    if (t) req.headers["x-auth-token"] = t;
+    const tAdmin = readCookie(req, "forusbot_admin");
+    if (tAdmin) req.headers["x-auth-token"] = tAdmin;
   }
   next();
 });
@@ -221,11 +238,11 @@ app.use("/forusbot", (req, _res, next) => {
 // ===== API namespaced =====
 app.use("/forusbot", require("./routes"));
 
-// ===== Health (compat y namespaced) =====
+// ===== Health =====
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.get("/forusbot/health", (_req, res) => res.json({ ok: true }));
 
-// ===== Admin Console estática (no expone datos; datos están protegidos por API) =====
+// ===== Admin Console estática =====
 const ADMIN_DIR = path.join(DOCS_DIR, "admin");
 app.use("/admin", noCache, express.static(ADMIN_DIR, { index: "index.html" }));
 
