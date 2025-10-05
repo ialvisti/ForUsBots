@@ -324,6 +324,15 @@
   padding: 0.35rem;
 }
 
+/* Centrados en el editor para headers de tablas */
+.block-card th {
+  text-align: center;
+}
+
+.block-card th input {
+  text-align: center;
+}
+
 .review-actions {
   display: flex;
   gap: 0.5rem;
@@ -412,9 +421,16 @@
 .tab-btn.locked {
   opacity: 0.5;
   cursor: not-allowed;
-  pointer-events: auto; /* dejamos eventos para poder mostrar aviso, pero no cambiamos de tab */
+  pointer-events: auto;
+  /* dejamos eventos para poder mostrar aviso, pero no cambiamos de tab */
 }
 
 .tab-btn.locked:hover {
-  background: transparent; /* sin hover activo */
+  background: transparent;
+  /* sin hover activo */
+}
+
+/* Centrados en preview para headers de tablas del artículo */
+.article-content table thead th {
+  text-align: center;
 }

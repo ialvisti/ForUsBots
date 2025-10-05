@@ -3,6 +3,8 @@
 
 // Estado local: cuáles dropdowns están abiertos (clave por id o por "gi:ii")
 const __openMap = new Map();
+// Estado local: pestaña activa por bloque tabs (key = data-uid, val = índice)
+const __tabsActive = new Map();
 
 /* ------------------------------------------------------
    Helpers
@@ -18,6 +20,87 @@ function getCurrentArticleId() {
       window.BuilderState.builderState.id) ||
     ""
   );
+}
+
+/* Tabs helpers: aplicar/recordar pestaña activa */
+function applyActiveToTabFrame(frame, idx) {
+  const buttons = frame.querySelectorAll(".tab-nav button");
+  const panels = frame.querySelectorAll(".tab-panel");
+  const n = Math.max(0, Math.min(idx, buttons.length - 1));
+  buttons.forEach((b, i) => b.classList.toggle("active", i === n));
+  panels.forEach((p, i) => p.classList.toggle("active", i === n));
+}
+
+function initTabsWithState(scopeEl) {
+  const frames = scopeEl.querySelectorAll(".tab-frame");
+  frames.forEach((frame) => {
+    const uid = frame.dataset.uid || "";
+    const defaultIdx = __tabsActive.has(uid) ? __tabsActive.get(uid) : 0;
+    applyActiveToTabFrame(frame, defaultIdx);
+
+    const buttons = frame.querySelectorAll(".tab-nav button");
+    buttons.forEach((btn, i) => {
+      btn.addEventListener("click", () => {
+        applyActiveToTabFrame(frame, i);
+        if (uid) __tabsActive.set(uid, i);
+      });
+    });
+  });
+}
+
+/* ------------------------------------------------------
+   Dropdown animation helpers (preview)
+------------------------------------------------------ */
+function expandDropdownContent(el) {
+  if (!el) return;
+  el.classList.add("show");
+  el.style.display = "block";
+  el.style.overflow = "hidden";
+  el.style.opacity = "0";
+  el.style.paddingTop = "0";
+  el.style.paddingBottom = "0";
+  el.style.height = "0px";
+  void el.offsetHeight;
+  const target = el.scrollHeight;
+  el.style.transition =
+    "height 300ms ease, opacity 300ms ease, padding 300ms ease";
+  el.style.height = target + "px";
+  el.style.opacity = "1";
+  el.style.paddingTop = "";
+  el.style.paddingBottom = "";
+  const onEnd = () => {
+    el.style.height = "";
+    el.style.overflow = "visible";
+    el.style.transition = "";
+    el.removeEventListener("transitionend", onEnd);
+  };
+  el.addEventListener("transitionend", onEnd);
+}
+
+function collapseDropdownContent(el) {
+  if (!el) return;
+  const current = el.scrollHeight;
+  el.style.height = current + "px";
+  el.style.overflow = "hidden";
+  el.style.transition =
+    "height 260ms ease, opacity 260ms ease, padding 260ms ease";
+  void el.offsetHeight;
+  el.style.height = "0px";
+  el.style.opacity = "0";
+  el.style.paddingTop = "0";
+  el.style.paddingBottom = "0";
+  const onEnd = () => {
+    el.classList.remove("show");
+    el.style.display = "none";
+    el.style.height = "";
+    el.style.opacity = "";
+    el.style.paddingTop = "";
+    el.style.paddingBottom = "";
+    el.style.overflow = "";
+    el.style.transition = "";
+    el.removeEventListener("transitionend", onEnd);
+  };
+  el.addEventListener("transitionend", onEnd);
 }
 
 /* ------------------------------------------------------
@@ -42,7 +125,10 @@ function openDropdownById(id, { scroll = true } = {}) {
   const cont = dd.querySelector(".dropdown-content");
   if (!btn || !cont) return false;
 
+  // Abrir en estado final (sin animación en navegación directa)
   cont.classList.add("show");
+  cont.style.display = "block";
+  cont.style.opacity = "1";
   btn.style.background = "var(--button-text)";
   btn.style.color = "var(--button)";
   __openMap.set(id, true);
@@ -92,6 +178,18 @@ function renderBuilderPreview(articleObj) {
       if (id) __openMap.set(id, !!open);
     });
 
+    // Capturar pestañas activas por data-uid antes del re-render
+    Array.from(ddContainer.querySelectorAll(".tab-frame")).forEach((frame) => {
+      const uid = frame.dataset.uid;
+      if (!uid) return;
+      const buttons = frame.querySelectorAll(".tab-nav button");
+      let activeIdx = 0;
+      buttons.forEach((b, i) => {
+        if (b.classList.contains("active")) activeIdx = i;
+      });
+      __tabsActive.set(uid, activeIdx);
+    });
+
     ddContainer.innerHTML = "";
     (articleObj.dropdownGroups || []).forEach((group, gi) => {
       const h1 = document.createElement("h1");
@@ -119,25 +217,33 @@ function renderBuilderPreview(articleObj) {
         cont.innerHTML = /<\/?[a-z][\s\S]*>/i.test(txt)
           ? txt
           : window.BuilderUtils.formatText(txt);
+
+        // Inicializar tabs con preservación de estado
         window.BuilderUtils.initTabs(cont);
+        initTabsWithState(cont);
 
         // Estado inicial: cerrado. Mantener estado si existe.
         const idKey = item.id || k;
         if (__openMap.get(idKey)) {
           cont.classList.add("show");
+          cont.style.display = "block";
+          cont.style.opacity = "1";
           btn.style.background = "var(--button-text)";
           btn.style.color = "var(--button)";
         }
 
         btn.addEventListener("click", () => {
-          const isOpen = cont.classList.toggle("show");
-          __openMap.set(idKey, isOpen);
+          const isOpen = cont.classList.contains("show");
           if (isOpen) {
-            btn.style.background = "var(--button-text)";
-            btn.style.color = "var(--button)";
-          } else {
+            collapseDropdownContent(cont);
+            __openMap.set(idKey, false);
             btn.style.background = "";
             btn.style.color = "";
+          } else {
+            expandDropdownContent(cont);
+            __openMap.set(idKey, true);
+            btn.style.background = "var(--button-text)";
+            btn.style.color = "var(--button)";
           }
         });
 
@@ -150,9 +256,6 @@ function renderBuilderPreview(articleObj) {
 
     /* --------------------------------------------------
        Delegación de clicks en enlaces internos
-       - "#algo"  -> abrir dropdown id=algo
-       - "article.html?q=<actual>#algo" o "article.html?id=<actual>#algo"
-         -> abrir sin recargar el preview
     --------------------------------------------------- */
     ddContainer.addEventListener("click", (ev) => {
       const a = ev.target.closest("a");

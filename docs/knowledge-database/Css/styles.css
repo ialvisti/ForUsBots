@@ -261,37 +261,24 @@ main {
   color: var(--button-text);
 }
 
-/* —— dropdown-content animado sin dejar hueco cuando está oculto —— */
+/* —— dropdown-content OCULTO por defecto (sin límites) —— */
 .dropdown-content {
-  /* siempre presente en el flujo para poder animar */
-  display: block;
-  max-height: 0;
+  display: none;
+  /* no ocupa espacio */
   padding: 0 1rem;
+  /* padding lateral siempre */
   margin-top: 0;
   border: none;
   opacity: 0;
-  overflow: hidden;
   width: 100%;
   background: var(--panel);
   text-align: left;
-
-  /* animamos altura, padding vertical, opacity y margen */
-  transition:
-    max-height 0.4s ease,
-    padding 0.4s ease,
-    opacity 0.6s ease,
-    margin-top 0.4s ease,
-    border 0.1s linear 0.1s;
-
-  /*Font, Manrope*/
-  font-family: "Manrope", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 300;
-  font-style: normal;
+  /* sin overflow ni max-height: el JS se ocupa de animar height */
 }
 
+/* Visible: solo para estilo final (JS maneja animación/inline styles) */
 .dropdown-content.show {
-  max-height: 1000px;
+  display: block;
   padding: 1rem;
   margin-top: 0.25rem;
   border: 1px solid var(--border);
@@ -428,19 +415,24 @@ main {
   padding-left: 15px;
 }
 
-/* Dentro de cada dropdown-content: tablas al 90% y centradas */
+/* Dentro de cada dropdown-content: tablas al 98% y centradas */
 .dropdown-content table {
   width: 98%;
   margin: 0.5rem auto;
   border-collapse: collapse;
 }
 
-/* Opcional: estilos básicos para tus tablas */
+/* Estilos básicos para tablas */
 .dropdown-content th,
 .dropdown-content td {
   border: 1px solid var(--border);
   padding: 0.5rem;
   text-align: left;
+}
+
+/* Headers centrados SIEMPRE (primera fila) */
+.dropdown-content thead th {
+  text-align: center;
 }
 
 /* Asegura que tus párrafos ocupen casi todo el ancho */

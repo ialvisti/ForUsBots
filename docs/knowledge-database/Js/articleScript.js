@@ -9,6 +9,9 @@ function formatText(text) {
     .replace(/\n/g, "<br>");
 }
 
+/* ---------------------------
+   Tabs (simple)
+---------------------------- */
 function initTabs(root) {
   const frames = root.querySelectorAll(".tab-frame");
   frames.forEach((frame) => {
@@ -27,6 +30,72 @@ function initTabs(root) {
   });
 }
 
+/* ---------------------------
+   Dropdown animation helpers
+   - Sin límites de altura, sin scroll interno
+---------------------------- */
+function expandDropdownContent(el) {
+  if (!el) return;
+  el.classList.add("show"); // estado visual final
+  el.style.display = "block"; // debe estar visible para medir
+  el.style.overflow = "hidden"; // sin scroll durante animación
+  el.style.opacity = "0";
+  el.style.paddingTop = "0";
+  el.style.paddingBottom = "0";
+  el.style.height = "0px";
+
+  // forzar reflow antes de animar
+  void el.offsetHeight;
+
+  const target = el.scrollHeight;
+  el.style.transition =
+    "height 300ms ease, opacity 300ms ease, padding 300ms ease";
+  el.style.height = target + "px";
+  el.style.opacity = "1";
+  el.style.paddingTop = "";
+  el.style.paddingBottom = "";
+
+  const onEnd = () => {
+    el.style.height = ""; // altura auto
+    el.style.overflow = "visible";
+    el.style.transition = "";
+    el.removeEventListener("transitionend", onEnd);
+  };
+  el.addEventListener("transitionend", onEnd);
+}
+
+function collapseDropdownContent(el) {
+  if (!el) return;
+  const current = el.scrollHeight;
+  el.style.height = current + "px";
+  el.style.overflow = "hidden";
+  el.style.transition =
+    "height 260ms ease, opacity 260ms ease, padding 260ms ease";
+  // reflow
+  void el.offsetHeight;
+
+  el.style.height = "0px";
+  el.style.opacity = "0";
+  el.style.paddingTop = "0";
+  el.style.paddingBottom = "0";
+
+  const onEnd = () => {
+    el.classList.remove("show");
+    el.style.display = "none";
+    el.style.height = "";
+    el.style.opacity = "";
+    el.style.paddingTop = "";
+    el.style.paddingBottom = "";
+    el.style.overflow = "";
+    el.style.transition = "";
+    el.removeEventListener("transitionend", onEnd);
+  };
+  el.addEventListener("transitionend", onEnd);
+}
+
+/* ---------------------------
+   Data
+---------------------------- */
 async function fetchArticleById(id) {
   const res = await fetch(`/forusbot/articles/${encodeURIComponent(id)}`, {
     headers: { Accept: "application/json" },
@@ -47,6 +116,9 @@ function showNotFound(id) {
   ).innerHTML = `We couldn’t find <code>${id}</code>. Check that <code>docs/Knwoledge_Database/Articles/${id}.json</code> exists or was uploaded via API.`;
 }
 
+/* ---------------------------
+   Render
+---------------------------- */
 async function renderArticle() {
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
@@ -87,10 +159,19 @@ async function renderArticle() {
       cont.innerHTML = /<\/?[a-z][\s\S]*>/i.test(txt) ? txt : formatText(txt);
 
       initTabs(cont);
+
+      // click con animación
       btn.addEventListener("click", () => {
-        const isOpen = cont.classList.toggle("show");
-        btn.style.background = isOpen ? "var(--button-text)" : "";
-        btn.style.color = isOpen ? "var(--button)" : "";
+        const isOpen = cont.classList.contains("show");
+        if (isOpen) {
+          collapseDropdownContent(cont);
+          btn.style.background = "";
+          btn.style.color = "";
+        } else {
+          expandDropdownContent(cont);
+          btn.style.background = "var(--button-text)";
+          btn.style.color = "var(--button)";
+        }
       });
 
       dd.append(btn, cont);
@@ -125,6 +206,9 @@ async function renderArticle() {
   openDropdownFromHash();
 }
 
+/* ---------------------------
+   Hash open (sin animación forzada)
+---------------------------- */
 function openDropdownFromHash() {
   const hash = window.location.hash;
   if (!hash) return;
@@ -133,7 +217,10 @@ function openDropdownFromHash() {
   const content = target.querySelector(".dropdown-content");
   const button = target.querySelector(".dropbtn");
   if (content && button && !content.classList.contains("show")) {
+    // abrir en estado final (sin animar para asegurar scrollIntoView correcto)
     content.classList.add("show");
+    content.style.display = "block";
+    content.style.opacity = "1";
     button.style.background = "var(--button-text)";
     button.style.color = "var(--button)";
     setTimeout(
@@ -143,6 +230,9 @@ function openDropdownFromHash() {
   }
 }
 
+/* ---------------------------
+   Bootstrap
+---------------------------- */
 function initArticle() {
   initSearchComponent();
   renderArticle();

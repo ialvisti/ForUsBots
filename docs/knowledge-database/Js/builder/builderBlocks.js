@@ -7,6 +7,15 @@
 let __detailWired = false;
 
 /* ------------------------------------------------------
+   Utils
+------------------------------------------------------ */
+function makeUid(prefix = "tabs") {
+  return `${prefix}-${Math.random()
+    .toString(36)
+    .slice(2, 9)}-${Date.now().toString(36)}`;
+}
+
+/* ------------------------------------------------------
    Blocks hydration y management
 ------------------------------------------------------ */
 function hydrateBlocksFromDetails(article) {
@@ -252,6 +261,8 @@ function renderBlocksEditor() {
     } else if (blk.type === "table") {
       renderTableEditor(body, blk, item, blocks);
     } else if (blk.type === "tabs") {
+      // asegurar UID para tabs (para preservar pestaña activa en preview)
+      if (!blk.uid) blk.uid = makeUid("tabs");
       renderTabsEditor(body, blk, item, blocks);
     } else if (blk.type === "flowchart") {
       renderFlowchartEditor(body, blk, item, blocks);
@@ -369,40 +380,7 @@ function renderTableEditor(body, blk, item, blocks) {
     controls.querySelectorAll("input,button");
   const tbl = document.createElement("table");
 
-  function buildCells() {
-    const rows = Math.max(1, parseInt(rowsInp.value || "2", 10));
-    const cols = Math.max(1, parseInt(colsInp.value || "2", 10));
-    blk.rows = rows;
-    blk.cols = cols;
-    if (!Array.isArray(blk.data)) blk.data = [];
-    for (let r = 0; r < rows; r++) {
-      if (!blk.data[r]) blk.data[r] = [];
-      for (let c = 0; c < cols; c++)
-        if (typeof blk.data[r][c] !== "string") blk.data[r][c] = "";
-    }
-    tbl.innerHTML = "";
-    for (let r = 0; r < rows; r++) {
-      const tr = document.createElement("tr");
-      for (let c = 0; c < cols; c++) {
-        const td = document.createElement(r === 0 ? "th" : "td");
-        const inp = document.createElement("input");
-        inp.value = blk.data[r][c] || "";
-        inp.addEventListener("focus", () => (focusedCell = inp));
-        inp.addEventListener("blur", () => (focusedCell = inp));
-        inp.addEventListener("input", () => {
-          blk.data[r][c] = inp.value;
-          persistBlocks(item, blocks, {
-            updateDetail: true,
-            rerenderEditor: false,
-          });
-        });
-        td.appendChild(inp);
-        tr.appendChild(td);
-      }
-      tbl.appendChild(tr);
-    }
-  }
-
+  // Listeners
   applyBtn.addEventListener("click", () => {
     buildCells();
     persistBlocks(item, blocks, {
@@ -423,6 +401,7 @@ function renderTableEditor(body, blk, item, blocks) {
     }
   });
 
+  // ÚNICA definición de buildCells (normaliza datos y reconstruye tabla)
   function buildCells() {
     const rows = Math.max(1, parseInt(rowsInp.value || "2", 10));
     const cols = Math.max(1, parseInt(colsInp.value || "2", 10));
@@ -432,12 +411,10 @@ function renderTableEditor(body, blk, item, blocks) {
 
     if (!Array.isArray(blk.data)) blk.data = [];
 
-    // --- recortar/normalizar filas y columnas en blk.data ---
-    // recorta filas sobrantes si se redujo el número
+    // Recortar/normalizar filas y columnas
     if (blk.data.length > rows) {
       blk.data = blk.data.slice(0, rows);
     }
-    // asegura cada fila y recorta/crea columnas al tamaño exacto
     for (let r = 0; r < rows; r++) {
       if (!Array.isArray(blk.data[r])) blk.data[r] = [];
       if (blk.data[r].length > cols) {
@@ -448,12 +425,15 @@ function renderTableEditor(body, blk, item, blocks) {
       }
     }
 
-    // --- reconstruye la tabla del editor ---
+    // Reconstruir tabla del editor
     tbl.innerHTML = "";
     for (let r = 0; r < rows; r++) {
       const tr = document.createElement("tr");
       for (let c = 0; c < cols; c++) {
-        const td = document.createElement(r === 0 ? "th" : "td");
+        const cell = document.createElement(r === 0 ? "th" : "td");
+        // color de encabezado en el editor
+        if (r === 0) cell.style.backgroundColor = "rgb(255, 250, 210)";
+
         const inp = document.createElement("input");
         inp.value = blk.data[r][c] || "";
         inp.addEventListener("focus", () => (focusedCell = inp));
@@ -465,12 +445,15 @@ function renderTableEditor(body, blk, item, blocks) {
             rerenderEditor: false,
           });
         });
-        td.appendChild(inp);
-        tr.appendChild(td);
+        cell.appendChild(inp);
+        tr.appendChild(cell);
       }
       tbl.appendChild(tr);
     }
   }
+
+  // Construir la tabla inicial del editor
+  buildCells();
 
   body.append(rc, toolbar, controls, tbl);
 }
@@ -481,6 +464,9 @@ function renderTabsEditor(body, blk, item, blocks) {
       { title: "Tab 1", content: "" },
       { title: "Tab 2", content: "" },
     ];
+
+  // asegurar UID (si viene de un draft viejo)
+  if (!blk.uid) blk.uid = makeUid("tabs");
 
   const list = document.createElement("div");
   list.className = "tabs-editor";
@@ -536,6 +522,7 @@ function renderTabsEditor(body, blk, item, blocks) {
 
     content.addEventListener("input", () => {
       t.content = content.value;
+      // NO re-render del editor para no perder el foco
       persistBlocks(item, blocks, {
         updateDetail: true,
         rerenderEditor: false,
@@ -574,6 +561,7 @@ function persistBlocks(
   const { updateDetail = true, rerenderEditor = true } = opts || {};
   if (updateDetail) item.detail = serializeBlocksToDetail(blocks);
   if (rerenderEditor) renderBlocksEditor(); // evitamos rerender en cada tecla para no perder foco
+  // Preview se re-renderiza; el builderPreview ya preserva pestañas activas por UID
   window.BuilderPreview.triggerPreview();
 }
 
@@ -607,6 +595,7 @@ function blockDefaults(type, itemType) {
   if (type === "tabs")
     return {
       type: "tabs",
+      uid: makeUid("tabs"), // UID estable para preservar pestaña activa en preview
       tabs: [
         { title: "Tab 1", content: "" },
         { title: "Tab 2", content: "" },
@@ -642,7 +631,7 @@ function serializeBlock(b) {
   if (b.type === "table") {
     const rows = Array.isArray(b.data) ? b.data : [];
     const thead = rows[0]
-      ? `<thead><tr>${rows[0]
+      ? `<thead style="background-color: rgb(255, 250, 210);"><tr>${rows[0]
           .map((c) => `<th>${window.BuilderUtils.renderMaybeHtml(c)}</th>`)
           .join("")}</tr></thead>`
       : "";
@@ -658,6 +647,8 @@ function serializeBlock(b) {
     return `<table>${thead}<tbody>${bodyRows}</tbody></table>`;
   }
   if (b.type === "tabs") {
+    // Asegurar UID para compatibilidad con drafts antiguos
+    if (!b.uid) b.uid = makeUid("tabs");
     const tabs = Array.isArray(b.tabs) ? b.tabs : [];
     const nav = `<div class="tab-nav">${tabs
       .map(
@@ -677,7 +668,10 @@ function serializeBlock(b) {
           }">${window.BuilderUtils.renderMaybeHtml(t.content || "")}</div>`
       )
       .join("");
-    return `<div class="tab-frame">${nav}${panels}</div>`;
+    // data-uid permite a builderPreview restaurar la pestaña activa tras re-render
+    return `<div class="tab-frame" data-uid="${window.BuilderUtils.escapeAttr(
+      b.uid
+    )}">${nav}${panels}</div>`;
   }
   if (b.type === "flowchart") {
     const id = window.BuilderUtils.extractLucidId(b.embed || "");
