@@ -70,24 +70,42 @@ function sanitizeDraft(a) {
   };
 }
 
+/**
+ * Al exportar, si existen bloques materializados en memoria (item.__blocks),
+ * serializamos a HTML con BuilderBlocks.serializeBlocksToDetail para
+ * preservar los bloques y que al reabrir se rehidrate igual.
+ */
 function sanitizeExport(a) {
-  return {
+  const out = {
     id: a.id || "",
     title: a.title || "",
     desc: a.desc || "",
     dropdownGroups: (a.dropdownGroups || []).map((g) => ({
       topic: g.topic || "",
-      items: (g.items || []).map((it) => ({
-        id: it.id || "",
-        title: it.title || "",
-        type: it.type || "empty",
-        detail: it.detail || "",
-      })),
+      items: (g.items || []).map((it) => {
+        const base = {
+          id: it.id || "",
+          title: it.title || "",
+          type: it.type || "empty",
+          detail: it.detail || "",
+        };
+        try {
+          if (it && Array.isArray(it.__blocks) && window.BuilderBlocks) {
+            base.detail = window.BuilderBlocks.serializeBlocksToDetail(
+              it.__blocks
+            );
+          }
+        } catch {
+          // Si algo falla, dejamos el detail actual
+        }
+        return base;
+      }),
     })),
     owners: normalizePeople(a.owners),
     experts: normalizePeople(a.experts),
     meta: a.meta || {},
   };
+  return out;
 }
 
 function cloneFromArticle(article) {

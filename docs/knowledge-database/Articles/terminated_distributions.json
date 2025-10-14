@@ -1,0 +1,126 @@
+{
+  "id": "terminated_distributions",
+  "title": "Procedural Article: Terminated Distributions",
+  "desc": "**This article includes**:\n\n**•** Guidelines on tools and available resources for handling participant's inquiries _*through the phone or tickets*_.\n**•** Instructions on how to handle phone calls and tickets, wording, ticket formatting and tool usage for investigation while handling participant's requests.\n**•** Procedures regarding how to use our tools for better case resolution and time usage.\n**•** Pro Tips that may help to perform as a *FUA* expert ;)\n\n**Related educational articles:** \n\n**•** <a href = \"article.html?id=edu_distributions\">Edu: Distributions</a>",
+  "dropdownGroups": [
+    {
+      "topic": "Flowcharts",
+      "items": [
+        {
+          "id": "flowcharts_dp1",
+          "title": "Distributions Summary Flowchart",
+          "type": "flowchart",
+          "detail": "\n    <div style=\"width:100%; height:450px; margin:10px 0;\">\n      <iframe allowfullscreen frameborder=\"0\" style=\"width:100%; height:100%;\" src=\"https://lucid.app/documents/embedded/2c2d569f-dfb9-46ae-ae0a-c031bb9fa2b6\"></iframe>\n    </div>"
+        }
+      ]
+    },
+    {
+      "topic": "Phone Procedure",
+      "items": [
+        {
+          "id": "ppt_lookup_1",
+          "title": "Participant Look Up",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:<br><br><strong>1.</strong> Request and confirm:<br><strong>•</strong>   First and last name<br><strong>•</strong>   Last four digits of their <strong>SSN</strong><br><br><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.<br><br>If you cannot find the account immediately:<br><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.<br><strong>•</strong>   Verify that the company name, division, or plan name on <strong>Admin Panel</strong> matches with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.<br><br><br>If you found the Participant's account, proceed with <a href=\"#ppt<u>verification</u>1\" data-dropdown-id=\"ppt<u>verification</u>1\">Participant Verification</a>, if not, proceed with <a href=\"#other<u>cases</u>dp1\" data-dropdown-id=\"other<u>cases</u>dp1\">Phone | Other Cases</a> dropdown.</p>\n<p><br><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        },
+        {
+          "id": "ppt_verification_1",
+          "title": "Participant Verification",
+          "type": "empty",
+          "detail": "<p>Once you’ve located the participant’s account, perform a formal account validation to verify that the person contacting us is the authorized account holder.</p>\n<br>\n<p>This is what you <u><em>must</em></u> validate on <strong>Admin Panel</strong> before handling a participant's request:</p>\n<br>\n<table><thead style=\"background-color: rgb(255, 250, 210);\"><tr><th>Item</th><th>Example</th></tr></thead><tbody><tr><td>Item</td><td>Example</td></tr><tr><td>Last 4 digits of their <strong>SSN</strong></td><td>\" Can you please confirm the last 4 digits of your <strong>Social Security Number</strong>? \"</td></tr><tr><td>Company/Plan/Division Name</td><td>\" Could you please tell me which is the Name of the <strong>Company</strong> linked to your 401(k)? \"</td></tr><tr><td>Participant's Birth date</td><td>\" Please confirm me your <strong>Date of Birth</strong>. \"</td></tr><tr><td>Email on file</td><td>\" Please confirm me the <strong>Email</strong> linked to your account. \"</td></tr></tbody></table>\n<br>\n<p>If the participant is unable to verify any of the previously listed items (with the exception of their <strong>SSN</strong>), you <em><u>must</u></em> attempt to validate other data in the <strong>Admin Panel</strong>, such as the following:</p>\n<br>\n<table><thead style=\"background-color: rgb(255, 250, 210);\"><tr><th>Item</th><th>Example</th></tr></thead><tbody><tr><td>Item</td><td>Example</td></tr><tr><td>Hire date</td><td>\" Can you please confirm your <strong>Hire Date</strong>? \"</td></tr><tr><td>Full Address</td><td>\" Could you please confirm the <strong>Address</strong> on file? \"</td></tr></tbody></table>\n<br>\n<p>If you were able to confirm the participant's identity, proceed with <u>Step [3]</u>, if not, proceed with <u>Phone | Other Cases</u> dropdown.</p>"
+        },
+        {
+          "id": "ppt_eligibility_1",
+          "title": "Participant Eligibility Check",
+          "type": "empty",
+          "detail": "<p>Now that we validated our participant's identity, we must perform some checks in order to know if this participant is eligible for a distribution.</p>\n<br>\n<p>Confirm the following information on the <strong>Admin Panel</strong>:</p>\n<p><strong>•</strong>   Participant's age</p>\n<p><strong>•</strong>   Eligibility Status</p>\n<p><strong>•</strong>   Termination Date</p>\n<br>\n<p>Based on the information obtained from <strong>Admin Panel</strong>, pick the matching case from the table below.</p>\n<br>\n<table><thead style=\"background-color: rgb(255, 250, 210);\"><tr><th><strong>Case</strong></th><th><strong>Procedure</strong></th></tr></thead><tbody><tr><td><strong>Case</strong></td><td><strong>Procedure</strong></td></tr><tr><td>Participant's age is greater than <strong>59.5</strong></td><td>Proceed with <a href=\"article.html?id=proc_distributions#in_service_dtb_1\">In-Service Distribution</a></td></tr><tr><td>Company/Plan/Division Name</td><td>\" Could you please tell me which is the Name of the <strong>Company</strong> linked to your 401(k)? \"</td></tr><tr><td>Participant's Birth date</td><td>\" Please confirm me your <strong>Date of Birth</strong>. \"</td></tr><tr><td>Email on file</td><td>\" Please confirm me the <strong>Email</strong> linked to your account. \"</td></tr></tbody></table>"
+        },
+        {
+          "id": "terminated_dtb_1",
+          "title": "Terminated Distribution",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:</p>\n<p><strong>1.</strong> Request and confirm:</p>\n<p><strong>•</strong>   First and last name</p>\n<p><strong>•</strong>   Last four digits of their <strong>SSN</strong></p>\n<p><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.</p>\n<br>\n<p>If you cannot find the account immediately:</p>\n<p><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.</p>\n<p><strong>•</strong>   Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-6w00n7m-mggqn72r\"><div class=\"tab-nav\"><button class=\"active\">LT Trust</button><button>Vanguard</button><button>Others</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>\n<br>\n<p><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        },
+        {
+          "id": "in_service_dtb_1",
+          "title": "In-Service Distribution",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:</p>\n<p><strong>1.</strong> Request and confirm:</p>\n<p><strong>•</strong>   First and last name</p>\n<p><strong>•</strong>   Last four digits of their <strong>SSN</strong></p>\n<p><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.</p>\n<br>\n<p>If you cannot find the account immediately:</p>\n<p><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.</p>\n<p><strong>•</strong>   Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-3o74q0n-mggqn72r\"><div class=\"tab-nav\"><button class=\"active\">LT Trust</button><button>Vanguard</button><button>Others</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>\n<br>\n<p><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        },
+        {
+          "id": "hardship_dtb_1",
+          "title": "Hardship Request",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:</p>\n<p><strong>1.</strong> Request and confirm:</p>\n<p><strong>•</strong>   First and last name</p>\n<p><strong>•</strong>   Last four digits of their <strong>SSN</strong></p>\n<p><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.</p>\n<br>\n<p>If you cannot find the account immediately:</p>\n<p><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.</p>\n<p><strong>•</strong>   Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-oypqljr-mggqn72s\"><div class=\"tab-nav\"><button class=\"active\">LT Trust</button><button>Vanguard</button><button>Others</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>\n<br>\n<p><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        },
+        {
+          "id": "death_dtb_1",
+          "title": "Death Distribution",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:</p>\n<p><strong>1.</strong> Request and confirm:</p>\n<p><strong>•</strong>   First and last name</p>\n<p><strong>•</strong>   Last four digits of their <strong>SSN</strong></p>\n<p><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.</p>\n<br>\n<p>If you cannot find the account immediately:</p>\n<p><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.</p>\n<p><strong>•</strong>   Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-kezie9p-mggqn72s\"><div class=\"tab-nav\"><button class=\"active\">LT Trust</button><button>Vanguard</button><button>Others</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>\n<br>\n<p><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        },
+        {
+          "id": "qdro_dtb_1",
+          "title": "QDRO Distribution",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:</p>\n<p><strong>1.</strong> Request and confirm:</p>\n<p><strong>•</strong>   First and last name</p>\n<p><strong>•</strong>   Last four digits of their <strong>SSN</strong></p>\n<p><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.</p>\n<br>\n<p>If you cannot find the account immediately:</p>\n<p><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.</p>\n<p><strong>•</strong>   Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-ladul8h-mggqn72s\"><div class=\"tab-nav\"><button class=\"active\">LT Trust</button><button>Vanguard</button><button>Others</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>\n<br>\n<p><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        },
+        {
+          "id": "eaca_refund_1",
+          "title": "EACA Refund",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:</p>\n<p><strong>1.</strong> Request and confirm:</p>\n<p><strong>•</strong>   First and last name</p>\n<p><strong>•</strong>   Last four digits of their <strong>SSN</strong></p>\n<p><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.</p>\n<br>\n<p>If you cannot find the account immediately:</p>\n<p><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.</p>\n<p><strong>•</strong>   Verify that the company name, division, or plan name match with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-a482g4q-mggqn72s\"><div class=\"tab-nav\"><button class=\"active\">LT Trust</button><button>Vanguard</button><button>Others</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>\n<br>\n<p><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        },
+        {
+          "id": "phone_procedure_dp5",
+          "title": "Participant Is NOT Eligible",
+          "type": "empty",
+          "detail": "<p><u>Before</u> initiating any procedure with a participant:</p>\n<p><strong>1.</strong> Request and confirm:</p>\n<p><strong>•</strong>   First and last name</p>\n<p><strong>•</strong>   Last four digits of their <strong>SSN</strong></p>\n<p><strong>2.</strong> Locate their account in the <strong>Admin Panel</strong>.</p>\n<br>\n<p>If you cannot find the account immediately:</p>\n<p><strong>•</strong>   Ask for the name of the participant’s 401(k) <em>sponsoring company</em>.</p>\n<p><strong>•</strong>   Verify that the company name, division, or plan name  with the one mentioned by the Participant since organizations may have multiple divisions or plans under a single corporate sponsor.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-0cxf283-mggqn72t\"><div class=\"tab-nav\"><button class=\"active\">Tab 1</button><button>Tab 2</button><button>Tab 3</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>\n<br>\n<p><strong><em>Pro Tip: </strong> Don’t hesitate to ask participants to repeat or clarify any unclear details—it’s essential for accurately locating their account and ensuring we provide the correct information and perform the appropriate procedure.</em></p>"
+        }
+      ]
+    },
+    {
+      "topic": "Complementary Procedures",
+      "items": [
+        {
+          "id": "other_cases_dp1",
+          "title": "Phone | Other Cases",
+          "type": "empty",
+          "detail": "<p>In this Dropdown you'll find complements for the procedures, or procedures for specific cases where something is missing to complete the procedure.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-txvoojk-mggqn72t\"><div class=\"tab-nav\"><button class=\"active\">No Email Access</button><button>MFA Not Enrolled</button><button>LT Trust: Update Termination Date</button><button>Unable To Validate PPT Identity</button><button>Failed To Locate PPT's Account</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div><div class=\"tab-panel\">Contenido de Tab 4</div><div class=\"tab-panel\">Contenido de Tab 5</div></div>"
+        },
+        {
+          "id": "other_cases_dp2",
+          "title": "Tickets | Other Cases",
+          "type": "empty",
+          "detail": "<p>In this Dropdown you'll find complements for the procedures, or procedures for specific cases where something is missing to complete the procedure.</p>\n<br>\n<div class=\"tab-frame\" data-uid=\"tabs-aqpssme-mggqn72t\"><div class=\"tab-nav\"><button class=\"active\">No Email Access</button><button>MFA Not Enrolled</button><button>LT Trust: Update Termination Date</button></div><div class=\"tab-panel active\">Contenido de Tab 1</div><div class=\"tab-panel\">Contenido de Tab 2</div><div class=\"tab-panel\">Contenido de Tab 3</div></div>"
+        }
+      ]
+    }
+  ],
+  "owners": [
+    {
+      "id": "",
+      "name": "Ivan Alvis",
+      "img": "/docs/knowledge-database/Images/people/Ivan_Alvis.png",
+      "email": ""
+    }
+  ],
+  "experts": [
+    {
+      "id": "",
+      "name": "Jeri Hanssman",
+      "img": "/docs/Knwoledge_Database/Images/people/Ivan_Alvis.png",
+      "email": ""
+    }
+  ],
+  "meta": {
+    "status": "draft",
+    "createdAt": "2025-10-07T16:01:59.223Z",
+    "createdBy": {
+      "id": "u_local_testing",
+      "name": "local_testing",
+      "email": "hellnaw",
+      "role": "admin"
+    }
+  }
+}

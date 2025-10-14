@@ -5,6 +5,7 @@
    Guard: evitar doble wiring del Detail Tab
 ------------------------------------------------------ */
 let __detailWired = false;
+let __dropdownLinkWired = false; // NEW: guard para wiring de links a dropdown
 
 /* ------------------------------------------------------
    Utils
@@ -33,11 +34,156 @@ function getOrInitBlocks(item) {
   return item.__blocks;
 }
 
+/* ------------------------------------------------------
+   Deserialización HTML -> Bloques
+   Objetivo: reconstruir múltiples bloques a partir de detail (HTML)
+   Tipos soportados: paragraph, tip, table, tabs, flowchart, raw
+------------------------------------------------------ */
+function _stripOuterWhitespaceNodes(el) {
+  const isBlank = (n) =>
+    n.nodeType === 3 && String(n.nodeValue || "").trim() === "";
+  while (el.firstChild && isBlank(el.firstChild)) el.removeChild(el.firstChild);
+  while (el.lastChild && isBlank(el.lastChild)) el.removeChild(el.lastChild);
+}
+
+function _htmlToParagraphText(el) {
+  let html = el.innerHTML || "";
+  html = html.replace(/<br\s*\/?>/gi, "\n");
+  html = html
+    .replace(/<(strong|b)>([\s\S]*?)<\/\1>/gi, "**$2**")
+    .replace(/<(em|i)>([\s\S]*?)<\/\1>/gi, "*$2*")
+    .replace(/<u>([\s\S]*?)<\/u>/gi, "_$1_");
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return (tmp.textContent || "").replace(/\r\n/g, "\n");
+}
+
+function _parseTable(el) {
+  const data = [];
+  const theadRow = el.querySelector("thead tr") || el.querySelector("tr");
+  if (theadRow) {
+    const headCells = Array.from(theadRow.querySelectorAll("th,td")).map((c) =>
+      c.innerHTML.trim()
+    );
+    if (headCells.length) data.push(headCells);
+  }
+  const bodyRows = el.querySelectorAll("tbody tr");
+  if (bodyRows.length) {
+    bodyRows.forEach((tr) => {
+      const row = Array.from(tr.querySelectorAll("th,td")).map((c) =>
+        c.innerHTML.trim()
+      );
+      if (row.length) data.push(row);
+    });
+  } else {
+    const all = Array.from(el.querySelectorAll("tr"));
+    const rest = all.slice(data.length ? 1 : 0);
+    rest.forEach((tr) => {
+      const row = Array.from(tr.querySelectorAll("th,td")).map((c) =>
+        c.innerHTML.trim()
+      );
+      if (row.length) data.push(row);
+    });
+  }
+  const rows = data.length || 0;
+  const cols = data.reduce((m, r) => Math.max(m, r.length), 0);
+  for (let r = 0; r < rows; r++) {
+    if (!Array.isArray(data[r])) data[r] = [];
+    for (let c = 0; c < cols; c++) {
+      if (typeof data[r][c] !== "string") data[r][c] = "";
+    }
+  }
+  return { type: "table", rows, cols, data };
+}
+
+function _parseTabs(frame) {
+  const uid = frame.getAttribute("data-uid") || makeUid("tabs");
+  const titles = Array.from(frame.querySelectorAll(".tab-nav button")).map(
+    (b, i) => b.textContent || `Tab ${i + 1}`
+  );
+  const panels = Array.from(frame.querySelectorAll(".tab-panel")).map(
+    (p) => p.innerHTML || ""
+  );
+  const tabs = [];
+  for (let i = 0; i < Math.max(titles.length, panels.length); i++) {
+    tabs.push({ title: titles[i] || `Tab ${i + 1}`, content: panels[i] || "" });
+  }
+  return { type: "tabs", uid, tabs };
+}
+
+function _parseFlowchart(el) {
+  const ifr = el.matches("iframe") ? el : el.querySelector("iframe");
+  if (!ifr) return null;
+  const src = ifr.getAttribute("src") || "";
+  const m = src.match(/lucid\.app\/documents\/embedded\/([a-f0-9\-]{8,})/i);
+  if (m) return { type: "flowchart", embed: m[1] };
+  return null;
+}
+
 function deserializeDetailToBlocks(detail) {
-  // Edición no destructiva: si trae HTML arbitrario, lo cargamos como RAW.
   const html = String(detail || "").trim();
   if (!html) return [];
-  return [{ type: "raw", html }];
+  let doc;
+  try {
+    const parser = new DOMParser();
+    doc = parser.parseFromString(html, "text/html");
+  } catch {
+    return [{ type: "raw", html }];
+  }
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  _stripOuterWhitespaceNodes(container);
+  if (!container.childNodes.length) return [];
+  const blocks = [];
+  Array.from(container.childNodes).forEach((node) => {
+    if (node.nodeType === 3) {
+      const txt = String(node.nodeValue || "").trim();
+      if (txt) blocks.push({ type: "paragraph", text: txt });
+      return;
+    }
+    if (node.nodeType !== 1) return;
+    const el = node;
+    if (el.matches("div.tab-frame")) {
+      blocks.push(_parseTabs(el));
+      return;
+    }
+    if (el.matches("table")) {
+      blocks.push(_parseTable(el));
+      return;
+    }
+    if (el.matches("div.tip-box")) {
+      const inner = el.innerHTML || "";
+      const tmp = document.createElement("div");
+      tmp.innerHTML = inner;
+      const ps = Array.from(tmp.querySelectorAll("p"));
+      if (ps.length) {
+        const text = ps
+          .map((p) => _htmlToParagraphText(p))
+          .join("\n\n")
+          .trim();
+        blocks.push({ type: "tip", text });
+      } else {
+        blocks.push({ type: "tip", text: inner.trim() });
+      }
+      return;
+    }
+    const flow = _parseFlowchart(el);
+    if (flow) {
+      blocks.push(flow);
+      return;
+    }
+    if (el.matches("p")) {
+      const text = _htmlToParagraphText(el).trim();
+      if (text) {
+        blocks.push({ type: "paragraph", text });
+        return;
+      }
+      blocks.push({ type: "raw", html: el.outerHTML });
+      return;
+    }
+    blocks.push({ type: "raw", html: el.outerHTML });
+  });
+  return blocks.length ? blocks : [{ type: "raw", html }];
 }
 
 /* ------------------------------------------------------
@@ -71,6 +217,9 @@ function wireDetailTab() {
       addBlockToActiveDropdown(type);
     });
   }
+
+  // NEW: Wiring de links a dropdown (una sola vez)
+  wireDropdownLinks();
 }
 
 /* ------------------------------------------------------
@@ -175,15 +324,69 @@ function buildDropdownLinkPicker(container, onInsert) {
     if (!id) return;
     const found = all.find((x) => x.id === id);
     const href = window.BuilderUtils.makeArticleLinkHref(art.id, id);
-    let html = `<a href="${href}">${window.BuilderUtils.escapeHtml(
-      found ? found.title : id
-    )}</a>`;
+    let inner = `${window.BuilderUtils.escapeHtml(found ? found.title : id)}`;
+    let html = `<a href="${href}" data-dropdown-id="${window.BuilderUtils.escapeAttr(
+      id
+    )}">${inner}</a>`;
     if (cb.checked) html = `<u>${html}</u>`;
     onInsert(html);
     sel.value = "";
   });
 
   container.append(sel, add, underline);
+}
+
+/* ------------------------------------------------------
+   Link-to-dropdown: event delegation (preview & editor)
+------------------------------------------------------ */
+function wireDropdownLinks() {
+  if (__dropdownLinkWired) return;
+  __dropdownLinkWired = true;
+
+  const handler = (ev) => {
+    const a = ev.target.closest
+      ? ev.target.closest("a[href], [data-dropdown-id]")
+      : null;
+    if (!a) return;
+
+    // ¿Tiene atributo directo?
+    let ddId = a.getAttribute && a.getAttribute("data-dropdown-id");
+
+    // Intentar parsear desde href si no está el data-attr
+    if (!ddId && a.getAttribute) {
+      const href = a.getAttribute("href") || "";
+      try {
+        // Buscar patrones comunes: ?dropdown=, &dropdown=, #dropdown=, #<id>
+        let m =
+          href.match(/[?#&](?:dropdown|item|dd)=([^&#]+)/i) ||
+          href.match(/#dropdown-([^&#/]+)/i);
+        if (m) ddId = decodeURIComponent(m[1]);
+        if (!ddId) {
+          // último recurso: hash plano #<id> si existe un dropdown con ese id
+          const h = href.split("#")[1];
+          if (
+            h &&
+            window.BuilderState &&
+            window.BuilderState.findDropdownById
+          ) {
+            const found = window.BuilderState.findDropdownById(h);
+            if (found) ddId = h;
+          }
+        }
+      } catch {}
+    }
+
+    if (!ddId) return; // no es link a dropdown gestionado
+
+    // Evitar navegación para manejar apertura/scroll in-app
+    ev.preventDefault();
+
+    if (window.BuilderState && window.BuilderState.openDropdownById) {
+      window.BuilderState.openDropdownById(ddId);
+    }
+  };
+
+  document.addEventListener("click", handler, true);
 }
 
 /* ------------------------------------------------------
@@ -251,7 +454,6 @@ function renderBlocksEditor() {
 
     const body = document.createElement("div");
 
-    // Render specific block type editor
     if (blk.type === "paragraph") {
       renderParagraphEditor(body, blk, item, blocks);
     } else if (blk.type === "raw") {
@@ -261,7 +463,6 @@ function renderBlocksEditor() {
     } else if (blk.type === "table") {
       renderTableEditor(body, blk, item, blocks);
     } else if (blk.type === "tabs") {
-      // asegurar UID para tabs (para preservar pestaña activa en preview)
       if (!blk.uid) blk.uid = makeUid("tabs");
       renderTabsEditor(body, blk, item, blocks);
     } else if (blk.type === "flowchart") {
@@ -380,7 +581,6 @@ function renderTableEditor(body, blk, item, blocks) {
     controls.querySelectorAll("input,button");
   const tbl = document.createElement("table");
 
-  // Listeners
   applyBtn.addEventListener("click", () => {
     buildCells();
     persistBlocks(item, blocks, {
@@ -401,7 +601,6 @@ function renderTableEditor(body, blk, item, blocks) {
     }
   });
 
-  // ÚNICA definición de buildCells (normaliza datos y reconstruye tabla)
   function buildCells() {
     const rows = Math.max(1, parseInt(rowsInp.value || "2", 10));
     const cols = Math.max(1, parseInt(colsInp.value || "2", 10));
@@ -411,7 +610,6 @@ function renderTableEditor(body, blk, item, blocks) {
 
     if (!Array.isArray(blk.data)) blk.data = [];
 
-    // Recortar/normalizar filas y columnas
     if (blk.data.length > rows) {
       blk.data = blk.data.slice(0, rows);
     }
@@ -425,13 +623,11 @@ function renderTableEditor(body, blk, item, blocks) {
       }
     }
 
-    // Reconstruir tabla del editor
     tbl.innerHTML = "";
     for (let r = 0; r < rows; r++) {
       const tr = document.createElement("tr");
       for (let c = 0; c < cols; c++) {
         const cell = document.createElement(r === 0 ? "th" : "td");
-        // color de encabezado en el editor
         if (r === 0) cell.style.backgroundColor = "rgb(255, 250, 210)";
 
         const inp = document.createElement("input");
@@ -451,8 +647,6 @@ function renderTableEditor(body, blk, item, blocks) {
       tbl.appendChild(tr);
     }
   }
-
-  // Construir la tabla inicial del editor
   buildCells();
 
   body.append(rc, toolbar, controls, tbl);
@@ -464,8 +658,6 @@ function renderTabsEditor(body, blk, item, blocks) {
       { title: "Tab 1", content: "" },
       { title: "Tab 2", content: "" },
     ];
-
-  // asegurar UID (si viene de un draft viejo)
   if (!blk.uid) blk.uid = makeUid("tabs");
 
   const list = document.createElement("div");
@@ -522,7 +714,6 @@ function renderTabsEditor(body, blk, item, blocks) {
 
     content.addEventListener("input", () => {
       t.content = content.value;
-      // NO re-render del editor para no perder el foco
       persistBlocks(item, blocks, {
         updateDetail: true,
         rerenderEditor: false,
@@ -560,15 +751,14 @@ function persistBlocks(
 ) {
   const { updateDetail = true, rerenderEditor = true } = opts || {};
   if (updateDetail) item.detail = serializeBlocksToDetail(blocks);
-  if (rerenderEditor) renderBlocksEditor(); // evitamos rerender en cada tecla para no perder foco
-  // Preview se re-renderiza; el builderPreview ya preserva pestañas activas por UID
+  if (rerenderEditor) renderBlocksEditor();
   window.BuilderPreview.triggerPreview();
 }
 
 function addBlockToActiveDropdown(blockType) {
   const item = window.BuilderState.currentItem();
   if (!item) return;
-  if (item.type === "flowchart" && blockType !== "flowchart") return; // flowchart dropdown solo acepta embed
+  if (item.type === "flowchart" && blockType !== "flowchart") return;
   const blocks = getOrInitBlocks(item);
   const newBlock = blockDefaults(blockType, item.type);
   if (!newBlock) return;
@@ -595,7 +785,7 @@ function blockDefaults(type, itemType) {
   if (type === "tabs")
     return {
       type: "tabs",
-      uid: makeUid("tabs"), // UID estable para preservar pestaña activa en preview
+      uid: makeUid("tabs"),
       tabs: [
         { title: "Tab 1", content: "" },
         { title: "Tab 2", content: "" },
@@ -615,7 +805,6 @@ function serializeBlocksToDetail(blocks) {
 
 function serializeBlock(b) {
   if (b.type === "paragraph") {
-    // Soporta **bold**, *italic* y _underline_
     return `<p>${window.BuilderUtils.formatText(b.text || "")}</p>`;
   }
   if (b.type === "tip") {
@@ -647,7 +836,6 @@ function serializeBlock(b) {
     return `<table>${thead}<tbody>${bodyRows}</tbody></table>`;
   }
   if (b.type === "tabs") {
-    // Asegurar UID para compatibilidad con drafts antiguos
     if (!b.uid) b.uid = makeUid("tabs");
     const tabs = Array.isArray(b.tabs) ? b.tabs : [];
     const nav = `<div class="tab-nav">${tabs
@@ -668,7 +856,6 @@ function serializeBlock(b) {
           }">${window.BuilderUtils.renderMaybeHtml(t.content || "")}</div>`
       )
       .join("");
-    // data-uid permite a builderPreview restaurar la pestaña activa tras re-render
     return `<div class="tab-frame" data-uid="${window.BuilderUtils.escapeAttr(
       b.uid
     )}">${nav}${panels}</div>`;
@@ -697,5 +884,6 @@ if (typeof window !== "undefined") {
     blockDefaults,
     serializeBlocksToDetail,
     serializeBlock,
+    wireDropdownLinks, // NEW: expuesto por si se necesita llamar manualmente
   };
 }
