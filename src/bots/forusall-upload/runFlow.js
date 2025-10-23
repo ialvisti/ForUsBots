@@ -128,7 +128,7 @@ module.exports = async function runFlow({
 
   if (!SITE_USER || !SITE_PASS || !TOTP_SECRET) {
     throw new Error(
-      "Faltan SITE_USER, SITE_PASS o TOTP_SECRET en variables de entorno"
+      "Missing SITE_USER, SITE_PASS or TOTP_SECRET in environment variables"
     );
   }
 
@@ -195,8 +195,8 @@ module.exports = async function runFlow({
         )
         .catch(() => []);
       throw new Error(
-        `Caption "${formData.caption}" no disponible después de seleccionar Section "${formData.section}". ` +
-          `Opciones: ${opts.join(" | ") || "[vacío]"}`
+        `Caption "${formData.caption}" not available after selecting Section "${formData.section}". ` +
+          `Options: ${opts.join(" | ") || "[empty]"}`
       );
     }
     await selectByText(page, captionSel, formData.caption);
@@ -241,7 +241,7 @@ module.exports = async function runFlow({
       await page.setInputFiles(selectors.fileInput, localFilePath);
     } else {
       throw new Error(
-        "No se recibió archivo para subir (ni filePayload ni localFilePath)"
+        "No file was received to upload (neither filePayload nor localFilePath)"
       );
     }
 
@@ -305,7 +305,7 @@ module.exports = async function runFlow({
         // última evidencia si falla
         await saveEvidence(page, "verify_cleared_failed", options);
         throw new Error(
-          `El formulario no se vació tras el submit: ${fallback.mismatches.join(
+          `The form was not cleared after submit: ${fallback.mismatches.join(
             " | "
           )}`
         );
@@ -321,7 +321,7 @@ module.exports = async function runFlow({
     jobCtx?.setStage?.("done");
     return {
       ok: true,
-      message: "Archivo cargado",
+      message: "File uploaded SUCCESSFULLY",
       postSubmitResult: "cleared",
       clearedSnapshot,
       warnings,
