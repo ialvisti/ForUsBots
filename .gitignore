@@ -1,4 +1,8 @@
+# Folders
 node_modules
+forusall-portal-html-data
+
+# Files
 .env
 tokens.json
 .sessions

@@ -1,0 +1,800 @@
+---
+alwaysApply: true
+---
+## 🔍 CRITICAL: Project Structure & Folder Context Files
+
+### MANDATORY Reading Order for AI Agents
+
+**BEFORE starting ANY task, you MUST read files in this order:**
+
+#### Step 1: Read PROJECT_STRUCTURE.md (ALWAYS FIRST)
+**Location**: `/PROJECT_STRUCTURE.md`
+
+**Why**: This file provides a complete map of the entire project:
+- Overview of all folders and their purposes
+- Quick navigation guide ("I need to...")
+- Clear boundaries (what goes where)
+- Links to all FOLDER_CONTEXT.md files
+
+**Action**: Read this FIRST to orient yourself and identify which folder(s) you need to work in.
+
+#### Step 2: Read Specific FOLDER_CONTEXT.md Files
+**Location**: Each directory has its own `FOLDER_CONTEXT.md`
+
+**BEFORE making ANY changes to files in a directory, you MUST:**
+
+1. **Check for `FOLDER_CONTEXT.md`** in that directory
+2. **Read the entire context file** to understand:
+   - What the folder contains
+   - The role of code in that folder
+   - When to modify vs when NOT to modify
+   - Dependencies and patterns
+   - Best practices specific to that folder
+
+### Project Navigation Files
+
+**Master Map (Read FIRST)**:
+- `/PROJECT_STRUCTURE.md` - Complete project map with quick navigation guide
+
+**Folder Context Files (Read for specific folders)**:
+Every major folder has a `FOLDER_CONTEXT.md` file:
+- `/FOLDER_CONTEXT.md` - Root directory context
+- `/src/FOLDER_CONTEXT.md` - Source root context
+- `/src/bots/FOLDER_CONTEXT.md` - All bots overview
+- `/src/engine/FOLDER_CONTEXT.md` - Core infrastructure
+- `/src/engine/utils/FOLDER_CONTEXT.md` - Utility functions
+- `/src/extractors/FOLDER_CONTEXT.md` - Data extraction modules
+- `/src/providers/FOLDER_CONTEXT.md` - Provider configuration
+- `/src/middleware/FOLDER_CONTEXT.md` - Express middleware
+- `/src/routes/FOLDER_CONTEXT.md` - API routes
+- `/docs/FOLDER_CONTEXT.md` - Documentation website
+- `/migrations/FOLDER_CONTEXT.md` - Database migrations
+- `/scripts/FOLDER_CONTEXT.md` - Utility scripts
+- `/examples/FOLDER_CONTEXT.md` - Integration examples
+- `/forusall-portal-html-data/FOLDER_CONTEXT.md` - Portal HTML fixtures
+
+### Why This Matters
+
+Reading folder context **PREVENTS**:
+- ❌ Modifying files in wrong directories
+- ❌ Breaking existing functionality
+- ❌ Violating project patterns
+- ❌ Creating circular dependencies
+- ❌ Duplicating existing utilities
+
+Reading folder context **ENSURES**:
+- ✅ Changes go in correct locations
+- ✅ Consistent code patterns
+- ✅ Proper use of existing utilities
+- ✅ Understanding of dependencies
+- ✅ Compliance with best practices
+
+### Workflow Example
+
+```
+Task: "Add validation for email field in census data"
+
+STEP 1: Read PROJECT_STRUCTURE.md
+- Get overview of project layout
+- Use "Quick Navigation Guide" to identify target folders
+  → Need to work in: /src/extractors/ and possibly /src/engine/utils/
+
+STEP 2: Read specific context files
+- Read /src/extractors/FOLDER_CONTEXT.md
+  → Understand extractors are for data parsing
+  → census.js is correct location
+- Read /src/engine/utils/FOLDER_CONTEXT.md
+  → Check if email validation utility exists
+
+STEP 3: Implement
+- If email util exists: Use it
+- If not: Add to /src/engine/utils/ (NOT in extractor)
+
+STEP 4: Test
+- Follow testing guidance from context files
+```
+
+### **NEVER Skip This Step**
+
+These files are optimized for AI understanding. They provide:
+- **PROJECT_STRUCTURE.md**: Birds-eye view, quick navigation, folder map
+- **FOLDER_CONTEXT.md**: Clear boundaries, dependencies, patterns, examples, testing
+
+**If you skip reading these files, you WILL:**
+- Make changes in wrong files
+- Break existing functionality
+- Duplicate existing utilities
+- Violate project patterns
+- Create circular dependencies
+- Require extensive rework
+
+**Reading Order is CRITICAL:**
+1. 🗺️ PROJECT_STRUCTURE.md → Understand WHERE to work
+2. 📁 FOLDER_CONTEXT.md → Understand HOW to work
+
+---
+
+## Technical Stack & Conventions
+
+### Runtime
+- **Node.js** (CommonJS, `require`/`module.exports`)
+- **Express 5.x** for HTTP server
+- **Playwright 1.54.2+** for browser automation (Chromium)
+- **PostgreSQL** for audit/metrics persistence (optional)
+- **Vitest** (preferred) or Jest for testing
+
+### Code Style
+- Use CommonJS (`require`, `module.exports`)
+- Prefer `async/await` over callbacks/promises chains
+- Use descriptive variable names (avoid single letters except loop indices)
+- Keep functions focused (single responsibility)
+- Extract magic numbers to constants or ENV vars
+- Use `function envBool(v, def)` helper for boolean environment variables
+- Use `function envInt(k, def)` for integer environment variables
+- Comment complex logic, especially OTP mutex and navigation retries
+
+### File Organization
+```
+src/
+├── bots/                       # Each bot has routes.js, controller.js, runFlow.js
+│   ├── forusall-upload/
+│   ├── forusall-scrape-participant/
+│   ├── forusall-mfa-reset/
+│   └── ...
+├── engine/                     # Core automation infrastructure
+│   ├── auth/loginOtp.js        # Centralized login + OTP logic
+│   ├── browser.js              # Chromium launch/context creation
+│   ├── queue.js                # Job queue, concurrency, metrics
+│   ├── sessions.js             # StorageState persistence
+│   ├── sharedContext.js        # Page pooling, keep-alive, asset blocking
+│   ├── evidence.js             # Screenshot utilities
+│   ├── logger.js               # Structured logging
+│   ├── settings.js             # Runtime settings (concurrency, flags)
+│   └── utils/                  # Helpers (select, verify, pdf, date, url)
+├── extractors/                 # Data extraction from participant pages
+│   └── forusall-participant/
+│       ├── modules/            # Per-module extractors (census, loans, payroll, etc.)
+│       └── registry.js         # Extractor registration
+├── providers/                  # Provider-specific config (URLs, selectors)
+│   └── forusall/
+│       ├── config.js           # Hardcoded URLs & selectors
+│       └── participantMap.js   # Field/module mappings
+├── middleware/                 # Express middleware (auth)
+├── routes/                     # API routes
+├── config.js                   # ENV-based config (SITE_USER, TOTP_SECRET, etc.)
+├── server.js                   # Express app setup
+└── index.js                    # Entry point (HTTP server + signal handlers)
+```
+
+---
+
+## Bot Development Patterns
+
+### Bot Structure (Standard Template)
+Each bot **MUST** follow this structure:
+```
+src/bots/<bot-name>/
+├── routes.js         # Express router (POST endpoint)
+├── controller.js     # Request validation, job submission
+└── runFlow.js        # Actual automation logic (exported async function)
+```
+
+### runFlow.js Signature
+```javascript
+module.exports = async function runFlow({ meta, jobCtx, ...otherParams }) {
+  // meta: contains all job parameters (URLs, selectors, form data, etc.)
+  // jobCtx: { jobId, setStage(name, meta) } for telemetry
+  
+  let page = null;
+  try {
+    page = await getPageFromPool({ siteUserEmail: SITE_USER });
+    page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
+    page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
+
+    // Stage 1: Auth
+    jobCtx?.setStage?.('auth-target');
+    await ensureAuthForTarget(page, {
+      loginUrl,
+      targetUrl,
+      selectors,
+      shellSelectors,
+      jobCtx,
+      saveSession: true
+    });
+
+    // Stage 2: Main workflow
+    jobCtx?.setStage?.('main-action', { details: '...' });
+    // ... perform automation ...
+
+    // Stage 3: Done
+    jobCtx?.setStage?.('done');
+    return { ok: true, message: '...', data: {...}, warnings: [] };
+  } finally {
+    if (page) await releasePage(page);
+  }
+};
+```
+
+### Controller Pattern (Job Submission)
+```javascript
+const queue = require('../../engine/queue');
+const requireUser = require('../../middleware/auth');
+
+module.exports = {
+  submit: [
+    requireUser,
+    async (req, res) => {
+      try {
+        // 1. Extract & validate input
+        const { planId, formData, ... } = req.body;
+        const warnings = [];
+        
+        // 2. Pre-flight validations (reject early if invalid)
+        if (!isValid) {
+          return res.status(422).json({ 
+            ok: false, 
+            error: 'validation_failed',
+            details: '...' 
+          });
+        }
+
+        // 3. Build meta object
+        const meta = {
+          loginUrl,
+          targetUrl,
+          selectors,
+          formData,
+          options,
+          createdBy: {
+            name: req.auth.user?.name,
+            role: req.auth.role,
+            at: new Date().toISOString()
+          }
+        };
+
+        // 4. Submit to queue (202 pattern)
+        const result = queue.submit({
+          botId: 'bot-name',
+          meta,
+          run: (jobCtx) => runFlow({ meta, jobCtx, ...otherParams })
+        });
+
+        // 5. Return 202 with jobId
+        return res.status(202).json({
+          ok: true,
+          jobId: result.jobId,
+          message: 'Job accepted',
+          estimate: result.estimate,
+          warnings
+        });
+      } catch (err) {
+        console.error('[controller] error', err);
+        return res.status(500).json({ ok: false, error: 'internal_error' });
+      }
+    }
+  ]
+};
+```
+
+---
+
+## Authentication & Session Management
+
+### Login + OTP Flow (Centralized)
+**ALWAYS** use `ensureAuthForTarget()` from `src/engine/auth/loginOtp.js`:
+```javascript
+const { ensureAuthForTarget } = require('../../engine/auth/loginOtp');
+
+const authRes = await ensureAuthForTarget(page, {
+  loginUrl: 'https://employer.forusall.com/sign_in',
+  targetUrl: 'https://employer.forusall.com/some/path',
+  selectors: {
+    user: '#user_email',
+    pass: '#user_password',
+    loginButton: '#new_user > input.btn.btn-primary',
+    otpInput: '#otp_attempt',
+    otpSubmit: 'button[type="submit"]'
+  },
+  shellSelectors: [
+    '#main-content',
+    'form#add-new-document-record-form',
+    // ... selectors that indicate "logged in"
+  ],
+  jobCtx,
+  saveSession: true
+});
+// authRes = { didLogin, usedOtp, shellReady, url }
+```
+
+### OTP Mutex (Critical)
+- **NEVER** attempt OTP submission without acquiring the login lock
+- The mutex prevents code-step collisions (30s TOTP windows)
+- `acquireLogin(userEmail)` → returns `release()` function
+- Always call `release()` in a finally block
+- `waitNewTotpWindowIfNeeded()` ensures we're in a fresh window before attempting OTP
+
+### Session Persistence
+- Use `sessions.js` to save/load `storageState.json` (cookies + localStorage)
+- Controlled by `SESSION_REUSE=1` (default ON)
+- TTL: `SESSION_TTL_HOURS` (default 0 = no expiry)
+- Location: `SESSIONS_DIR` (default `.sessions/`)
+- Call `saveContextStorageState(context, userEmail)` after successful login/OTP
+
+---
+
+## Playwright Best Practices
+
+### Navigation
+- **Prefer** `gotoFast(page, url, timeout)` over `page.goto()` (uses `domcontentloaded`)
+- Avoid `waitUntil: "networkidle"` unless absolutely necessary (slow)
+- Use `page.waitForTimeout()` sparingly; prefer `waitForSelector()` or `waitForFunction()`
+
+### Selectors
+- Use **stable selectors** (IDs, data-testid, semantic roles) over CSS nth-child
+- Prefer Playwright's `getByRole()`, `getByText()`, `getByLabel()` when possible
+- Extract selectors to `providers/forusall/config.js` for reusability
+- Use helper `waitForOptionFlex()` from `utils/select.js` for dependent dropdowns
+- Normalize text with Unicode canonicalization (see `select.js` for canonical function)
+
+### Dependent Selects (Cascading Dropdowns)
+```javascript
+const { waitForOptionFlex, selectByText } = require('../../engine/utils/select');
+
+// Wait for option to appear (handles dynamic loading)
+const idx = await waitForOptionFlex(page, '#caption', 'Desired Option', 20000);
+if (idx < 0) {
+  throw new Error(`Option not found: "Desired Option"`);
+}
+await selectByText(page, '#caption', 'Desired Option');
+```
+
+### Form Verification
+- Use `waitForFormCleared()` from `utils/verify.js` to confirm submission success
+- Poll the DOM to verify fields reset (don't rely on navigation alone)
+- Example: after upload submit, check that file input is empty and selects reset
+
+### Evidence Screenshots
+```javascript
+const { saveEvidence } = require('../../engine/evidence');
+
+// Controlled by EVIDENCE_ENABLED=1
+const evidence = await saveEvidence(page, 'tag-name', {
+  returnEvidenceBase64: false,
+  saveEvidenceToTmp: true
+});
+// evidence = { path: '/tmp/evidence/2025-01-01T12-00-00_tag-name.png', base64?: '...' }
+```
+
+---
+
+## Queue & Job Management
+
+### Job Lifecycle
+1. **Accepted** (`state: 'queued'`) → 202 response with `jobId`
+2. **Running** (`state: 'running'`) → job picked from queue
+3. **Succeeded** (`state: 'succeeded'`) → result normalized via `normalizer.js`
+4. **Failed** (`state: 'failed'`) → error captured with stack trace
+5. **Canceled** (`state: 'canceled'`) → manually canceled via DELETE /jobs/:id
+
+### Job Stages (Telemetry)
+- Track fine-grained progress with `jobCtx.setStage(name, meta)`
+- Stages are logged with timestamps and durations
+- Examples: `'login'`, `'otp'`, `'fill-form'`, `'upload-file'`, `'submit'`, `'verify-cleared'`, `'done'`
+- Stage history included in job record (`stages[]`, `stagesSummaryMsByName`)
+
+### Concurrency Control
+- `MAX_CONCURRENCY` (config.js, default 3)
+- Runtime adjustable via `PATCH /forusbot/settings` (admin only)
+- Queue uses "lanes" model for ETA estimation
+- Moving average of job durations per bot (window: `ESTIMATE_AVG_WINDOW`)
+
+### Job API (202 Pattern)
+```javascript
+// Submit
+POST /forusbot/vault-file-upload
+→ 202 { ok: true, jobId, estimate: { startAt, finishAt }, ... }
+
+// Poll
+GET /forusbot/jobs/:id
+→ 200 { ok: true, state: 'running|succeeded|failed', result?, error?, stages[], ... }
+
+// Cancel (if queued)
+DELETE /forusbot/jobs/:id
+→ 200 { ok: true, canceled: true } or 409 if running
+```
+
+---
+
+## Validation & Error Codes
+
+### Pre-Flight Validations (422 Unprocessable Entity)
+- Reject invalid inputs **before** enqueuing
+- Example: filename without `.pdf`, status "Document Missing" with file attached
+- Return descriptive error messages with actionable guidance
+
+### Standard Error Responses
+```javascript
+{
+  ok: false,
+  error: 'error_code',         // snake_case identifier
+  message?: 'Human-readable',  // optional
+  details?: { ... },           // optional context
+  warnings?: []                // optional warnings array
+}
+```
+
+### Common Error Codes
+- `unauthorized` (401)
+- `forbidden` (403)
+- `not_found` (404)
+- `validation_failed` (422)
+- `internal_error` (500)
+
+---
+
+## Testing & Quality
+
+### Coverage Requirements
+- **Minimum**: 80% lines, 80% branches
+- Focus on critical paths: auth, OTP, queue, extractors
+- Use Vitest (preferred) or Jest
+
+### Test Structure
+```javascript
+const { describe, it, expect, beforeEach, afterEach } = require('vitest');
+
+describe('Module Name', () => {
+  beforeEach(() => {
+    // Setup
+  });
+
+  afterEach(() => {
+    // Cleanup
+  });
+
+  it('should handle happy path', async () => {
+    // Arrange
+    // Act
+    // Assert
+  });
+
+  it('should handle error case', async () => {
+    // ...
+  });
+});
+```
+
+### Test Naming
+- Use descriptive names: `should <expected behavior> when <condition>`
+- Group related tests with nested `describe()`
+
+---
+
+## Logging & Observability
+
+### Log Levels
+- `debug`: Fine-grained (selector waits, retries)
+- `info`: Job lifecycle, stages
+- `warn`: Recoverable issues (fallback logic used)
+- `error`: Failures (job failed, OTP failed)
+
+### Structured Event Logging
+```javascript
+const log = require('./engine/logger');
+
+log.event({
+  type: 'job.accepted',
+  jobId: '...',
+  bot: 'bot-name',
+  meta: { ... },
+  executedBy: { name, role, at }
+}, 'info');
+```
+
+### Event Types
+- `job.accepted`, `job.started`, `job.succeeded`, `job.failed`
+- `stage.start`, `stage.succeed`, `stage.fail`
+- `job.summary` (emitted at job completion with stage durations)
+
+### Log Format
+- Default: JSON lines (`LOG_FORMAT=json`)
+- Pretty: Human-readable (`LOG_FORMAT=pretty`)
+- Level: `LOG_LEVEL=debug|info|warn|error` (default `info`)
+
+---
+
+## Environment Variables Reference
+
+### Core Config
+```bash
+# Credentials (REQUIRED)
+SITE_USER=employer@example.com
+SITE_PASS=password123
+TOTP_SECRET=BASE32TOTPSECRET
+
+# Server
+PORT=10000
+HOST=0.0.0.0
+NODE_ENV=production
+
+# Concurrency
+MAX_CONCURRENCY=3
+
+# Playwright
+HEADLESS=1                    # 1=headless, 0=headful (for debugging)
+SLOWMO=0                      # Slowdown (ms) between actions
+PW_DEFAULT_TIMEOUT=6000       # Default timeout (ms)
+
+# Sessions
+SESSION_REUSE=1               # 1=reuse sessions, 0=fresh each time
+SESSION_TTL_HOURS=0           # 0=no expiry
+SESSIONS_DIR=.sessions
+
+# Context Sharing
+SHARED_CONTEXT=1              # 1=page pooling, 0=ephemeral contexts
+PAGE_POOL_SIZE=2
+MAX_IDLE_PAGES=1
+KEEPALIVE_MS=20000            # 0=close immediately when idle
+
+# Performance
+BLOCK_IMAGES=0
+BLOCK_FONTS=0
+BLOCK_MEDIA=0
+BLOCK_STYLESHEETS=0
+BLOCK_THIRD_PARTY=0
+SCRAPE_BLOCK_ASSETS=0         # Shorthand for images+fonts+media
+
+# Evidence
+EVIDENCE_ENABLED=1
+EVIDENCE_DIR=/tmp/evidence
+
+# Logging
+LOG_LEVEL=info
+LOG_FORMAT=json
+SERVICE_NAME=forusbots
+
+# Audit DB (optional)
+AUDIT_DB=0                    # 1=enable, 0=disable
+DATABASE_URL=postgresql://...
+
+# SSN Reveal (scraper)
+REVEAL_FULL_SSN=0             # 1=reveal, 0=last 4 only
+SSN_REVEAL_WAIT_MS=1500
+
+# TOTP
+TOTP_STEP_SECONDS=30
+```
+
+---
+
+## Documentation & API
+
+### OpenAPI Spec
+- Source of truth: `docs/openapi.yaml`
+- Version: 2.2.0
+- Exposed at `GET /forusbot/openapi` (admin only)
+
+### Static Docs
+- English: `/docs/api`
+- Spanish: `/docs/api/es`
+- Sandbox UI: `/docs/sandbox` (with live testing)
+
+### Sandbox UI
+- **NO** "Try it out" button (static reference only)
+- Generate example requests (curl, JS fetch)
+- Mask tokens in snippets (`****...last4`)
+
+---
+
+## Deployment
+
+### Docker
+- Base image: `mcr.microsoft.com/playwright:v1.54.2-jammy`
+- User: `pwuser` (non-root)
+- Port: 10000
+- Healthcheck: `scripts/healthcheck.sh`
+
+### Environment
+- Containerized (Render, AWS ECS, etc.)
+- Secrets via ENV vars (never in image)
+- Evidence dir: `/tmp/evidence` (ephemeral or mounted volume)
+
+### Migrations
+- SQL migrations in `migrations/` (if using PostgreSQL)
+- Apply in order: `001_init.sql`, `002_views.sql`, etc.
+
+---
+
+## Constraints & Guidelines
+
+### What NOT to Do
+- ❌ **NEVER** hardcode credentials/tokens
+- ❌ **NEVER** log sensitive data (passwords, OTP codes, full SSNs by default)
+- ❌ **NEVER** use `process.exit()` in application code (handle gracefully)
+- ❌ **NEVER** skip `releasePage()` in finally blocks (resource leak)
+- ❌ **NEVER** introduce new dependencies without justification
+- ❌ **NEVER** use heavy navigation waits (`networkidle`) unless critical
+- ❌ **NEVER** bypass the OTP mutex (race conditions)
+- ❌ **NEVER** commit `.env`, `tokens.json`, `.sessions`, `.user-data`
+
+### What TO Do
+- ✅ **ALWAYS** use centralized `ensureAuthForTarget()` for login/OTP
+- ✅ **ALWAYS** validate inputs before enqueuing jobs
+- ✅ **ALWAYS** return normalized responses via `normalizer.js`
+- ✅ **ALWAYS** track stages with `jobCtx.setStage()`
+- ✅ **ALWAYS** close pages with `releasePage()` in finally
+- ✅ **ALWAYS** use `gotoFast()` over `page.goto()`
+- ✅ **ALWAYS** extract selectors to `providers/forusall/config.js`
+- ✅ **ALWAYS** write tests for new features (≥80% coverage)
+- ✅ **ALWAYS** use structured logging (`log.event()`)
+- ✅ **ALWAYS** document complex logic with comments
+
+---
+
+## Common Utilities & Helpers
+
+### `src/engine/utils/select.js`
+- `waitForOptionFlex(page, selector, text, timeout)` → waits for dropdown option
+- `selectByText(page, selector, text)` → selects option by text (normalized)
+
+### `src/engine/utils/verify.js`
+- `waitForFormCleared(page, cfg, opts)` → polls until form resets
+
+### `src/engine/utils/date.js`
+- `setEffectiveDate(page, selector, dateStr)` → fills date input (YYYY-MM-DD)
+
+### `src/engine/utils/pdf.js`
+- `setPdfTitle(filePath, title)` → rewrites PDF metadata (Document Title)
+
+### `src/engine/utils/url.js`
+- `buildUploadUrl(template, planId)` → interpolates `{planIdNumber}`
+
+---
+
+## Admin & Maintenance
+
+### Admin Endpoints (Require Admin Token)
+- `GET /forusbot/locks` → login lock status
+- `GET /forusbot/settings` → current runtime settings
+- `PATCH /forusbot/settings` → update maxConcurrency, flags
+- `GET /forusbot/metrics` → job metrics by bot
+- `GET /forusbot/version` → service version
+- `GET /forusbot/openapi` → OpenAPI spec
+
+### Admin Console
+- Static UI: `/admin`
+- Cookie-based auth (`forusbot_admin`)
+- KPIs: Time spent, Jobs count, Top Job, Max Concurrency
+- Chart: Avg Duration by Bot (fixed Y-axis 0..20s, step 0.5s)
+- Manual refresh only (no polling)
+- Purge jobs DB action (with confirmation)
+
+---
+
+## Cursor AI Workflow
+
+### Before Editing
+1. **Read** the current file(s) fully (don't assume old context)
+2. **Understand** the existing patterns (don't reinvent)
+3. **Check** for related utilities in `src/engine/utils/`
+
+### When Adding Features
+1. Follow the bot structure template (routes, controller, runFlow)
+2. Reuse `ensureAuthForTarget()`, `getPageFromPool()`, `releasePage()`
+3. Add selectors to `providers/forusall/config.js`
+4. Add tests (Vitest preferred)
+5. Update OpenAPI spec if API changes
+6. Document ENV vars if new config added
+
+### When Refactoring
+1. Maintain backward compatibility (don't break existing bots)
+2. Keep functions small and focused
+3. Extract common logic to utilities
+4. Preserve error handling patterns
+5. Update tests to cover changes
+
+### Commit Messages
+- Use conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`
+- Be specific: `feat(upload): add validation for Document Missing status`
+
+---
+
+## AI-Specific Guidance
+
+### Model Preference
+- **Prefer Sonnet 4.5** for complex refactors, new features, and debugging
+- Use lighter models for simple edits (comments, typos, small fixes)
+
+### Code Generation
+- Follow existing patterns (don't introduce new styles)
+- Use project utilities (select.js, verify.js, pdf.js, etc.)
+- Keep code idiomatic and covered by tests (≥80% lines/branches)
+- Never log or hardcode secrets
+- Avoid introducing new dependencies unless justified
+
+### Dependencies
+- **Avoid** adding new npm packages without strong justification
+- Prefer built-in Node.js modules and existing project utilities
+- If new dependency is necessary, explain why in comments
+
+---
+
+## Quick Reference: Key Patterns
+
+### 1. Page Acquisition & Release
+```javascript
+let page = null;
+try {
+  page = await getPageFromPool({ siteUserEmail: SITE_USER });
+  // ... use page ...
+} finally {
+  if (page) await releasePage(page);
+}
+```
+
+### 2. Auth + Shell Verification
+```javascript
+await ensureAuthForTarget(page, {
+  loginUrl,
+  targetUrl,
+  selectors,
+  shellSelectors: ['#main-content', 'form#my-form'],
+  jobCtx,
+  saveSession: true
+});
+```
+
+### 3. Job Submission (202)
+```javascript
+const result = queue.submit({
+  botId: 'my-bot',
+  meta: { ...jobParams, createdBy: {...} },
+  run: (jobCtx) => runFlow({ meta, jobCtx })
+});
+return res.status(202).json({
+  ok: true,
+  jobId: result.jobId,
+  estimate: result.estimate
+});
+```
+
+### 4. Structured Logging
+```javascript
+log.event({
+  type: 'job.succeeded',
+  jobId,
+  bot: 'my-bot',
+  meta: { ... }
+}, 'info');
+```
+
+### 5. Evidence Screenshot
+```javascript
+const evidence = await saveEvidence(page, 'screenshot-tag', {
+  saveEvidenceToTmp: true
+});
+// evidence.path = '/tmp/evidence/...'
+```
+
+---
+
+## Version History
+
+- **2.2.0**: Added scrape-participant, search-participants, mfa-reset, sandbox dry-run
+- **2.1.0**: Improved OTP robustness, session persistence, page pooling
+- **2.0.0**: Migrated to Express 5.x, added audit DB, structured logging
+- **1.x**: Initial release with upload bot
+
+---
+
+## Contact & Support
+
+For questions about this project, refer to:
+- Static API docs: `/docs/api`
+- OpenAPI spec: `docs/openapi.yaml`
+- Knowledge base: `/docs/knowledge-database`
+
+---
+
+**END OF RULES** — Follow these guidelines for all development in ForUsBots. Consistency is key.
+
