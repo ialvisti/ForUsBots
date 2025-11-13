@@ -410,6 +410,280 @@
         </div>
       </details>
 
+      <!-- POST /forusbot/scrape-plan -->
+      <details class="op post" id="scrape-plan">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/scrape-plan</span>
+          <span class="sum">Extraer módulos de un plan (en cola)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Requiere auth (<code>x-auth-token</code>). Encola un job de scraping
+            para un plan. Extrae datos estructurados de 6 módulos: basic_info (16 campos),
+            plan_design (26 campos), onboarding (6 campos), communications (6 campos),
+            extra_settings (10 campos), feature_flags (3 campos). También extrae el historial de notas del plan.
+            Usa <code>GET /forusbot/jobs/:id</code> para consultar hasta completar.
+          </p>
+
+          <h4>Body</h4>
+          <pre><code class="json">{
+  "planId": "627",
+  "return": "data|html|text|both",    // por defecto: "data"
+  "strict": false,                     // fallar si hay error en módulo/campo
+  "includeScreens": false,             // incluir capturas de evidencia
+  "timeoutMs": 30000,
+  "modules": [
+    "basic_info",                      // extraer todos los campos
+    { "key": "plan_design", "fields": ["record_keeper_id", "enrollment_type"] }
+  ]
+}</code></pre>
+
+          <h4>Módulos Disponibles</h4>
+          <table class="params">
+            <thead>
+              <tr>
+                <th>Clave del Módulo</th>
+                <th>Campos</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>basic_info</code></td>
+                <td>16</td>
+                <td>ID del plan, nombre de empresa, EIN, estado, fechas, gerentes</td>
+              </tr>
+              <tr>
+                <td><code>plan_design</code></td>
+                <td>26</td>
+                <td>Record keeper, elegibilidad, contribuciones, inscripción, crypto</td>
+              </tr>
+              <tr>
+                <td><code>onboarding</code></td>
+                <td>6</td>
+                <td>Primera fecha de diferimiento, fechas de blackout, fecha de activación</td>
+              </tr>
+              <tr>
+                <td><code>communications</code></td>
+                <td>6</td>
+                <td>Texto DAVE, logo, participantes en español, e-statement, sorteo</td>
+              </tr>
+              <tr>
+                <td><code>extra_settings</code></td>
+                <td>10</td>
+                <td>Modo de carga RK, año del plan, reglas de elegibilidad ER match</td>
+              </tr>
+              <tr>
+                <td><code>feature_flags</code></td>
+                <td>3</td>
+                <td>Payroll X-Ray, problema de nómina, carga simple</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>Detalles de Campos</h4>
+          <details class="nested">
+            <summary><code>basic_info</code> campos (16 en total)</summary>
+            <pre><code class="json">plan_id, version_id, symlink, sfdc_id, company_name, official_plan_name,
+rm_id, im_id, service_type, plan_type, active, status, status_as_of,
+is_3_16_only, ein, effective_date</code></pre>
+          </details>
+
+          <details class="nested">
+            <summary><code>plan_design</code> campos (26 en total)</summary>
+            <pre><code class="json">record_keeper_id, rk_plan_id, external_name, lt_plan_type,
+accept_covid19_amendment, fund_lineup_id, enrollment_type,
+eligibility_min_age, eligibility_duration_value, eligibility_duration_unit,
+eligibility_hours_requirement, plan_entry_frequency,
+plan_entry_frequency_first_month, plan_entry_frequency_second_month,
+employer_contribution, er_contribution_monthly_cap, employer_contribution_cap,
+employer_contribution_timing, employer_contribution_options_qaca,
+default_savings_rate, contribution_type, autoescalate_rate,
+support_aftertax, alts_crypto, alts_waitlist_crypto, max_crypto_percent_balance</code></pre>
+          </details>
+
+          <details class="nested">
+            <summary><code>onboarding</code> campos (6 en total)</summary>
+            <pre><code class="json">first_deferral_date, special_participation_date, enrollment_method,
+blackout_begins_date, blackout_ends_date, website_live_date</code></pre>
+          </details>
+
+          <details class="nested">
+            <summary><code>communications</code> campos (6 en total)</summary>
+            <pre><code class="json">dave_text, logo, spanish_participants, e_statement, raffle_prize, raffle_date</code></pre>
+          </details>
+
+          <details class="nested">
+            <summary><code>extra_settings</code> campos (10 en total)</summary>
+            <pre><code class="json">rk_upload_mode, plan_year_start, er_contribution_eligibility,
+er_match_eligibility_age, er_match_eligibility_duration_value,
+er_match_eligibility_duration_unit, er_match_eligibility_hours_requirement,
+er_match_plan_entry_frequency, er_match_plan_entry_frequency_first_month,
+er_match_plan_entry_frequency_second_month</code></pre>
+          </details>
+
+          <details class="nested">
+            <summary><code>feature_flags</code> campos (3 en total)</summary>
+            <pre><code class="json">payroll_xray, payroll_issue, simple_upload</code></pre>
+          </details>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "f628e7c7-11b8-4419-9c30-29c572a99d81",
+  "acceptedAt": "2025-11-13T07:09:24.211Z",
+  "queuePosition": 1,
+  "estimate": {
+    "method": "lanes+movingAvg",
+    "avgDurationSeconds": 15,
+    "startAt": "2025-11-13T07:09:24.211Z",
+    "finishAt": "2025-11-13T07:09:39.211Z"
+  },
+  "capacitySnapshot": {
+    "maxConcurrency": 3,
+    "running": 0,
+    "queued": 0,
+    "slotsAvailable": 3
+  },
+  "warnings": [
+    { "type": "invalid_modules_ignored", "keys": ["unknown_module"] }
+  ],
+  "executedBy": {
+    "name": "John Doe",
+    "role": "user",
+    "at": "2025-11-13T07:09:24.211Z"
+  }
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "planId es obligatorio"
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">422 <span class="muted">Validación Fallida</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "modules contiene claves no soportadas",
+  "invalid": ["invalid_module"],
+  "allowed": ["basic_info", "plan_design", "onboarding", "communications", "extra_settings", "feature_flags"]
+}</code></pre>
+          </div>
+
+          <h4>Resultado del Job (cuando es exitoso)</h4>
+          <pre><code class="json">{
+  "ok": true,
+  "code": "OK",
+  "message": null,
+  "data": {
+    "url": "https://employer.forusall.com/plans/627/edit",
+    "planId": "627",
+    "modulesRequested": [
+      { "key": "basic_info", "fields": null },
+      { "key": "plan_design", "fields": ["record_keeper_id"] }
+    ],
+    "modules": [
+      {
+        "key": "basic_info",
+        "status": "ok",
+        "source": "static",
+        "requestedFields": null,
+        "data": {
+          "plan_id": "627",
+          "company_name": "Revolution Foods, Inc.",
+          "ein": "141955846",
+          "status": "Terminated",
+          "active": "false",
+          "effective_date": "2021-07-01"
+        },
+        "extractorWarnings": [],
+        "evidencePath": null
+      },
+      {
+        "key": "plan_design",
+        "status": "ok",
+        "source": "static",
+        "requestedFields": ["record_keeper_id"],
+        "data": {
+          "record_keeper_id": "Principal Financial Group"
+        },
+        "extractorWarnings": [],
+        "evidencePath": null
+      }
+    ],
+    "notes": [
+      "Updating status and termination date based on the timeline provided...",
+      "plan moved to principal",
+      "Updated to calendar year"
+    ],
+    "full": null
+  },
+  "warnings": [],
+  "errors": []
+}</code></pre>
+
+          <h4>Ejemplo: Extraer Todos los Módulos</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/scrape-plan \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "planId": "627",
+    "modules": [
+      "basic_info",
+      "plan_design",
+      "onboarding",
+      "communications",
+      "extra_settings",
+      "feature_flags"
+    ]
+  }'</code></pre>
+
+          <h4>Ejemplo: Extraer Campos Específicos</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/scrape-plan \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "planId": "627",
+    "modules": [
+      {
+        "key": "basic_info",
+        "fields": ["plan_id", "company_name", "ein", "status"]
+      },
+      {
+        "key": "plan_design",
+        "fields": ["record_keeper_id", "enrollment_type"]
+      }
+    ]
+  }'</code></pre>
+
+          <p class="muted small">
+            <strong>Nota:</strong> Si <code>modules</code> está vacío u omitido, por defecto es <code>["basic_info"]</code>.
+            El array <code>notes</code> siempre se extrae y contiene entradas del historial del plan.
+            Usa <code>strict: true</code> para fallar todo el job si cualquier módulo o campo falla la validación.
+          </p>
+
+          <p class="muted small">
+            <strong>Modos de retorno:</strong> 
+            <code>data</code> (por defecto) retorna solo datos estructurados. 
+            <code>html</code> retorna paneles HTML sin procesar. 
+            <code>text</code> retorna texto plano. 
+            <code>both</code> retorna data + html + text para cada módulo.
+          </p>
+
+          <p class="muted small">
+            Relacionado: <a href="#scrape-participant">Extraer Participante</a>, 
+            <a href="#jobs-get">Obtener Job</a>
+          </p>
+        </div>
+      </details>
+
       <!-- POST /forusbot/search-participants -->
       <details class="op post" id="search-participants">
         <summary>

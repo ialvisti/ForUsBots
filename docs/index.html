@@ -208,6 +208,21 @@ x-auth-token: ...
             </p>
           </div>
 
+          <!-- NEW: Scrape Plan -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/scrape-plan</code></strong>
+            </div>
+            <p class="muted">
+              Scrapes plan data by planId. Extracts from 6 modules (67 total fields):
+              basic_info, plan_design, onboarding, communications, extra_settings, 
+              feature_flags. Returns 202 Accepted with jobId.
+            </p>
+            <p class="small">
+              <a href="/docs/api#scrape-plan">Read docs →</a>
+            </p>
+          </div>
+
           <!-- NEW: Search Participants -->
           <div class="card">
             <div class="small">
@@ -390,6 +405,91 @@ x-auth-token: ...
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
   -d '{"participantId":"12345","return":"data","strict":true,"modules":[{"name":"profile"}]}'</code></pre>
         <p><a href="/docs/api#scrape-participant">Read full reference →</a></p>
+      </section>
+
+      <!-- Scrape Plan -->
+      <section id="bot-scrape-plan">
+        <h3>Scrape Plan Bot</h3>
+        <p>
+          Scrapes plan configuration data by <code>planId</code>. Extracts
+          structured data from 6 modules (67 total fields) plus plan notes
+          history. Supports field selection and multiple return modes. Returns
+          <code>202 Accepted</code> with a <code>jobId</code>; poll
+          <code>/forusbot/jobs/:id</code> for results.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/scrape-plan</code> (auth)</p>
+        <h4>JSON Body</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Req</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>planId</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Target plan ID (e.g., "627").</td>
+            </tr>
+            <tr>
+              <td><code>modules</code></td>
+              <td>array</td>
+              <td>no</td>
+              <td>
+                List of modules to extract. Can be strings (e.g., <code>"basic_info"</code>) 
+                or objects with field selection (e.g., <code>{"key":"plan_design","fields":[...]}</code>). 
+                Defaults to <code>["basic_info"]</code> if omitted.
+              </td>
+            </tr>
+            <tr>
+              <td><code>return</code></td>
+              <td>enum</td>
+              <td>no</td>
+              <td>
+                <code>data|html|text|both</code> (default <code>data</code>).
+              </td>
+            </tr>
+            <tr>
+              <td><code>strict</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Fail entire job if any module/field validation fails (default <code>false</code>).</td>
+            </tr>
+            <tr>
+              <td><code>includeScreens</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Include evidence screenshots.</td>
+            </tr>
+            <tr>
+              <td><code>timeoutMs</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Job timeout in milliseconds (default 30000).</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Available Modules</h4>
+        <ul class="list">
+          <li><code>basic_info</code> — 16 fields (plan ID, company name, EIN, status, dates, managers)</li>
+          <li><code>plan_design</code> — 26 fields (record keeper, eligibility, contributions, enrollment, crypto)</li>
+          <li><code>onboarding</code> — 6 fields (first deferral date, blackout dates, website live date)</li>
+          <li><code>communications</code> — 6 fields (DAVE text, logo, Spanish participants, e-statement, raffle)</li>
+          <li><code>extra_settings</code> — 10 fields (RK upload mode, plan year, ER match eligibility)</li>
+          <li><code>feature_flags</code> — 3 fields (payroll X-Ray, payroll issue, simple upload)</li>
+        </ul>
+        <h4>Quick cURL</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/scrape-plan" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"planId":"627","modules":["basic_info","plan_design"]}'</code></pre>
+        <p><a href="/docs/api#scrape-plan">Read full reference →</a></p>
       </section>
 
       <!-- Search Participants -->

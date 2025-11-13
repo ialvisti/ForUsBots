@@ -59,6 +59,15 @@ export const ENDPOINTS = {
     needs: { token: true }, // JSON body, no x-meta/x-filename
     pollJob: true, // returns 202 + jobId
   },
+  // NEW: scrape plan
+  "scrape-plan": {
+    label: "POST /forusbot/scrape-plan",
+    method: "POST",
+    path: "/forusbot/scrape-plan",
+    group: "scrape-plan",
+    needs: { token: true }, // JSON body with planId, modules, etc.
+    pollJob: true, // returns 202 + jobId
+  },
   // NEW: mfa reset
   "mfa-reset": {
     label: "POST /forusbot/mfa-reset",

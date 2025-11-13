@@ -199,6 +199,21 @@
             </p>
           </div>
 
+          <!-- NUEVO: Scrape Plan -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/scrape-plan</code></strong>
+            </div>
+            <p class="muted">
+              Raspa datos de plan por planId. Extrae de 6 módulos (67 campos totales):
+              basic_info, plan_design, onboarding, communications, extra_settings, 
+              feature_flags. Retorna 202 Accepted con jobId.
+            </p>
+            <p class="small">
+              <a href="/docs/api/es#scrape-plan">Leer docs →</a>
+            </p>
+          </div>
+
           <!-- NUEVO: Search Participants -->
           <div class="card">
             <div class="small">
@@ -388,6 +403,95 @@
   -d '{"participantId":"12345","return":"data","strict":true,"modules":[{"name":"profile"}]}'</code></pre>
         <p>
           <a href="/docs/api/es#scrape-participant"
+            >Ver referencia completa →</a
+          >
+        </p>
+      </section>
+
+      <!-- Scrape Plan -->
+      <section id="bot-scrape-plan">
+        <h3>Scrape Plan Bot</h3>
+        <p>
+          Raspa datos de configuración del plan por <code>planId</code>. Extrae
+          datos estructurados de 6 módulos (67 campos totales) más el historial
+          de notas del plan. Soporta selección de campos y múltiples modos de
+          retorno. Devuelve <code>202 Accepted</code> con <code>jobId</code>;
+          consulta <code>/forusbot/jobs/:id</code> para resultados.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/scrape-plan</code> (auth)</p>
+        <h4>Body JSON</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Tipo</th>
+              <th>Req</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>planId</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>ID del plan objetivo (ej., "627").</td>
+            </tr>
+            <tr>
+              <td><code>modules</code></td>
+              <td>array</td>
+              <td>no</td>
+              <td>
+                Lista de módulos a extraer. Puede ser strings (ej., <code>"basic_info"</code>) 
+                o objetos con selección de campos (ej., <code>{"key":"plan_design","fields":[...]}</code>). 
+                Por defecto <code>["basic_info"]</code> si se omite.
+              </td>
+            </tr>
+            <tr>
+              <td><code>return</code></td>
+              <td>enum</td>
+              <td>no</td>
+              <td>
+                <code>data|html|text|both</code> (por defecto <code>data</code>).
+              </td>
+            </tr>
+            <tr>
+              <td><code>strict</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Falla todo el job si algún módulo/campo falla la validación (por defecto <code>false</code>).</td>
+            </tr>
+            <tr>
+              <td><code>includeScreens</code></td>
+              <td>boolean</td>
+              <td>no</td>
+              <td>Incluir capturas de evidencia.</td>
+            </tr>
+            <tr>
+              <td><code>timeoutMs</code></td>
+              <td>number</td>
+              <td>no</td>
+              <td>Timeout del job en milisegundos (por defecto 30000).</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Módulos Disponibles</h4>
+        <ul class="list">
+          <li><code>basic_info</code> — 16 campos (ID del plan, nombre de empresa, EIN, estado, fechas, gerentes)</li>
+          <li><code>plan_design</code> — 26 campos (record keeper, elegibilidad, contribuciones, inscripción, crypto)</li>
+          <li><code>onboarding</code> — 6 campos (primera fecha de diferimiento, fechas de blackout, fecha de activación)</li>
+          <li><code>communications</code> — 6 campos (texto DAVE, logo, participantes en español, e-statement, sorteo)</li>
+          <li><code>extra_settings</code> — 10 campos (modo de carga RK, año del plan, elegibilidad ER match)</li>
+          <li><code>feature_flags</code> — 3 campos (Payroll X-Ray, problema de nómina, carga simple)</li>
+        </ul>
+        <h4>cURL rápido</h4>
+        <pre
+          class="code"
+        ><code>curl -X POST "$BASE/forusbot/scrape-plan" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"planId":"627","modules":["basic_info","plan_design"]}'</code></pre>
+        <p>
+          <a href="/docs/api/es#scrape-plan"
             >Ver referencia completa →</a
           >
         </p>

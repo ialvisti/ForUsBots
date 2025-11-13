@@ -21,6 +21,7 @@ import { ENDPOINTS } from "./endpoints/constants.js";
 import { startPolling } from "./endpoints/jobs.js";
 import { runDryUpload } from "./endpoints/upload.js";
 import { wireScrapeUI, buildScrapeBodyStr } from "./core/scrape-ui.js";
+import { wirePlanUI, buildPlanBodyStr } from "./core/plan-ui.js";
 import {
   wireSearchUI,
   buildSearchBodyStr as buildSearchBodyStrSP,
@@ -172,6 +173,8 @@ function refreshAllOutputs() {
 
   if (endpointSel.value === "scrape-participant") {
     jsonBodyStr = buildScrapeBodyStr(false);
+  } else if (endpointSel.value === "scrape-plan") {
+    jsonBodyStr = buildPlanBodyStr(false);
   } else if (endpointSel.value === "mfa-reset") {
     const pid = (mfaParticipantId?.value || "").trim();
     jsonBodyStr = JSON.stringify({ participantId: pid });
@@ -215,6 +218,13 @@ status.addEventListener("change", refreshAllOutputs);
 wireScrapeUI({
   onChange: refreshAllOutputs,
   strictDefault: true,
+  hideTimeout: true,
+});
+
+// Plan UI
+wirePlanUI({
+  onChange: refreshAllOutputs,
+  strictDefault: false,
   hideTimeout: true,
 });
 
@@ -351,6 +361,17 @@ runBtn.addEventListener("click", async (e) => {
       )
         throw new Error("participantId is required for this endpoint.");
     }
+    
+    // scrape-plan: planId required
+    if (endpointSel.value === "scrape-plan") {
+      jsonBodyStr = buildPlanBodyStr(false);
+      const bodyTest = JSON.parse(jsonBodyStr);
+      if (
+        !bodyTest.planId ||
+        String(bodyTest.planId).trim() === ""
+      )
+        throw new Error("planId es obligatorio para este endpoint.");
+    }
 
     // search-participants: at least one criteria
     if (endpointSel.value === "search-participants") {
@@ -380,6 +401,7 @@ runBtn.addEventListener("click", async (e) => {
     const url = ep.path.replace(":id", jobId.value || "");
     let body = bodyPromise ? await bodyPromise : undefined;
     if (endpointSel.value === "scrape-participant") body = jsonBodyStr;
+    if (endpointSel.value === "scrape-plan") body = jsonBodyStr;
     if (endpointSel.value === "search-participants") body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });

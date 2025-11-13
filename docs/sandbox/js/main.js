@@ -21,6 +21,7 @@ import { ENDPOINTS } from "./endpoints/constants.js";
 import { startPolling } from "./endpoints/jobs.js";
 import { runDryUpload } from "./endpoints/upload.js";
 import { wireScrapeUI, buildScrapeBodyStr } from "./core/scrape-ui.js";
+import { wirePlanUI, buildPlanBodyStr } from "./core/plan-ui.js";
 import {
   wireUpdateUI,
   buildUpdateBodyStr as buildUpdateBodyStrUP,
@@ -178,6 +179,8 @@ function refreshAllOutputs() {
 
   if (endpointSel.value === "scrape-participant") {
     jsonBodyStr = buildScrapeBodyStr(false); // compact
+  } else if (endpointSel.value === "scrape-plan") {
+    jsonBodyStr = buildPlanBodyStr(false); // compact
   } else if (endpointSel.value === "mfa-reset") {
     const pid = (mfaParticipantId?.value || "").trim();
     jsonBodyStr = JSON.stringify({ participantId: pid });
@@ -223,6 +226,13 @@ status.addEventListener("change", refreshAllOutputs);
 wireScrapeUI({
   onChange: refreshAllOutputs,
   strictDefault: true,
+  hideTimeout: true,
+});
+
+// Plan UI (strict default OFF, hide timeout)
+wirePlanUI({
+  onChange: refreshAllOutputs,
+  strictDefault: false,
   hideTimeout: true,
 });
 
@@ -362,6 +372,18 @@ runBtn.addEventListener("click", async (e) => {
         throw new Error("participantId is required for this endpoint.");
       }
     }
+    
+    // scrape-plan: planId must exist
+    if (endpointSel.value === "scrape-plan") {
+      jsonBodyStr = buildPlanBodyStr(false);
+      const bodyTest = JSON.parse(jsonBodyStr);
+      if (
+        !bodyTest.planId ||
+        String(bodyTest.planId).trim() === ""
+      ) {
+        throw new Error("planId is required for this endpoint.");
+      }
+    }
 
     // mfa-reset: participantId must exist
     if (endpointSel.value === "mfa-reset") {
@@ -402,6 +424,7 @@ runBtn.addEventListener("click", async (e) => {
     const url = ep.path.replace(":id", jobId.value || "");
     let body = bodyPromise ? await bodyPromise : undefined;
     if (endpointSel.value === "scrape-participant") body = jsonBodyStr;
+    if (endpointSel.value === "scrape-plan") body = jsonBodyStr;
     if (endpointSel.value === "mfa-reset") body = jsonBodyStr;
     if (endpointSel.value === "search-participants") body = jsonBodyStr;
     if (endpointSel.value === "update-participant") body = jsonBodyStr;

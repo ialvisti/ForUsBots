@@ -69,6 +69,10 @@
                 POST /forusbot/scrape-participant
               </option>
 
+              <option value="scrape-plan">
+                POST /forusbot/scrape-plan
+              </option>
+
               <option value="search-participants">
                 POST /forusbot/search-participants
               </option>
@@ -285,6 +289,62 @@
                 >
                 or <code>2024,2025</code>) and/or specific year tables (e.g.
                 <code>2024,2025</code>).
+              </div>
+            </div>
+          </div>
+
+          <!-- Scrape Plan builder -->
+          <div class="ep ep-scrape-plan hidden">
+            <div class="field">
+              <label>planId</label>
+              <input id="scrapePlanId" type="text" placeholder="e.g. 627" />
+            </div>
+
+            <br />
+
+            <div class="two">
+              <div class="field">
+                <label>return</label>
+                <select id="planReturnMode">
+                  <option value="data" selected>data</option>
+                  <option value="html">html</option>
+                  <option value="text">text</option>
+                  <option value="both">both</option>
+                </select>
+              </div>
+              <div class="field hidden">
+                <label>timeoutMs</label>
+                <input id="planTimeoutMs" type="number" placeholder="30000" />
+              </div>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label class="small"
+                  ><input id="planStrict" type="checkbox" /> strict</label
+                >
+              </div>
+              <div class="field">
+                <label class="small"
+                  ><input id="planIncludeScreens" type="checkbox" />
+                  includeScreens</label
+                >
+              </div>
+            </div>
+
+            <br />
+
+            <div class="field">
+              <label>modules</label>
+              <div id="planModulesList" class="stack"></div>
+              <button class="btn ghost small" id="addPlanModuleBtn">
+                Add module
+              </button>
+              <div class="help">
+                Choose a module and (when available) select its fields.
+                Available modules: basic_info (16 fields), plan_design (26 fields),
+                onboarding (6 fields), communications (6 fields), extra_settings (10 fields),
+                feature_flags (3 fields).
               </div>
             </div>
           </div>

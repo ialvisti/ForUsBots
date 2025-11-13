@@ -291,6 +291,211 @@ paths:
         '422': { description: Validation failed }
         '500': { description: Internal Server Error }
 
+  /forusbot/scrape-plan:
+    post:
+      summary: Enqueue plan scraping job
+      description: |
+        Extracts structured plan data from the ForUsAll employer portal. Supports extracting from 6 modules:
+        basic_info (16 fields), plan_design (26 fields), onboarding (6 fields), communications (6 fields),
+        extra_settings (10 fields), feature_flags (3 fields). Also extracts plan notes history.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId]
+              properties:
+                planId:
+                  type: string
+                  description: Plan ID to scrape (e.g., "627")
+                  example: "627"
+                modules:
+                  type: array
+                  description: |
+                    Modules to extract. Can be strings (extract all fields) or objects with field selection.
+                    Available modules: basic_info, plan_design, onboarding, communications, extra_settings, feature_flags.
+                    If empty or omitted, defaults to ["basic_info"].
+                  items:
+                    oneOf:
+                      - type: string
+                        description: Module key (extracts all fields from module)
+                        example: "basic_info"
+                      - type: object
+                        description: Module with specific field selection
+                        required: [key]
+                        properties:
+                          key:
+                            type: string
+                            description: Module key
+                            example: "plan_design"
+                          fields:
+                            type: array
+                            description: Specific fields to extract from this module
+                            items:
+                              type: string
+                            example: ["record_keeper_id", "rk_plan_id"]
+                  example: ["basic_info", {"key": "plan_design", "fields": ["record_keeper_id"]}]
+                return:
+                  type: string
+                  enum: [data, html, text, both]
+                  default: data
+                  description: |
+                    Return mode: 
+                    - data: structured data only
+                    - html: raw HTML only
+                    - text: plain text only
+                    - both: data + html + text
+                strict:
+                  type: boolean
+                  default: false
+                  description: If true, fail entire job if any module or field validation fails
+                includeScreens:
+                  type: boolean
+                  default: false
+                  description: Include screenshots in result (evidence)
+                timeoutMs:
+                  type: integer
+                  minimum: 5000
+                  default: 30000
+                  description: Job timeout in milliseconds
+            examples:
+              allModules:
+                summary: Extract all modules
+                value:
+                  planId: "627"
+                  modules: ["basic_info", "plan_design", "onboarding", "communications", "extra_settings", "feature_flags"]
+              specificModule:
+                summary: Extract only basic info
+                value:
+                  planId: "627"
+                  modules: ["basic_info"]
+              specificFields:
+                summary: Extract specific fields from modules
+                value:
+                  planId: "627"
+                  modules:
+                    - key: "basic_info"
+                      fields: ["plan_id", "company_name", "ein", "status"]
+                    - key: "plan_design"
+                      fields: ["record_keeper_id", "enrollment_type"]
+              withScreenshots:
+                summary: Extract with evidence screenshots
+                value:
+                  planId: "627"
+                  modules: ["basic_info", "plan_design"]
+                  includeScreens: true
+              strictMode:
+                summary: Strict mode (fail on any error)
+                value:
+                  planId: "627"
+                  modules: ["basic_info", "plan_design"]
+                  strict: true
+      responses:
+        '202':
+          description: Job accepted and queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, jobId, acceptedAt, warnings, executedBy]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  jobId:
+                    type: string
+                    format: uuid
+                    example: "f628e7c7-11b8-4419-9c30-29c572a99d81"
+                  acceptedAt:
+                    type: string
+                    format: date-time
+                    example: "2025-11-13T07:09:24.211Z"
+                  queuePosition:
+                    type: integer
+                    example: 1
+                  estimate:
+                    type: object
+                    properties:
+                      startAt:
+                        type: string
+                        format: date-time
+                      finishAt:
+                        type: string
+                        format: date-time
+                  capacitySnapshot:
+                    type: object
+                    properties:
+                      running: { type: integer }
+                      queued: { type: integer }
+                      maxConcurrency: { type: integer }
+                  warnings:
+                    type: array
+                    description: Non-fatal warnings (e.g., invalid modules ignored)
+                    items:
+                      type: object
+                      properties:
+                        type: { type: string }
+                        keys: { type: array, items: { type: string } }
+                        unknown: { type: array, items: { type: string } }
+                  executedBy:
+                    type: object
+                    properties:
+                      name: { type: string, nullable: true }
+                      role: { type: string }
+                      at: { type: string, format: date-time }
+        '400':
+          description: Invalid request format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: false }
+                  error: { type: string, example: "planId es obligatorio" }
+        '401':
+          description: Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: false }
+                  error: { type: string, example: "unauthorized" }
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: false }
+                  error: { type: string, example: "modules contiene claves no soportadas" }
+                  invalid: { type: array, items: { type: string } }
+                  allowed: { type: array, items: { type: string } }
+                  fieldErrors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key: { type: string }
+                        reason: { type: string }
+                        details: { type: object }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: false }
+                  error: { type: string, example: "Internal Error" }
+
   /forusbot/mfa-reset:
     post:
       summary: Enqueue MFA reset for participant
