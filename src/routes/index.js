@@ -7,6 +7,7 @@ const express = require("express");
 const mfaResetRoutes = require("../bots/forusall-mfa-reset/routes");
 const forusUploadRoutes = require("../bots/forusall-upload/routes");
 const scrapeParticipantRoutes = require("../bots/forusall-scrape-participant/routes");
+const scrapePlanRoutes = require("../bots/forusall-scrape-plan/routes");
 const searchParticipantsRoutes = require("../bots/forusall-search-participants/routes");
 const emailTriggerRoutes = require("../bots/forusall-emailtrigger/routes");
 const updateParticipantRoutes = require("../bots/forusall-update-participant/routes");
@@ -494,6 +495,9 @@ router.use("/admin", require("../routes/admin-jobs-db"));
 
 // Monta el bot: /forusbot/scrape-participant
 router.use("/scrape-participant", scrapeParticipantRoutes);
+
+// Monta el bot: /forusbot/scrape-plan
+router.use("/scrape-plan", scrapePlanRoutes);
 
 // Monta el bot: /forusbot/search-participants
 router.use("/search-participants", searchParticipantsRoutes);
