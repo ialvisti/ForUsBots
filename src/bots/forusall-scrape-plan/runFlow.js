@@ -129,39 +129,18 @@ async function doLoginWithOtp(page, selectors, loginUrl, jobCtx) {
   }
 }
 
-/** Navega a un módulo por tab (para módulos con tabs) */
+/** 
+ * OPTIMIZATION: Navigation is no longer needed since all tab content is pre-loaded in DOM.
+ * All form fields are accessible via document.querySelector() regardless of active tab.
+ * This function is kept for backward compatibility but does nothing.
+ */
 async function openModule(
   page,
   spec,
   { timeoutMs = OPEN_MODULE_TIMEOUT_MS } = {}
 ) {
-  const deadline = Date.now() + timeoutMs;
-
-  async function tryClickTab() {
-    if (spec.navSelector) {
-      try {
-        await page.click(spec.navSelector, { timeout: 1000 });
-        return true;
-      } catch {}
-    }
-    
-    // Fallback: buscar por aria-controls
-    const ariaTarget = spec.panelSelector?.replace("#", "");
-    if (ariaTarget) {
-      try {
-        await page.click(`a[aria-controls="${ariaTarget}"]`, { timeout: 1000 });
-        return true;
-      } catch {}
-    }
-    
-    return false;
-  }
-
-  while (Date.now() < deadline) {
-    if (await tryClickTab()) return true;
-    await page.waitForTimeout(70);
-  }
-  return false;
+  // All data is pre-loaded in the DOM, no navigation needed
+  return true;
 }
 
 /** Snapshot del panel */
@@ -307,15 +286,13 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       }
       await saveContextStorageState(page.context(), SITE_USER);
       
-      // Esperar un momento después del login antes de navegar
-      await page.waitForTimeout(500);
+      // OPTIMIZATION: Reduced wait from 500ms to 200ms
+      await page.waitForTimeout(200);
       
       await gotoFast(page, out.url, Math.max(20000, timeoutMs));
       
-      // Esperar más tiempo después de login para que cargue la página
-      await page.waitForTimeout(1000);
-      
-      hasShell = await waitForShellFast(page, { timeoutMs: SHELL_WAIT_MS * 2 });
+      // OPTIMIZATION: Use waitForShellFast instead of artificial wait
+      hasShell = await waitForShellFast(page, { timeoutMs: SHELL_WAIT_MS });
       if (!hasShell) {
         try {
           await page.waitForSelector(
@@ -372,72 +349,29 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       jobCtx?.setStage?.(`module:${key}`, { action: "locate-panel" });
 
       const panelSel = spec.panelSelector;
-      let source = "panel";
-      let panelOk = false;
+      let source = "static"; // OPTIMIZATION: All data is pre-loaded, no navigation needed
+      let panelOk = true; // OPTIMIZATION: Always true since all panels exist in DOM
 
-      // Verificar si el panel está visible
+      // OPTIMIZATION: All tab content is pre-loaded in DOM, no need to check visibility or navigate
+      // All form fields are accessible via document.querySelector() regardless of active tab
+      
+      // Verificar que el panel existe en el DOM (quick check)
       if (panelSel) {
         try {
           await page.waitForSelector(panelSel, {
-            timeout: 1200,
+            timeout: 800, // OPTIMIZATION: Reduced from 1200ms
             state: "attached",
           });
-          
-          // Para módulos con tabs, verificar si está activo
-          const isActive = await page.evaluate((sel) => {
-            const el = document.querySelector(sel);
-            if (!el) return false;
-            // Si tiene clase tab-pane, verificar que tenga clase active
-            if (el.classList.contains("tab-pane")) {
-              return el.classList.contains("active");
-            }
-            return true;
-          }, panelSel);
-          
-          panelOk = isActive;
         } catch {}
       }
 
-      // Si el panel no está visible o activo, navegar al tab
-      if (!panelOk && spec.navSelector) {
-        jobCtx?.setStage?.(`module:${key}`, { action: "navigate-tab" });
-        const opened = await openModule(page, spec, {
-          timeoutMs: OPEN_MODULE_TIMEOUT_MS,
-        });
-        if (opened) {
-          source = "nav";
-          // Esperar más tiempo para que el tab se active y cargue el contenido
-          try {
-            await page.waitForTimeout(500);
-          } catch {}
-          if (panelSel) {
-            try {
-              await page.waitForSelector(panelSel, {
-                timeout: 2000,
-                state: "visible",
-              });
-              panelOk = true;
-              // Esperar un poco más para asegurar que el contenido esté renderizado
-              await page.waitForTimeout(300);
-            } catch {}
-          } else {
-            panelOk = true;
-          }
-        }
-      } else if (panelSel && !spec.navSelector) {
-        // basic_info no requiere navegación
-        panelOk = true;
-      }
-
-      // Esperar por selector ready si existe
+      // OPTIMIZATION: Verificar selector ready si existe (sin waits adicionales)
       if (spec.ready?.selector) {
         try {
           await page.waitForSelector(spec.ready.selector, {
-            timeout: 3000,
+            timeout: 800, // OPTIMIZATION: Reduced from 3000ms
             state: "attached",
           });
-          // Esperar un poco más para asegurar que el elemento esté completamente cargado
-          await page.waitForTimeout(200);
         } catch {}
       }
 
@@ -454,8 +388,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       // Data
       jobCtx?.setStage?.(`module:${key}`, { action: "extract-data" });
       
-      // Esperar un momento para que JS populate los campos
-      await page.waitForTimeout(500);
+      // OPTIMIZATION: No need to wait, data is already in DOM
       
       let data;
       let extractorWarnings = [];
