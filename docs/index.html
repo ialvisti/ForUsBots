@@ -245,9 +245,33 @@ x-auth-token: ...
             </div>
             <p class="muted">
               Triggers participant MFA reset. 202 Accepted with jobId; waits
-              until status becomes ‘not enrolled’.
+              until status becomes 'not enrolled'.
             </p>
             <p class="small"><a href="/docs/api#mfa-reset">Read docs →</a></p>
+          </div>
+
+          <!-- NEW: Update Participant -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/update-participant</code></strong>
+            </div>
+            <p class="muted">
+              Updates participant census fields (name, address, dates, eligibility).
+              Requires note explaining the change. 202 Accepted with jobId.
+            </p>
+            <p class="small"><a href="/docs/api#update-participant">Read docs →</a></p>
+          </div>
+
+          <!-- NEW: Email Trigger -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/emailtrigger</code></strong>
+            </div>
+            <p class="muted">
+              Triggers email communications to participants. Supports 10 email types:
+              statements, onboarding, sponsor updates, and more. 202 Accepted with jobId.
+            </p>
+            <p class="small"><a href="/docs/api#emailtrigger">Read docs →</a></p>
           </div>
         </div>
       </section>
@@ -625,6 +649,130 @@ x-auth-token: ...
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
   -d '{"participantId":"12345"}'</code></pre>
         <p><a href="/docs/api#mfa-reset">Read full reference →</a></p>
+      </section>
+
+      <!-- Update Participant -->
+      <section id="bot-update-participant">
+        <h3>Update Participant Bot</h3>
+        <p>
+          Updates participant census data fields including name, address, dates, and eligibility status.
+          A note documenting the reason for the update is required. Returns <code>202 Accepted</code> with <code>jobId</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/update-participant</code> (auth)</p>
+        <h4>JSON Body</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Req</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>participantId</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Target participant ID</td>
+            </tr>
+            <tr>
+              <td><code>note</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Reason for the update (required for audit trail)</td>
+            </tr>
+            <tr>
+              <td><code>updates</code></td>
+              <td>object</td>
+              <td>yes</td>
+              <td>Fields to update (firstName, lastName, hireDate, address, etc.)</td>
+            </tr>
+            <tr>
+              <td><code>options</code></td>
+              <td>object</td>
+              <td>no</td>
+              <td>Additional options (evidenceOnSuccess, etc.)</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Available Update Fields</h4>
+        <p class="muted">
+          firstName, lastName, eligibilityStatus (A/D/I/X/U), birthDate, hireDate, 
+          terminationDate, address1, address2, city, state, zipcode, email, phone, and more.
+          All dates must be in YYYY-MM-DD format.
+        </p>
+        <h4>Quick cURL</h4>
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/update-participant" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"participantId":"12345","note":"Correcting hire date","updates":{"hireDate":"2024-01-15"}}'</code></pre>
+        <p><a href="/docs/api#update-participant">Read full reference →</a></p>
+      </section>
+
+      <!-- Email Trigger -->
+      <section id="bot-emailtrigger">
+        <h3>Email Trigger Bot</h3>
+        <p>
+          Triggers various types of email communications to plan participants through the ForUsAll portal.
+          Supports 10 different email types including statements, onboarding, sponsor communications, and generic emails.
+          Returns <code>202 Accepted</code> with <code>jobId</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/emailtrigger</code> (auth)</p>
+        <h4>Email Types</h4>
+        <p class="muted">
+          statement_notice, sponsor_quarterly_email, onboard_communications, new_hire_communications,
+          generic_email, monthly_balance, year_end_notice, notify_auto-escalation, summary_annual_notice, force_out
+        </p>
+        <h4>JSON Body</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Req</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>planId</code></td>
+              <td>integer</td>
+              <td>yes</td>
+              <td>Plan ID (must be positive)</td>
+            </tr>
+            <tr>
+              <td><code>emailType</code></td>
+              <td>string</td>
+              <td>yes</td>
+              <td>Type of email to trigger (see email types above)</td>
+            </tr>
+            <tr>
+              <td><code>statement</code></td>
+              <td>object</td>
+              <td>conditional</td>
+              <td>Required for statement_notice (year, quarter, season)</td>
+            </tr>
+            <tr>
+              <td><code>sponsorQuarterly</code></td>
+              <td>object</td>
+              <td>conditional</td>
+              <td>Required for sponsor_quarterly_email (year, quarter, URLs, dates)</td>
+            </tr>
+            <tr>
+              <td><code>genericEmail</code></td>
+              <td>object</td>
+              <td>conditional</td>
+              <td>Required for generic_email (audience, subType)</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Quick cURL</h4>
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/emailtrigger" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"planId":627,"emailType":"statement_notice","statement":{"year":2025,"quarter":1,"season":"Q1"}}'</code></pre>
+        <p><a href="/docs/api#emailtrigger">Read full reference →</a></p>
       </section>
 
       <section id="jobs">

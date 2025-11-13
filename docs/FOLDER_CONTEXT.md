@@ -173,7 +173,7 @@ docs/
 ---
 
 ### OpenAPI Specification (`openapi.yaml`)
-**Purpose**: Machine-readable API specification (version 2.2.0).
+**Purpose**: Machine-readable API specification (version 2.3.0).
 
 **Features**:
 - Complete endpoint definitions

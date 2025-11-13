@@ -237,10 +237,38 @@
             </div>
             <p class="muted">
               Reinicia el MFA del participante. 202 Accepted con jobId; espera
-              hasta ‘not enrolled’.
+              hasta 'not enrolled'.
             </p>
             <p class="small">
               <a href="/docs/api/es#mfa-reset">Leer docs →</a>
+            </p>
+          </div>
+
+          <!-- NUEVO: Actualizar Participante -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/update-participant</code></strong>
+            </div>
+            <p class="muted">
+              Actualiza campos censales del participante (nombre, dirección, fechas, elegibilidad).
+              Requiere nota explicando el cambio. 202 Accepted con jobId.
+            </p>
+            <p class="small">
+              <a href="/docs/api/es#update-participant">Leer docs →</a>
+            </p>
+          </div>
+
+          <!-- NUEVO: Disparador de Email -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/emailtrigger</code></strong>
+            </div>
+            <p class="muted">
+              Dispara comunicaciones por email a participantes. Soporta 10 tipos de email:
+              estados de cuenta, onboarding, actualizaciones de patrocinador y más. 202 Accepted con jobId.
+            </p>
+            <p class="small">
+              <a href="/docs/api/es#emailtrigger">Leer docs →</a>
             </p>
           </div>
         </div>
@@ -634,6 +662,130 @@
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
   -d '{"participantId":"12345"}'</code></pre>
         <p><a href="/docs/api/es#mfa-reset">Ver referencia completa →</a></p>
+      </section>
+
+      <!-- Actualizar Participante -->
+      <section id="bot-update-participant">
+        <h3>Update Participant Bot</h3>
+        <p>
+          Actualiza campos de datos censales del participante incluyendo nombre, dirección, fechas y estado de elegibilidad.
+          Se requiere una nota documentando el motivo de la actualización. Devuelve <code>202 Accepted</code> con <code>jobId</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/update-participant</code> (auth)</p>
+        <h4>Body JSON</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Tipo</th>
+              <th>Req</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>participantId</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>ID del participante objetivo</td>
+            </tr>
+            <tr>
+              <td><code>note</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>Motivo de la actualización (requerido para auditoría)</td>
+            </tr>
+            <tr>
+              <td><code>updates</code></td>
+              <td>object</td>
+              <td>sí</td>
+              <td>Campos a actualizar (firstName, lastName, hireDate, address, etc.)</td>
+            </tr>
+            <tr>
+              <td><code>options</code></td>
+              <td>object</td>
+              <td>no</td>
+              <td>Opciones adicionales (evidenceOnSuccess, etc.)</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Campos Disponibles para Actualización</h4>
+        <p class="muted">
+          firstName, lastName, eligibilityStatus (A/D/I/X/U), birthDate, hireDate, 
+          terminationDate, address1, address2, city, state, zipcode, email, phone, y más.
+          Todas las fechas deben estar en formato YYYY-MM-DD.
+        </p>
+        <h4>cURL rápido</h4>
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/update-participant" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"participantId":"12345","note":"Corrigiendo fecha de contratación","updates":{"hireDate":"2024-01-15"}}'</code></pre>
+        <p><a href="/docs/api/es#update-participant">Ver referencia completa →</a></p>
+      </section>
+
+      <!-- Disparador de Email -->
+      <section id="bot-emailtrigger">
+        <h3>Email Trigger Bot</h3>
+        <p>
+          Dispara varios tipos de comunicaciones por email a participantes del plan a través del portal de ForUsAll.
+          Soporta 10 tipos diferentes de email incluyendo estados de cuenta, onboarding, comunicaciones de patrocinador y emails genéricos.
+          Devuelve <code>202 Accepted</code> con <code>jobId</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/emailtrigger</code> (auth)</p>
+        <h4>Tipos de Email</h4>
+        <p class="muted">
+          statement_notice, sponsor_quarterly_email, onboard_communications, new_hire_communications,
+          generic_email, monthly_balance, year_end_notice, notify_auto-escalation, summary_annual_notice, force_out
+        </p>
+        <h4>Body JSON</h4>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Tipo</th>
+              <th>Req</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>planId</code></td>
+              <td>integer</td>
+              <td>sí</td>
+              <td>ID del plan (debe ser positivo)</td>
+            </tr>
+            <tr>
+              <td><code>emailType</code></td>
+              <td>string</td>
+              <td>sí</td>
+              <td>Tipo de email a disparar (ver tipos de email arriba)</td>
+            </tr>
+            <tr>
+              <td><code>statement</code></td>
+              <td>object</td>
+              <td>condicional</td>
+              <td>Requerido para statement_notice (year, quarter, season)</td>
+            </tr>
+            <tr>
+              <td><code>sponsorQuarterly</code></td>
+              <td>object</td>
+              <td>condicional</td>
+              <td>Requerido para sponsor_quarterly_email (year, quarter, URLs, fechas)</td>
+            </tr>
+            <tr>
+              <td><code>genericEmail</code></td>
+              <td>object</td>
+              <td>condicional</td>
+              <td>Requerido para generic_email (audience, subType)</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>cURL rápido</h4>
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/emailtrigger" \
+  -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
+  -d '{"planId":627,"emailType":"statement_notice","statement":{"year":2025,"quarter":1,"season":"Q1"}}'</code></pre>
+        <p><a href="/docs/api/es#emailtrigger">Ver referencia completa →</a></p>
       </section>
 
       <section id="jobs">

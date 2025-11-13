@@ -26,30 +26,36 @@ bot-name/
 **Features**: Module-based extraction, field filtering, HTML/text/data output modes.
 **When to use**: Participant data extraction, report generation.
 
-### 3. `/forusall-mfa-reset/`
+### 3. `/forusall-scrape-plan/`
+**Purpose**: Extracts structured data from plan configuration pages (basic info, design, onboarding, communications, settings, feature flags).
+**Endpoints**: `POST /forusbot/scrape-plan`
+**Features**: Module-based extraction (6 modules, 67 fields), field filtering, HTML/text/data output modes, strict validation.
+**When to use**: Plan data extraction, configuration audits, compliance reporting.
+
+### 4. `/forusall-mfa-reset/`
 **Purpose**: Resets multi-factor authentication for a participant.
 **Endpoints**: `POST /forusbot/mfa-reset`
 **Features**: MFA panel navigation, reset button click, status verification.
 **When to use**: User support, MFA troubleshooting.
 
-### 4. `/forusall-search-participants/`
+### 5. `/forusall-search-participants/`
 **Purpose**: Searches participants by criteria (name, SSN, email, phone, participant ID).
 **Endpoints**: `POST /forusbot/search-participants`
 **Features**: Multi-page search, result pagination, data extraction from search table.
 **When to use**: Bulk participant lookup, data verification.
-
-### 5. `/forusall-emailtrigger/`
-**Purpose**: Triggers email flows in the ForUsAll portal (onboarding, statements, sponsor emails, generic).
-**Endpoints**: `POST /forusbot/emailtrigger`
-**Features**: Multi-flow support, preview validation, participant selection, form filling.
-**When to use**: Email campaign automation, participant communication.
-**Subdirectory**: `/flows/` contains flow-specific logic (summary_annual_notice.js, etc.).
 
 ### 6. `/forusall-update-participant/`
 **Purpose**: Updates participant census data fields (name, address, dates, eligibility status).
 **Endpoints**: `POST /forusbot/update-participant`
 **Features**: Field mapping, validation, note creation, batch updates.
 **When to use**: Participant data maintenance, bulk updates.
+
+### 7. `/forusall-emailtrigger/`
+**Purpose**: Triggers email flows in the ForUsAll portal (onboarding, statements, sponsor emails, generic).
+**Endpoints**: `POST /forusbot/emailtrigger`
+**Features**: Multi-flow support, preview validation, participant selection, form filling.
+**When to use**: Email campaign automation, participant communication.
+**Subdirectory**: `/flows/` contains flow-specific logic (summary_annual_notice.js, etc.).
 
 ## Standard Bot Pattern
 

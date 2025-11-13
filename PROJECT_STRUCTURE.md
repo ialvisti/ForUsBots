@@ -95,19 +95,23 @@ bot-name/
    - Endpoint: `POST /forusbot/scrape-participant`
    - Purpose: Extract census, loans, payroll, etc.
 
-3. **`forusall-mfa-reset/`** - MFA reset
+3. **`forusall-scrape-plan/`** - Plan data extraction
+   - Endpoint: `POST /forusbot/scrape-plan`
+   - Purpose: Extract plan configuration (6 modules, 67 fields)
+
+4. **`forusall-mfa-reset/`** - MFA reset
    - Endpoint: `POST /forusbot/mfa-reset`
    - Purpose: Reset participant MFA
 
-4. **`forusall-search-participants/`** - Participant search
+5. **`forusall-search-participants/`** - Participant search
    - Endpoint: `POST /forusbot/search-participants`
    - Purpose: Search by name, SSN, email, etc.
 
-5. **`forusall-update-participant/`** - Participant updates
+6. **`forusall-update-participant/`** - Participant updates
    - Endpoint: `POST /forusbot/update-participant`
    - Purpose: Update census fields
 
-6. **`forusall-emailtrigger/`** - Email triggering
+7. **`forusall-emailtrigger/`** - Email triggering
    - Endpoint: `POST /forusbot/emailtrigger`
    - Purpose: Trigger portal emails
    - Has `/flows/` subdirectory for multi-flow logic
@@ -203,16 +207,26 @@ bot-name/
 **Structure**:
 ```
 extractors/
-└── forusall-participant/
-    ├── modules/              # Individual extractors
-    │   ├── census.js         # Demographics & employment
-    │   ├── savings_rate.js   # Contribution settings
-    │   ├── loans.js          # Loan information
-    │   ├── plan_details.js   # Plan enrollment
-    │   ├── payroll.js        # Payroll history
-    │   └── mfa.js            # MFA status
-    ├── registry.js           # Extractor lookup & validation
-    └── utils.js              # Shared extraction helpers
+├── forusall-participant/     # Participant data extractors
+│   ├── modules/              # Individual extractors
+│   │   ├── census.js         # Demographics & employment
+│   │   ├── savings_rate.js   # Contribution settings
+│   │   ├── loans.js          # Loan information
+│   │   ├── plan_details.js   # Plan enrollment
+│   │   ├── payroll.js        # Payroll history
+│   │   └── mfa.js            # MFA status
+│   ├── registry.js           # Extractor lookup & validation
+│   └── utils.js              # Shared extraction helpers
+└── forusall-plan/            # Plan data extractors
+    ├── modules/              # Plan extractors
+    │   ├── basic_info.js     # Plan ID, company, EIN, status
+    │   ├── plan_design.js    # Eligibility, contributions
+    │   ├── onboarding.js     # Dates, conversion settings
+    │   ├── communications.js # Branding, messaging
+    │   ├── extra_settings.js # Advanced rules
+    │   └── feature_flags.js  # Feature toggles
+    ├── registry.js           # Plan extractor lookup
+    └── utils.js              # Plan extraction helpers
 ```
 
 **When to Work Here**:
@@ -237,7 +251,8 @@ extractors/
 providers/
 └── forusall/
     ├── config.js           # URLs & selectors (SOURCE OF TRUTH)
-    └── participantMap.js   # Module specifications
+    ├── participantMap.js   # Participant module specifications
+    └── planMap.js          # Plan module specifications
 ```
 
 **config.js Contains**:
@@ -552,11 +567,11 @@ forusall-portal-html-data/
 
 - **Total Folders**: 14 major directories
 - **Context Files**: 14 comprehensive guides
-- **Bots**: 6 automation bots
-- **Extractors**: 6 data extraction modules
+- **Bots**: 7 automation bots
+- **Extractors**: 12 data extraction modules (6 participant + 6 plan)
 - **Utilities**: 5 reusable helpers
 - **Documentation**: Multi-language (EN/ES)
-- **Lines of Code**: ~15,000+ (excluding node_modules)
+- **Lines of Code**: ~20,000+ (excluding node_modules)
 
 ---
 
@@ -570,6 +585,6 @@ forusall-portal-html-data/
 ---
 
 **Last Updated**: 2025-01-15  
-**Version**: 2.2.0  
+**Version**: 2.3.0  
 **Maintained By**: ForUsBots Team
 

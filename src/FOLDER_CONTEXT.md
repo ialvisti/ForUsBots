@@ -27,7 +27,7 @@ src/
 ## Subdirectories
 
 ### `/src/bots/`
-**Purpose**: Individual automation bots (upload, scrape, MFA reset, search, email trigger, update participant).
+**Purpose**: Individual automation bots (7 total: upload, scrape-participant, scrape-plan, MFA reset, search, email trigger, update participant).
 **Standard Structure**: Each bot has `routes.js`, `controller.js`, `runFlow.js`.
 **When to use**: Implementing new bots or modifying existing bot logic.
 
@@ -37,7 +37,7 @@ src/
 **When to use**: Modifying core functionality, adding utilities, changing auth logic, queue behavior, or logging.
 
 ### `/src/extractors/`
-**Purpose**: Data extraction modules for parsing participant pages (census, loans, payroll, plan details, savings rate, MFA).
+**Purpose**: Data extraction modules for parsing participant and plan pages. Includes 12 modules (6 participant + 6 plan) extracting 130+ fields total.
 **When to use**: Adding new extractable fields, creating new extraction modules, or improving parsing logic.
 
 ### `/src/providers/`

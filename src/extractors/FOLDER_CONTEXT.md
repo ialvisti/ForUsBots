@@ -1,21 +1,31 @@
 # /src/extractors/ - Data Extraction Modules Context
 
 ## Purpose
-This directory contains modules that extract structured data from participant pages in the ForUsAll employer portal. Extractors parse HTML, extract specific fields, and return normalized data objects.
+This directory contains modules that extract structured data from the ForUsAll employer portal. Extractors parse HTML from participant pages and plan configuration pages, extract specific fields, and return normalized data objects. Currently supports 12 extraction modules (6 participant + 6 plan) extracting 130+ fields total.
 
 ## Architecture
 ```
 extractors/
-└── forusall-participant/
-    ├── modules/           # Per-module extractors (census, loans, payroll, etc.)
-    │   ├── census.js
-    │   ├── savings_rate.js
-    │   ├── loans.js
-    │   ├── plan_details.js
-    │   ├── payroll.js
-    │   └── mfa.js
-    ├── registry.js        # Extractor registration and lookup
-    └── utils.js           # Shared extraction utilities
+├── forusall-participant/      # Participant data extractors
+│   ├── modules/               # Per-module extractors (census, loans, payroll, etc.)
+│   │   ├── census.js
+│   │   ├── savings_rate.js
+│   │   ├── loans.js
+│   │   ├── plan_details.js
+│   │   ├── payroll.js
+│   │   └── mfa.js
+│   ├── registry.js            # Extractor registration and lookup
+│   └── utils.js               # Shared extraction utilities
+└── forusall-plan/             # Plan data extractors
+    ├── modules/               # Plan extractors (6 modules, 67 fields)
+    │   ├── basic_info.js
+    │   ├── plan_design.js
+    │   ├── onboarding.js
+    │   ├── communications.js
+    │   ├── extra_settings.js
+    │   └── feature_flags.js
+    ├── registry.js            # Plan extractor registration
+    └── utils.js               # Plan extraction utilities
 ```
 
 ## Module Structure
@@ -129,6 +139,89 @@ extractors/
 - Date extraction from status text
 
 **When to use**: Checking participant MFA enrollment state.
+
+---
+
+## Plan Extractors (`forusall-plan/`)
+
+### 1. `modules/basic_info.js` - Basic Plan Information
+**Fields**: plan_id, version_id, company_name, company_legal_name, ein, status, slug, created_at, updated_at, start_date, end_date, plan_year_start_at, plan_year_end_at, effective_date, plan_type, plan_category, erisa_plan, safe_harbor, roth_contributions_enabled, employer_contributions_enabled, catch_up_enabled, auto_enrollment.
+
+**Count**: 22 fields
+
+**Special Features**:
+- Date parsing (MM/DD/YYYY → YYYY-MM-DD)
+- Boolean conversions (Yes/No → true/false)
+- Always visible (no navigation required)
+
+**When to use**: Extracting core plan identification and configuration.
+
+---
+
+### 2. `modules/plan_design.js` - Plan Design Settings
+**Fields**: record_keeper_id, rk_plan_id, eligibility_age, eligibility_hours, eligibility_months_of_service, auto_enrollment_rate, auto_escalation_enabled, max_deferral_percentage, catch_up_limit, employer_match_type, employer_match_rate, employer_match_cap, safe_harbor_type, vesting_schedule, loan_enabled, hardship_enabled, in_service_withdrawals_enabled.
+
+**Count**: 17 fields
+
+**Special Features**:
+- Eligibility rules parsing
+- Match formula extraction
+- Vesting schedule parsing
+
+**When to use**: Extracting plan rules, contributions, and eligibility settings.
+
+---
+
+### 3. `modules/onboarding.js` - Onboarding Settings
+**Fields**: first_deferral_date, special_participation_date, conversion_plan, converted_from_plan_id, converted_at, migration_notes, enrollment_method, welcome_email_enabled, participant_portal_enabled, mobile_app_enabled.
+
+**Count**: 10 fields
+
+**Special Features**:
+- Conversion tracking
+- Onboarding date parsing
+
+**When to use**: Extracting onboarding and migration configuration.
+
+---
+
+### 4. `modules/communications.js` - Communications & Branding
+**Fields**: dave_text, logo, company_color, support_email, support_phone, custom_domain.
+
+**Count**: 6 fields
+
+**Special Features**:
+- Logo URL extraction
+- Color code validation
+- Contact info normalization
+
+**When to use**: Extracting branding and communication preferences.
+
+---
+
+### 5. `modules/extra_settings.js` - Extra Settings
+**Fields**: rk_upload_mode, plan_year_start, eligibility_calc_method, compensation_definition, hours_tracking_method, custom_eligibility_rules.
+
+**Count**: 6 fields
+
+**Special Features**:
+- Advanced eligibility rules
+- Compensation calculation methods
+
+**When to use**: Extracting advanced plan configuration.
+
+---
+
+### 6. `modules/feature_flags.js` - Feature Flags
+**Fields**: payroll_xray, payroll_issue, participant_loans, hardship_withdrawals, in_service_distributions, catch_up_contributions.
+
+**Count**: 6 fields
+
+**Special Features**:
+- Boolean flag extraction
+- Feature toggle tracking
+
+**When to use**: Extracting feature enablement flags.
 
 ---
 

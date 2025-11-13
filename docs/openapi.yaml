@@ -627,6 +627,183 @@ paths:
         '401': { description: Unauthorized }
         '500': { description: Internal Server Error }
 
+  /forusbot/emailtrigger:
+    post:
+      summary: Trigger email communications to participants
+      description: |
+        Enqueues a job to trigger various types of email communications to plan participants through the ForUsAll portal.
+        Supports multiple email types including statements, onboarding, sponsor quarterly emails, and generic communications.
+        Always sends to all participants ("all").
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId, emailType]
+              properties:
+                planId:
+                  type: integer
+                  minimum: 1
+                  description: Plan ID (must be positive integer)
+                  example: 627
+                emailType:
+                  type: string
+                  enum:
+                    - monthly_balance
+                    - onboard_communications
+                    - new_hire_communications
+                    - year_end_notice
+                    - notify_auto-escalation
+                    - summary_annual_notice
+                    - statement_notice
+                    - sponsor_quarterly_email
+                    - generic_email
+                    - force_out
+                  description: Type of email to trigger
+                  example: "statement_notice"
+                participants:
+                  type: string
+                  enum: [all]
+                  default: all
+                  description: Participant selection (currently only "all" is supported)
+                statement:
+                  type: object
+                  description: Required when emailType is "statement_notice"
+                  properties:
+                    year: { type: integer, example: 2025 }
+                    quarter: { type: integer, minimum: 1, maximum: 4, example: 1 }
+                    season: { type: string, example: "Q1" }
+                sponsorQuarterly:
+                  type: object
+                  description: Required when emailType is "sponsor_quarterly_email"
+                  required: [year, quarter, caNoteSubject, caNoteDetails, caUrl, quarterlyInvestmentReviewUrl, nextReviewDate, nextReviewTime]
+                  properties:
+                    year: { type: integer }
+                    quarter: { type: integer, minimum: 1, maximum: 4 }
+                    caNoteSubject: { type: string }
+                    caNoteDetails: { type: string }
+                    caUrl: { type: string, format: uri }
+                    quarterlyInvestmentReviewUrl: { type: string, format: uri }
+                    nextReviewDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', example: "2025-04-15" }
+                    nextReviewTime: { type: string, pattern: '^\d{2}:\d{2}$', example: "14:30" }
+                onboardOrNewHire:
+                  type: object
+                  description: Required when emailType is "onboard_communications" or "new_hire_communications"
+                  properties:
+                    rkType: { type: string, nullable: true, description: "Required for onboard_communications" }
+                    planSnapshot: { type: string, nullable: true, description: "Required for onboard_communications" }
+                    emailToSend: { type: string, default: "onboard_email" }
+                    conversationId: { type: string, nullable: true }
+                    attachments: { type: array, items: { type: string } }
+                genericEmail:
+                  type: object
+                  description: Required when emailType is "generic_email"
+                  required: [audience, subType]
+                  properties:
+                    audience:
+                      type: object
+                      properties:
+                        enrolled: { type: boolean }
+                        notEnrolled: { type: boolean }
+                        terminated: { type: boolean }
+                        ineligible: { type: boolean }
+                        terminatedParticipants: { type: string, nullable: true }
+                    planSnapshot: { type: string, nullable: true }
+                    subType:
+                      type: object
+                      required: [kind]
+                      properties:
+                        kind:
+                          type: string
+                          enum: [onboard_communications, new_hire_communications, year_end_notice, notify_auto-escalation, summary_annual_notice, other]
+                        otherText: { type: string, nullable: true, description: "Required when kind is 'other'" }
+                        rkType: { type: string, nullable: true }
+                        emailToSend: { type: string, nullable: true, description: "Required for onboard_communications and new_hire_communications" }
+                        conversationId: { type: string, nullable: true }
+                        attachments: { type: array, items: { type: string } }
+                        terminatedParticipants: { type: string, nullable: true }
+            examples:
+              statementNotice:
+                summary: Statement notice email
+                value:
+                  planId: 627
+                  emailType: "statement_notice"
+                  statement:
+                    year: 2025
+                    quarter: 1
+                    season: "Q1"
+              sponsorQuarterly:
+                summary: Sponsor quarterly email
+                value:
+                  planId: 627
+                  emailType: "sponsor_quarterly_email"
+                  sponsorQuarterly:
+                    year: 2025
+                    quarter: 1
+                    caNoteSubject: "Q1 2025 Update"
+                    caNoteDetails: "Quarterly investment review details"
+                    caUrl: "https://example.com/ca-note"
+                    quarterlyInvestmentReviewUrl: "https://example.com/review"
+                    nextReviewDate: "2025-04-15"
+                    nextReviewTime: "14:30"
+              genericEmail:
+                summary: Generic email to enrolled participants
+                value:
+                  planId: 627
+                  emailType: "generic_email"
+                  genericEmail:
+                    audience:
+                      enrolled: true
+                      notEnrolled: false
+                      terminated: false
+                      ineligible: false
+                    subType:
+                      kind: "summary_annual_notice"
+      responses:
+        '202':
+          description: Job accepted and queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, jobId, acceptedAt]
+                properties:
+                  ok: { type: boolean, example: true }
+                  jobId: { type: string, format: uuid }
+                  acceptedAt: { type: string, format: date-time }
+                  queuePosition: { type: integer }
+                  estimate:
+                    type: object
+                    properties:
+                      startAt: { type: string, format: date-time }
+                      finishAt: { type: string, format: date-time }
+                  capacitySnapshot:
+                    type: object
+                    properties:
+                      running: { type: integer }
+                      queued: { type: integer }
+                      maxConcurrency: { type: integer }
+        '400':
+          description: Invalid request format or missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: false }
+                  error: { type: string }
+                  missing: { type: array, items: { type: string } }
+        '401':
+          description: Missing or invalid authentication token
+        '500':
+          description: Internal server error
+
 
 components:
   schemas:

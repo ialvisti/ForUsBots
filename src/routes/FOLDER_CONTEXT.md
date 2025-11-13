@@ -41,6 +41,7 @@ routes/
 ```javascript
 router.use('/vault-file-upload', forusUploadRoutes);
 router.use('/scrape-participant', scrapeParticipantRoutes);
+router.use('/scrape-plan', scrapePlanRoutes);
 router.use('/search-participants', searchParticipantsRoutes);
 router.use('/mfa-reset', mfaResetRoutes);
 router.use('/emailtrigger', emailTriggerRoutes);

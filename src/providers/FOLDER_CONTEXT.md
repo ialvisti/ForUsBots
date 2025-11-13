@@ -8,7 +8,8 @@ This directory contains provider-specific configuration (URLs, selectors, defaul
 providers/
 └── forusall/
     ├── config.js          # URLs, selectors, timeouts, defaults
-    └── participantMap.js  # Participant page module specifications
+    ├── participantMap.js  # Participant page module specifications
+    └── planMap.js         # Plan page module specifications
 ```
 
 ## Key Files
@@ -119,6 +120,38 @@ providers/
 - **mfa**: MFA enrollment status
 
 **When to use**: When scraping participant pages, navigating to specific modules, or validating module keys.
+
+---
+
+### `forusall/planMap.js`
+**Purpose**: Defines specifications for each plan page module (basic_info, plan_design, onboarding, communications, extra_settings, feature_flags). Used by scrape-plan bot to navigate and extract data.
+
+**Exports**: `getSpec(moduleKey)` function
+
+**Module Specification Structure**:
+```javascript
+{
+  key: 'basic_info',                // Unique module identifier
+  navLabel: null,                    // Navigation link text (null if always visible)
+  synonyms: [],                      // Alternative labels
+  navSelector: null,                 // Direct CSS selector (optional)
+  panelSelector: '#bitemporal-plan-attrs', // Panel container selector
+  ready: { selector: '#plan_id' },  // Ready state check
+  description: 'Basic plan information (company name, EIN, status, dates)'
+}
+```
+
+**Available Modules**:
+- **basic_info**: Core plan identification (always visible, no navigation)
+- **plan_design**: Eligibility, contributions, enrollment settings
+- **onboarding**: Onboarding dates and conversion settings
+- **communications**: Branding, messaging, contact preferences
+- **extra_settings**: Advanced eligibility and matching rules
+- **feature_flags**: Feature toggles and flags
+
+**Exports Function**: `allowedKeys()` returns array of valid module keys.
+
+**When to use**: When scraping plan pages, navigating to plan modules, or validating plan module keys.
 
 ---
 

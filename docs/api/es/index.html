@@ -32,7 +32,7 @@
       <div class="wrap meta-row">
         <div class="meta">
           <a class="muted small" href="/docs/openapi.yaml">openapi.yaml</a>
-          <span class="badge">v2.2.0</span>
+          <span class="badge">v2.3.0</span>
           <span class="badge alt">OAS 3.0</span>
         </div>
       </div>
@@ -805,6 +805,280 @@ er_match_plan_entry_frequency_second_month</code></pre>
           <p class="muted small">
             Consulta <code>/forusbot/jobs/:id</code> hasta que el job finalice.
           </p>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/update-participant -->
+      <details class="op post" id="update-participant">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/update-participant</span>
+          <span class="sum">Actualizar campos Census de participante (en cola)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Requiere auth (<code>x-auth-token</code>). Actualiza campos de datos censales del participante como nombre, dirección, fechas y estado de elegibilidad.
+            Se requiere una nota para documentar el motivo de la actualización. Devuelve 202 con seguimiento del job.
+          </p>
+
+          <h4>Body</h4>
+          <pre><code class="json">{
+  "participantId": "12345",
+  "note": "Corrigiendo fecha de contratación según registros de RRHH",
+  "updates": {
+    "hireDate": "2024-01-15",
+    "address1": "123 Main St",
+    "city": "San Francisco",
+    "state": "CA",
+    "zipcode": "94102"
+  },
+  "options": {
+    "evidenceOnSuccess": false
+  }
+}</code></pre>
+
+          <h4>Campos Disponibles</h4>
+          <table class="params">
+            <thead>
+              <tr>
+                <th>Campo</th>
+                <th>Tipo</th>
+                <th>Formato</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>firstName</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Nombre</td>
+              </tr>
+              <tr>
+                <td><code>lastName</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Apellido</td>
+              </tr>
+              <tr>
+                <td><code>eligibilityStatus</code></td>
+                <td>string</td>
+                <td>A,D,I,X,U</td>
+                <td>Estado de elegibilidad (Activo, Diferido, Inelegible, Excluido, Desconocido)</td>
+              </tr>
+              <tr>
+                <td><code>birthDate</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+                <td>Fecha de nacimiento</td>
+              </tr>
+              <tr>
+                <td><code>hireDate</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+                <td>Fecha de contratación</td>
+              </tr>
+              <tr>
+                <td><code>terminationDate</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+                <td>Fecha de terminación (nullable)</td>
+              </tr>
+              <tr>
+                <td><code>address1</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Dirección línea 1</td>
+              </tr>
+              <tr>
+                <td><code>city</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Ciudad</td>
+              </tr>
+              <tr>
+                <td><code>state</code></td>
+                <td>string</td>
+                <td>2 chars</td>
+                <td>Código de estado (ej., CA, NY)</td>
+              </tr>
+              <tr>
+                <td><code>zipcode</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Código postal</td>
+              </tr>
+              <tr>
+                <td><code>email</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Email principal</td>
+              </tr>
+              <tr>
+                <td><code>phone</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Teléfono</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "date-time",
+  "queuePosition": 1,
+  "estimate": {...},
+  "capacitySnapshot": {...}
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "participantId es obligatorio"
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">422 <span class="muted">Error de Validación</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "updates no contiene campos reconocidos del módulo Census",
+  "warnings": []
+}</code></pre>
+          </div>
+
+          <h4>Ejemplo cURL</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/update-participant \
+  -H "x-auth-token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "participantId": "12345",
+    "note": "Corrigiendo fecha de contratación",
+    "updates": {
+      "hireDate": "2024-01-15"
+    }
+  }'</code></pre>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/emailtrigger -->
+      <details class="op post" id="emailtrigger">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/emailtrigger</span>
+          <span class="sum">Disparar comunicaciones por email (en cola)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Requiere auth (<code>x-auth-token</code>). Dispara varios tipos de comunicaciones por email a participantes del plan.
+            Soporta 10 tipos diferentes de email incluyendo estados de cuenta, onboarding, comunicaciones de patrocinador y emails genéricos.
+            Siempre envía a todos los participantes.
+          </p>
+
+          <h4>Tipos de Email</h4>
+          <ul class="list">
+            <li><code>statement_notice</code> - Notificaciones de estados de cuenta trimestrales</li>
+            <li><code>sponsor_quarterly_email</code> - Actualizaciones trimestrales del patrocinador</li>
+            <li><code>onboard_communications</code> - Emails de onboarding</li>
+            <li><code>new_hire_communications</code> - Emails para nuevos empleados</li>
+            <li><code>generic_email</code> - Comunicaciones genéricas con audiencia personalizada</li>
+            <li><code>monthly_balance</code> - Actualizaciones de saldo mensual</li>
+            <li><code>year_end_notice</code> - Notificaciones de fin de año</li>
+            <li><code>notify_auto-escalation</code> - Alertas de auto-escalación</li>
+            <li><code>summary_annual_notice</code> - Avisos de resumen anual</li>
+            <li><code>force_out</code> - Notificaciones de force out</li>
+          </ul>
+
+          <h4>Ejemplos de Body</h4>
+
+          <details class="nested">
+            <summary>Statement Notice</summary>
+            <pre><code class="json">{
+  "planId": 627,
+  "emailType": "statement_notice",
+  "statement": {
+    "year": 2025,
+    "quarter": 1,
+    "season": "Q1"
+  }
+}</code></pre>
+          </details>
+
+          <details class="nested">
+            <summary>Email Trimestral del Patrocinador</summary>
+            <pre><code class="json">{
+  "planId": 627,
+  "emailType": "sponsor_quarterly_email",
+  "sponsorQuarterly": {
+    "year": 2025,
+    "quarter": 1,
+    "caNoteSubject": "Actualización Q1 2025",
+    "caNoteDetails": "Detalles de la revisión trimestral...",
+    "caUrl": "https://example.com/ca-note",
+    "quarterlyInvestmentReviewUrl": "https://example.com/review",
+    "nextReviewDate": "2025-04-15",
+    "nextReviewTime": "14:30"
+  }
+}</code></pre>
+          </details>
+
+          <details class="nested">
+            <summary>Email Genérico</summary>
+            <pre><code class="json">{
+  "planId": 627,
+  "emailType": "generic_email",
+  "genericEmail": {
+    "audience": {
+      "enrolled": true,
+      "notEnrolled": false,
+      "terminated": false,
+      "ineligible": false
+    },
+    "subType": {
+      "kind": "summary_annual_notice"
+    }
+  }
+}</code></pre>
+          </details>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "date-time",
+  "queuePosition": 1,
+  "estimate": {...},
+  "capacitySnapshot": {...}
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "Campos faltantes o inválidos",
+  "missing": ["planId (entero > 0)", "emailType"]
+}</code></pre>
+          </div>
+
+          <h4>Ejemplo cURL</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/emailtrigger \
+  -H "x-auth-token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "planId": 627,
+    "emailType": "statement_notice",
+    "statement": {
+      "year": 2025,
+      "quarter": 1,
+      "season": "Q1"
+    }
+  }'</code></pre>
         </div>
       </details>
 
