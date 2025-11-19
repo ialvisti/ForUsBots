@@ -1,0 +1,243 @@
+📊 ForUsBots Report Generator
+================================================================================
+
+🔍 Filters Applied:
+   Bot ID: vault-file-upload
+   Created By Name: Relationship Management
+   Started After: 2025-11-19T02:27:00.556Z
+
+================================================================================
+
+📈 OVERALL METRICS
+────────────────────────────────────────────────────────────────────────────────
+
+📦 Job Counts:
+   Total Jobs: 1066
+   ✅ Successful: 1066 (100.00%)
+   ❌ Failed: 0 (0.00%)
+   🚫 Canceled: 0
+   ⏳ Running: 0
+   📋 Queued: 0
+
+⏱️  Total Time Metrics:
+   Total Time Spent: 32m 10s (1930470ms)
+   Average Job Time: 1s (1811ms)
+   Fastest Job: 1s (1029ms)
+   Slowest Job: 4s (4971ms)
+
+⏳ Queue Time Metrics:
+   Average Queue Time: 0s (10ms)
+   Max Queue Time: 1s (1911ms)
+
+🏃 Execution Time Metrics:
+   Average Execution Time: 1s (1801ms)
+   Fastest Execution: 1s (1028ms)
+   Slowest Execution: 4s (4971ms)
+
+📅 Date Range:
+   First Job Accepted: Tue Nov 18 2025 21:28:07 GMT-0500 (Colombia Standard Time)
+   Last Job Finished: Tue Nov 18 2025 23:02:18 GMT-0500 (Colombia Standard Time)
+
+
+📊 SUCCESS RATE OVER TIME (Daily)
+────────────────────────────────────────────────────────────────────────────────
+
+
+📅 Wed Nov 19 2025 00:00:00 GMT-0500 (Colombia Standard Time): 1066 jobs | ✅ 1066 | ❌ 0 | Success Rate: 100.00% | Avg Time: 1s (1811ms)
+
+
+🎯 STAGE PERFORMANCE ANALYSIS
+────────────────────────────────────────────────────────────────────────────────
+
+
+
+❌ FAILED JOBS ANALYSIS
+────────────────────────────────────────────────────────────────────────────────
+
+✅ No failed jobs found!
+
+🐌 TOP 10 SLOWEST JOBS
+────────────────────────────────────────────────────────────────────────────────
+
+
+1. Job ID: a73ea8de-91e7-4637-bfd9-bdefe83fa33f
+   Plan ID: 908
+   State: succeeded
+   Total Time: 4s (4971ms)
+   Queue Time: N/A
+   Execution Time: 4s (4971ms)
+   Finished: Tue Nov 18 2025 22:26:19 GMT-0500 (Colombia Standard Time)
+
+2. Job ID: 460a742e-8f78-4d14-928f-c1250c9682fc
+   Plan ID: 838
+   State: succeeded
+   Total Time: 4s (4906ms)
+   Queue Time: N/A
+   Execution Time: 4s (4906ms)
+   Finished: Tue Nov 18 2025 22:26:19 GMT-0500 (Colombia Standard Time)
+
+3. Job ID: a249bd50-723a-4151-8337-bcad91d78476
+   Plan ID: 303
+   State: succeeded
+   Total Time: 4s (4863ms)
+   Queue Time: N/A
+   Execution Time: 4s (4863ms)
+   Finished: Tue Nov 18 2025 21:37:45 GMT-0500 (Colombia Standard Time)
+
+4. Job ID: 92fda3b6-91ac-408f-af86-9d7a301eb0fa
+   Plan ID: 364
+   State: succeeded
+   Total Time: 4s (4708ms)
+   Queue Time: N/A
+   Execution Time: 4s (4708ms)
+   Finished: Tue Nov 18 2025 22:28:21 GMT-0500 (Colombia Standard Time)
+
+5. Job ID: 62abb52e-c370-4b5a-baf2-1bbcce043f4c
+   Plan ID: 201
+   State: succeeded
+   Total Time: 4s (4701ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 4s (4700ms)
+   Finished: Tue Nov 18 2025 22:29:50 GMT-0500 (Colombia Standard Time)
+
+6. Job ID: 282a13b9-2ad9-48ce-8457-3998c5a80cfd
+   Plan ID: 133
+   State: succeeded
+   Total Time: 4s (4682ms)
+   Queue Time: N/A
+   Execution Time: 4s (4682ms)
+   Finished: Tue Nov 18 2025 22:28:21 GMT-0500 (Colombia Standard Time)
+
+7. Job ID: eadc7248-93a8-4208-afce-7c7794f576ad
+   Plan ID: 673
+   State: succeeded
+   Total Time: 4s (4645ms)
+   Queue Time: 0s (74ms)
+   Execution Time: 4s (4571ms)
+   Finished: Tue Nov 18 2025 21:41:11 GMT-0500 (Colombia Standard Time)
+
+8. Job ID: e43ecc60-4382-4ab9-94b4-15d5099db441
+   Plan ID: 660
+   State: succeeded
+   Total Time: 4s (4558ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 4s (4557ms)
+   Finished: Tue Nov 18 2025 22:23:58 GMT-0500 (Colombia Standard Time)
+
+9. Job ID: 8afabd18-8cb3-4a01-9477-68e7899f0a89
+   Plan ID: 687
+   State: succeeded
+   Total Time: 4s (4493ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 4s (4492ms)
+   Finished: Tue Nov 18 2025 22:29:50 GMT-0500 (Colombia Standard Time)
+
+10. Job ID: a019acd5-c31f-4d83-b0bb-e060a9368a94
+   Plan ID: 249
+   State: succeeded
+   Total Time: 4s (4328ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 4s (4327ms)
+   Finished: Tue Nov 18 2025 21:37:44 GMT-0500 (Colombia Standard Time)
+
+
+⚡ TOP 10 FASTEST JOBS
+────────────────────────────────────────────────────────────────────────────────
+
+
+1. Job ID: 7fb90530-b353-4242-b5fb-704b1de492b1
+   Plan ID: 724
+   Total Time: 1s (1029ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 1s (1028ms)
+   Finished: Tue Nov 18 2025 22:06:26 GMT-0500 (Colombia Standard Time)
+
+2. Job ID: d03922c4-cd48-4b34-a672-8910527b0325
+   Plan ID: 739
+   Total Time: 1s (1042ms)
+   Queue Time: N/A
+   Execution Time: 1s (1042ms)
+   Finished: Tue Nov 18 2025 22:06:41 GMT-0500 (Colombia Standard Time)
+
+3. Job ID: 60b93e41-eedf-42b1-ada7-239c2beb2a1f
+   Plan ID: 868
+   Total Time: 1s (1049ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 1s (1048ms)
+   Finished: Tue Nov 18 2025 22:14:56 GMT-0500 (Colombia Standard Time)
+
+4. Job ID: f6d1e61b-5f2a-4a0e-ae29-655731c17da6
+   Plan ID: 888
+   Total Time: 1s (1056ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 1s (1055ms)
+   Finished: Tue Nov 18 2025 22:28:32 GMT-0500 (Colombia Standard Time)
+
+5. Job ID: 47d764df-f00a-4b4f-acf0-85136a706ec8
+   Plan ID: 750
+   Total Time: 1s (1057ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 1s (1056ms)
+   Finished: Tue Nov 18 2025 22:07:01 GMT-0500 (Colombia Standard Time)
+
+6. Job ID: 554a9a4f-f64b-45d3-8ea1-73d6d9e1a65b
+   Plan ID: 1051
+   Total Time: 1s (1062ms)
+   Queue Time: N/A
+   Execution Time: 1s (1062ms)
+   Finished: Tue Nov 18 2025 22:06:18 GMT-0500 (Colombia Standard Time)
+
+7. Job ID: 41bf5bb3-b1e8-4401-9200-40d850c68a2e
+   Plan ID: 1065
+   Total Time: 1s (1064ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 1s (1063ms)
+   Finished: Tue Nov 18 2025 22:30:26 GMT-0500 (Colombia Standard Time)
+
+8. Job ID: d9259eb6-0ecd-4fd9-9781-d0b31876cdc3
+   Plan ID: 1053
+   Total Time: 1s (1065ms)
+   Queue Time: N/A
+   Execution Time: 1s (1065ms)
+   Finished: Tue Nov 18 2025 22:05:38 GMT-0500 (Colombia Standard Time)
+
+9. Job ID: 4de7a993-8a0e-4586-bd00-7d7c3375b79c
+   Plan ID: 1029
+   Total Time: 1s (1067ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 1s (1066ms)
+   Finished: Tue Nov 18 2025 22:04:35 GMT-0500 (Colombia Standard Time)
+
+10. Job ID: 08def709-db80-4213-91aa-363ed724775e
+   Plan ID: 1080
+   Total Time: 1s (1068ms)
+   Queue Time: 0s (1ms)
+   Execution Time: 1s (1067ms)
+   Finished: Tue Nov 18 2025 22:04:09 GMT-0500 (Colombia Standard Time)
+
+
+👥 JOBS BY CREATOR
+────────────────────────────────────────────────────────────────────────────────
+
+
+👤 Relationship Management (user)
+   Total Jobs: 1066
+   Success Rate: 100.00% (✅ 1066 | ❌ 0)
+   Total Time Spent: 32m 10s (1930470ms)
+   Avg Job Time: 1s (1811ms)
+
+
+📊 SUMMARY STATISTICS
+================================================================================
+
+✅ Success Rate: 100.00%
+❌ Failure Rate: 0.00%
+⏱️  Total Time Spent: 32m 10s (1930470ms)
+📦 Total Jobs: 1066
+⚡ Average Job Duration: 1s (1811ms)
+🚀 Fastest Job: 1s (1029ms)
+🐌 Slowest Job: 4s (4971ms)
+
+================================================================================
+✅ Report generation completed successfully!
+

@@ -408,6 +408,18 @@ runBtn.addEventListener("click", async (e) => {
       if (!keys.length) throw new Error("Add at least one update field.");
     }
 
+    // search-participants: at least one criteria
+    if (endpointSel.value === "search-participants") {
+      jsonBodyStr = buildSearchBodyStrSP(false);
+      const bodyTest = JSON.parse(jsonBodyStr);
+      const c = bodyTest.criteria || {};
+      const hasAny = Object.values(c).some(
+        (v) => v != null && String(v).trim() !== ""
+      );
+      if (!hasAny)
+        throw new Error("Provide at least one search criteria field.");
+    }
+
     renderHeaders(metaStr, jsonBodyStr);
     if (metaStr) metaOut.value = metaStr;
     buildAndRenderSnippets(ep, metaStr, jsonBodyStr);

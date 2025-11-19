@@ -70,10 +70,24 @@ docs/
 - Available in English and Spanish
 
 **Key Files**:
-- `js/core/ui.js`: Main UI logic
-- `js/core/validate.js`: Input validation
-- `js/core/snippets.js`: Code generation
-- `js/endpoints/*.js`: Endpoint-specific handlers
+
+**Core Modules (`js/core/`)**:
+- `meta.js`: Metadata and configuration management
+- `plan-ui.js`: Plan scraping UI components
+- `scrape-ui.js`: Participant scraping UI components
+- `search-ui.js`: Search participants UI components
+- `snippets.js`: Code snippet generation (curl, JavaScript fetch)
+- `theme.js`: Theme and styling utilities
+- `ui.js`: Main UI logic and form handling
+- `update-ui.js`: Update participant UI components
+- `utils.js`: Shared utility functions
+- `validate.js`: Input validation logic
+
+**Endpoint Handlers (`js/endpoints/`)**:
+- `constants.js`: API endpoint URLs and constants
+- `jobs.js`: Job polling and status handling
+- `status.js`: Service status checks
+- `upload.js`: File upload handling
 
 **When to update**: When adding new bot endpoints or changing input schemas.
 

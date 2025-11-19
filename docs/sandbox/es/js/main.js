@@ -27,6 +27,11 @@ import {
   buildSearchBodyStr as buildSearchBodyStrSP,
 } from "./core/search-ui.js";
 
+import {
+  wireUpdateUI,
+  buildUpdateBodyStr as buildUpdateBodyStrUP,
+} from "./core/update-ui.js";
+
 // ==== Theme ====
 const themeSwitch = $("#themeSwitch");
 const themeLabel = $("#themeLabel");
@@ -178,6 +183,8 @@ function refreshAllOutputs() {
   } else if (endpointSel.value === "mfa-reset") {
     const pid = (mfaParticipantId?.value || "").trim();
     jsonBodyStr = JSON.stringify({ participantId: pid });
+  } else if (endpointSel.value === "update-participant") {
+    jsonBodyStr = buildUpdateBodyStrUP(false);
   }
 
   renderHeaders(metaStr, jsonBodyStr);
@@ -230,6 +237,9 @@ wirePlanUI({
 
 // Search UI
 wireSearchUI({ onChange: refreshAllOutputs });
+
+// Update Participant UI
+wireUpdateUI({ onChange: refreshAllOutputs });
 
 // Copy buttons
 document.querySelectorAll("[data-copy]").forEach((btn) => {
@@ -373,6 +383,13 @@ runBtn.addEventListener("click", async (e) => {
         throw new Error("planId es obligatorio para este endpoint.");
     }
 
+    // mfa-reset: participantId must exist
+    if (endpointSel.value === "mfa-reset") {
+      const pid = (mfaParticipantId?.value || "").trim();
+      if (!pid) throw new Error("participantId es obligatorio para este endpoint.");
+      jsonBodyStr = JSON.stringify({ participantId: pid });
+    }
+
     // search-participants: at least one criteria
     if (endpointSel.value === "search-participants") {
       jsonBodyStr = buildSearchBodyStrSP(false);
@@ -382,7 +399,23 @@ runBtn.addEventListener("click", async (e) => {
         (v) => v != null && String(v).trim() !== ""
       );
       if (!hasAny)
-        throw new Error("Provide at least one search criteria field.");
+        throw new Error("Proporciona al menos un criterio de búsqueda.");
+    }
+
+    // update-participant: participantId, note y al menos 1 actualización
+    if (endpointSel.value === "update-participant") {
+      jsonBodyStr = buildUpdateBodyStrUP(false);
+      const bodyTest = JSON.parse(jsonBodyStr || "{}");
+      const pid = String(bodyTest.participantId || "").trim();
+      const note = String(bodyTest.note || "").trim();
+      const ups =
+        bodyTest.updates && typeof bodyTest.updates === "object"
+          ? bodyTest.updates
+          : {};
+      if (!pid) throw new Error("participantId es obligatorio para este endpoint.");
+      if (!note) throw new Error("note es obligatorio para este endpoint.");
+      const keys = Object.keys(ups);
+      if (!keys.length) throw new Error("Agrega al menos un campo de actualización.");
     }
 
     renderHeaders(metaStr, jsonBodyStr);
@@ -402,7 +435,9 @@ runBtn.addEventListener("click", async (e) => {
     let body = bodyPromise ? await bodyPromise : undefined;
     if (endpointSel.value === "scrape-participant") body = jsonBodyStr;
     if (endpointSel.value === "scrape-plan") body = jsonBodyStr;
+    if (endpointSel.value === "mfa-reset") body = jsonBodyStr;
     if (endpointSel.value === "search-participants") body = jsonBodyStr;
+    if (endpointSel.value === "update-participant") body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });
     const text = await res.text();

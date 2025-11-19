@@ -9,12 +9,13 @@ This is the root directory of the ForUsBots automation service. It contains the 
 - **`package.json`**: Node.js project manifest. Defines dependencies (Express, Playwright, PostgreSQL client, etc.), scripts (`start`, `dev`), and project metadata.
 - **`package-lock.json`**: Locked dependency versions for reproducible builds.
 - **`.gitignore`**: Specifies intentionally untracked files (node_modules, .env, tokens.json, .sessions, .user-data).
-- **`.cursorrules`**: Comprehensive AI development rules and guidelines for maintaining code consistency.
 - **`Dockerfile`**: Container definition using Playwright base image (mcr.microsoft.com/playwright:v1.54.2-jammy). Runs as non-root user `pwuser`.
 - **`render.yaml`**: Render.com deployment configuration.
 
 ### Documentation
 - **`README.md`**: Project overview, endpoints summary, quickstart guide, and changelog.
+- **`PROJECT_STRUCTURE.md`**: **Master project map** with complete folder structure, quick navigation guide, and AI agent workflow. **AI agents must read this file FIRST** before working in any directory.
+- **`CONTEXT_FILES_SUMMARY.md`**: Summary of all 14 FOLDER_CONTEXT.md files and their purposes. Explains the complete documentation system.
 - **`presentation.pdf`**: Project presentation materials.
 
 ### Security
@@ -55,7 +56,7 @@ Sample HTML data from the ForUsAll portal for testing/reference.
   - Changing selectors/config (use `/src/providers/`)
 
 ## Environment Variables
-All runtime configuration is sourced from environment variables (see `.cursorrules` for full list). Never hardcode credentials in this directory.
+All runtime configuration is sourced from environment variables (see `.cursor/rules/rules.mdc` for full list). Never hardcode credentials in this directory.
 
 ## Critical Files to Preserve
 - `tokens.json` (never commit, must be in .gitignore)
