@@ -27,7 +27,7 @@ function attachCreatorToBody(req, _res, next) {
   next();
 }
 
-// Endpoint único: POST /forusbot/emailtrigger
+// Endpoint único: POST /forusbot/email-trigger
 router.post(
   '/',
   auth, // req.auth { role, isAdmin, user }

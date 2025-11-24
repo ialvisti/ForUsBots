@@ -32,6 +32,11 @@ import {
   buildUpdateBodyStr as buildUpdateBodyStrUP,
 } from "./core/update-ui.js";
 
+import {
+  wireEmailUI,
+  buildEmailBodyStr as buildEmailBodyStrET,
+} from "./core/email-ui.js";
+
 // ==== Theme ====
 const themeSwitch = $("#themeSwitch");
 const themeLabel = $("#themeLabel");
@@ -176,6 +181,10 @@ function refreshAllOutputs() {
     jsonBodyStr = buildSearchBodyStrSP(false);
   }
 
+  if (endpointSel.value === "email-trigger") {
+    jsonBodyStr = buildEmailBodyStrET(false);
+  }
+
   if (endpointSel.value === "scrape-participant") {
     jsonBodyStr = buildScrapeBodyStr(false);
   } else if (endpointSel.value === "scrape-plan") {
@@ -240,6 +249,9 @@ wireSearchUI({ onChange: refreshAllOutputs });
 
 // Update Participant UI
 wireUpdateUI({ onChange: refreshAllOutputs });
+
+// Email Trigger UI
+wireEmailUI({ onChange: refreshAllOutputs });
 
 // Copy buttons
 document.querySelectorAll("[data-copy]").forEach((btn) => {
@@ -402,6 +414,18 @@ runBtn.addEventListener("click", async (e) => {
         throw new Error("Proporciona al menos un criterio de búsqueda.");
     }
 
+    // email-trigger: planId and emailType required
+    if (endpointSel.value === "email-trigger") {
+      jsonBodyStr = buildEmailBodyStrET(false);
+      const bodyTest = JSON.parse(jsonBodyStr);
+      const planId = bodyTest.planId;
+      const emailType = bodyTest.emailType;
+      if (!planId || planId <= 0)
+        throw new Error("planId es obligatorio y debe ser > 0.");
+      if (!emailType || String(emailType).trim() === "")
+        throw new Error("emailType es obligatorio.");
+    }
+
     // update-participant: participantId, note y al menos 1 actualización
     if (endpointSel.value === "update-participant") {
       jsonBodyStr = buildUpdateBodyStrUP(false);
@@ -438,6 +462,7 @@ runBtn.addEventListener("click", async (e) => {
     if (endpointSel.value === "mfa-reset") body = jsonBodyStr;
     if (endpointSel.value === "search-participants") body = jsonBodyStr;
     if (endpointSel.value === "update-participant") body = jsonBodyStr;
+    if (endpointSel.value === "email-trigger") body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });
     const text = await res.text();

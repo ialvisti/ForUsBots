@@ -26,7 +26,7 @@ Namespace base: `/forusbot`
 |   POST | /forusbot/search-participants       |  Yes  | Enqueue search; returns 202 with jobId                |
 |   POST | /forusbot/mfa-reset                 |  Yes  | Enqueue MFA reset; returns 202 with jobId             |
 |   POST | /forusbot/update-participant        |  Yes  | Update participant census; returns 202 with jobId     |
-|   POST | /forusbot/emailtrigger              |  Yes  | Trigger email communications; returns 202 with jobId  |
+|   POST | /forusbot/email-trigger             |  Yes  | Trigger email communications; returns 202 with jobId  |
 |    GET | /forusbot/jobs                      |  Yes  | List jobs; filters: state, botId, limit, offset       |
 |    GET | /forusbot/jobs/:id                  |  Yes  | Get job                                               |
 | DELETE | /forusbot/jobs/:id                  |  Yes  | Cancel queued job (409 if running)                    |
@@ -112,7 +112,7 @@ curl -sS -X POST "$BASE/forusbot/update-participant" \
 
 ```bash
 # 7) Trigger email (auth)
-curl -sS -X POST "$BASE/forusbot/emailtrigger" \
+curl -sS -X POST "$BASE/forusbot/email-trigger" \
   -H 'x-auth-token: YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
   -d '{"planId":627,"emailType":"statement_notice","statement":{"year":2025,"quarter":1,"season":"Q1"}}'
@@ -132,7 +132,7 @@ curl -sS -X POST "$BASE/forusbot/emailtrigger" \
 ## Changelog
 
 - 2.3.0
-  - Added `POST /forusbot/emailtrigger` for triggering email communications to participants (10 email types supported).
+  - Added `POST /forusbot/email-trigger` for triggering email communications to participants (10 email types supported).
   - Added `POST /forusbot/scrape-plan` for extracting plan configuration data (6 modules, 67 total fields).
   - Added `POST /forusbot/update-participant` for updating participant census data.
   - Updated all documentation to reflect version 2.3.0 and complete bot coverage.

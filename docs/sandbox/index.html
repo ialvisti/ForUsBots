@@ -77,6 +77,10 @@
                 POST /forusbot/search-participants
               </option>
 
+              <option value="email-trigger">
+                POST /forusbot/email-trigger
+              </option>
+
               <option value="mfa-reset">POST /forusbot/mfa-reset</option>
               <option value="jobs-get">GET /forusbot/jobs/:id</option>
               <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
@@ -364,6 +368,204 @@
               become
               <code>not enrolled</code>. The request is queued and you can track
               it in the Job status area.
+            </div>
+          </div>
+
+          <!-- Email Trigger builder -->
+          <div class="ep ep-email hidden">
+            <div class="field">
+              <label>planId</label>
+              <input id="emailPlanId" type="number" placeholder="e.g. 580" />
+            </div>
+
+            <br />
+
+            <div class="field">
+              <label>emailType</label>
+              <select id="emailType">
+                <option value="">-- Select email type --</option>
+                <option value="monthly_balance">Monthly Balance</option>
+                <option value="onboard_communications">
+                  Onboard Communications
+                </option>
+                <option value="new_hire_communications">
+                  New Hire Communications
+                </option>
+                <option value="year_end_notice">Year End Notice</option>
+                <option value="notify_auto-escalation">
+                  Notify Auto-Escalation
+                </option>
+                <option value="summary_annual_notice">
+                  Summary Annual Notice
+                </option>
+                <option value="statement_notice">Statement Notice</option>
+                <option value="sponsor_quarterly_email">
+                  Sponsor Quarterly Email
+                </option>
+                <option value="generic_email">Generic Email</option>
+                <option value="force_out">Force Out</option>
+              </select>
+            </div>
+
+            <br />
+
+            <!-- Statement Notice fields -->
+            <div id="statementFields" class="field hidden">
+              <h4>Statement Notice Details</h4>
+              <div class="two">
+                <div class="field">
+                  <label>Year</label>
+                  <input id="stYear" type="number" placeholder="2024" />
+                </div>
+                <div class="field">
+                  <label>Quarter</label>
+                  <input id="stQuarter" type="number" placeholder="1" min="1" max="4" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Season</label>
+                <input id="stSeason" type="text" placeholder="Q1" />
+              </div>
+            </div>
+
+            <!-- Sponsor Quarterly Email fields -->
+            <div id="sponsorQuarterlyFields" class="field hidden">
+              <h4>Sponsor Quarterly Email Details</h4>
+              <div class="two">
+                <div class="field">
+                  <label>Year</label>
+                  <input id="sqYear" type="number" placeholder="2024" />
+                </div>
+                <div class="field">
+                  <label>Quarter</label>
+                  <input id="sqQuarter" type="number" placeholder="1" min="1" max="4" />
+                </div>
+              </div>
+              <div class="field">
+                <label>CA Note Subject</label>
+                <input id="sqCaNoteSubject" type="text" placeholder="Subject" />
+              </div>
+              <div class="field">
+                <label>CA Note Details</label>
+                <textarea id="sqCaNoteDetails" rows="2" placeholder="Details"></textarea>
+              </div>
+              <div class="field">
+                <label>CA URL</label>
+                <input id="sqCaUrl" type="url" placeholder="https://..." />
+              </div>
+              <div class="field">
+                <label>Quarterly Investment Review URL</label>
+                <input id="sqQuarterlyInvestmentReviewUrl" type="url" placeholder="https://..." />
+              </div>
+              <div class="two">
+                <div class="field">
+                  <label>Next Review Date</label>
+                  <input id="sqNextReviewDate" type="date" />
+                </div>
+                <div class="field">
+                  <label>Next Review Time</label>
+                  <input id="sqNextReviewTime" type="time" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Onboard/New Hire fields -->
+            <div id="onboardNewHireFields" class="field hidden">
+              <h4>Onboard/New Hire Details</h4>
+              <div class="field">
+                <label>RK Type (optional)</label>
+                <input id="onhRkType" type="text" placeholder="e.g. rk_type_value" />
+              </div>
+              <div class="field">
+                <label>Plan Snapshot (required for onboard)</label>
+                <input id="onhPlanSnapshot" type="text" placeholder="e.g. snapshot_id" />
+              </div>
+              <div class="field">
+                <label>Email To Send</label>
+                <input id="onhEmailToSend" type="text" value="onboard_email" placeholder="onboard_email" />
+              </div>
+              <div class="field">
+                <label>Conversation ID (optional)</label>
+                <input id="onhConversationId" type="text" placeholder="e.g. 12345" />
+              </div>
+              <div class="field">
+                <label>Attachments (comma-separated)</label>
+                <input id="onhAttachments" type="text" placeholder="url1, url2" />
+              </div>
+            </div>
+
+            <!-- Generic Email fields -->
+            <div id="genericEmailFields" class="field hidden">
+              <h4>Generic Email Details</h4>
+              <div class="field">
+                <label>Audience</label>
+                <div class="stack">
+                  <label class="small">
+                    <input id="geEnrolled" type="checkbox" /> Enrolled
+                  </label>
+                  <label class="small">
+                    <input id="geNotEnrolled" type="checkbox" /> Not Enrolled
+                  </label>
+                  <label class="small">
+                    <input id="geTerminated" type="checkbox" /> Terminated
+                  </label>
+                  <label class="small">
+                    <input id="geIneligible" type="checkbox" /> Ineligible
+                  </label>
+                </div>
+              </div>
+              <div class="field">
+                <label>Terminated Participants (optional)</label>
+                <input id="geTerminatedParticipants" type="text" placeholder="e.g. id1,id2" />
+              </div>
+              <div class="field">
+                <label>Plan Snapshot (optional)</label>
+                <input id="gePlanSnapshot" type="text" placeholder="e.g. snapshot_id" />
+              </div>
+              <br />
+              <h5>SubType</h5>
+              <div class="field">
+                <label>Kind</label>
+                <select id="genericKind">
+                  <option value="">-- Select kind --</option>
+                  <option value="onboard_communications">Onboard Communications</option>
+                  <option value="new_hire_communications">New Hire Communications</option>
+                  <option value="year_end_notice">Year End Notice</option>
+                  <option value="notify_auto-escalation">Notify Auto-Escalation</option>
+                  <option value="summary_annual_notice">Summary Annual Notice</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div id="genericOtherTextWrap" class="field hidden">
+                <label>Other Text (required when kind=other)</label>
+                <input id="genericOtherText" type="text" placeholder="Describe email type" />
+              </div>
+              <div id="genericRkTypeWrap" class="field hidden">
+                <label>RK Type (for onboard_communications)</label>
+                <input id="genericRkType" type="text" placeholder="e.g. rk_type_value" />
+              </div>
+              <div id="genericEmailToSendWrap" class="field hidden">
+                <label>Email To Send (required)</label>
+                <input id="genericEmailToSend" type="text" placeholder="e.g. onboard_email" />
+              </div>
+              <div class="field">
+                <label>Conversation ID (optional)</label>
+                <input id="genericConversationId" type="text" placeholder="e.g. 12345" />
+              </div>
+              <div class="field">
+                <label>Attachments (comma-separated)</label>
+                <input id="genericAttachments" type="text" placeholder="url1, url2" />
+              </div>
+              <div class="field">
+                <label>Terminated Participants (optional)</label>
+                <input id="genericTerminatedParticipants" type="text" placeholder="e.g. id1,id2" />
+              </div>
+            </div>
+
+            <div class="help">
+              <em>Note:</em> This endpoint triggers email communications to participants.
+              Select the email type and fill in the required fields for that type.
+              The request is queued and you can track it in the Job status area.
             </div>
           </div>
 

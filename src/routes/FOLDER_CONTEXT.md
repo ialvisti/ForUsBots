@@ -44,7 +44,7 @@ router.use('/scrape-participant', scrapeParticipantRoutes);
 router.use('/scrape-plan', scrapePlanRoutes);
 router.use('/search-participants', searchParticipantsRoutes);
 router.use('/mfa-reset', mfaResetRoutes);
-router.use('/emailtrigger', emailTriggerRoutes);
+router.use('/email-trigger', emailTriggerRoutes);
 router.use('/update-participant', updateParticipantRoutes);
 ```
 

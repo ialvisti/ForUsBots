@@ -52,7 +52,7 @@ bot-name/
 
 ### 7. `/forusall-emailtrigger/`
 **Purpose**: Triggers email flows in the ForUsAll portal (onboarding, statements, sponsor emails, generic).
-**Endpoints**: `POST /forusbot/emailtrigger`
+**Endpoints**: `POST /forusbot/email-trigger`
 **Features**: Multi-flow support, preview validation, participant selection, form filling.
 **When to use**: Email campaign automation, participant communication.
 **Subdirectory**: `/flows/` contains flow-specific logic (summary_annual_notice.js, etc.).

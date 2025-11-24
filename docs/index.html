@@ -265,7 +265,7 @@ x-auth-token: ...
           <!-- NEW: Email Trigger -->
           <div class="card">
             <div class="small">
-              <strong>POST <code>/forusbot/emailtrigger</code></strong>
+              <strong>POST <code>/forusbot/email-trigger</code></strong>
             </div>
             <p class="muted">
               Triggers email communications to participants. Supports 10 email types:
@@ -719,7 +719,7 @@ x-auth-token: ...
           Returns <code>202 Accepted</code> with <code>jobId</code>.
         </p>
         <h4>Endpoint</h4>
-        <p><code>POST /forusbot/emailtrigger</code> (auth)</p>
+        <p><code>POST /forusbot/email-trigger</code> (auth)</p>
         <h4>Email Types</h4>
         <p class="muted">
           statement_notice, sponsor_quarterly_email, onboard_communications, new_hire_communications,
@@ -769,7 +769,7 @@ x-auth-token: ...
           </tbody>
         </table>
         <h4>Quick cURL</h4>
-        <pre class="code"><code>curl -X POST "$BASE/forusbot/emailtrigger" \
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/email-trigger" \
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
   -d '{"planId":627,"emailType":"statement_notice","statement":{"year":2025,"quarter":1,"season":"Q1"}}'</code></pre>
         <p><a href="/docs/api#emailtrigger">Read full reference →</a></p>

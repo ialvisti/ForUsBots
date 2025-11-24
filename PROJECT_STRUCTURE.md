@@ -112,7 +112,7 @@ bot-name/
    - Purpose: Update census fields
 
 7. **`forusall-emailtrigger/`** - Email triggering
-   - Endpoint: `POST /forusbot/emailtrigger`
+   - Endpoint: `POST /forusbot/email-trigger`
    - Purpose: Trigger portal emails
    - Has `/flows/` subdirectory for multi-flow logic
 

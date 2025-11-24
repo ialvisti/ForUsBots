@@ -86,4 +86,13 @@ export const ENDPOINTS = {
     needs: { token: true }, // JSON body
     pollJob: true,
   },
+
+  "email-trigger": {
+    label: "POST /forusbot/email-trigger",
+    method: "POST",
+    path: "/forusbot/email-trigger",
+    group: "email",
+    needs: { token: true }, // JSON body
+    pollJob: true,
+  },
 };

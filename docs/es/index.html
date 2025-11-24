@@ -261,7 +261,7 @@
           <!-- NUEVO: Disparador de Email -->
           <div class="card">
             <div class="small">
-              <strong>POST <code>/forusbot/emailtrigger</code></strong>
+              <strong>POST <code>/forusbot/email-trigger</code></strong>
             </div>
             <p class="muted">
               Dispara comunicaciones por email a participantes. Soporta 10 tipos de email:
@@ -732,7 +732,7 @@
           Devuelve <code>202 Accepted</code> con <code>jobId</code>.
         </p>
         <h4>Endpoint</h4>
-        <p><code>POST /forusbot/emailtrigger</code> (auth)</p>
+        <p><code>POST /forusbot/email-trigger</code> (auth)</p>
         <h4>Tipos de Email</h4>
         <p class="muted">
           statement_notice, sponsor_quarterly_email, onboard_communications, new_hire_communications,
@@ -782,7 +782,7 @@
           </tbody>
         </table>
         <h4>cURL rápido</h4>
-        <pre class="code"><code>curl -X POST "$BASE/forusbot/emailtrigger" \
+        <pre class="code"><code>curl -X POST "$BASE/forusbot/email-trigger" \
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
   -d '{"planId":627,"emailType":"statement_notice","statement":{"year":2025,"quarter":1,"season":"Q1"}}'</code></pre>
         <p><a href="/docs/api/es#emailtrigger">Ver referencia completa →</a></p>

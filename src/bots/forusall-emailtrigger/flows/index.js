@@ -1,6 +1,7 @@
 // src/bots/forusall-emailtrigger/flows/index.js
 
 const summaryAnnualNotice = require("./summary_annual_notice");
+const yearEndNotice = require("./year_end_notice");
 
 /**
  * Devuelve el handler según emailType
@@ -11,9 +12,11 @@ function getFlowHandler(emailType) {
     case "summary_annual_notice":
       return summaryAnnualNotice;
 
+    case "year_end_notice":
+      return yearEndNotice;
+
     // agrega aquí los próximos flows:
     // case "monthly_balance": return require("./monthly_balance");
-    // case "year_end_notice": return require("./year_end_notice");
     // case "notify_auto-escalation": return require("./notify_auto-escalation");
     // case "statement_notice": return require("./statement_notice");
     // case "sponsor_quarterly_email": return require("./sponsor_quarterly_email");

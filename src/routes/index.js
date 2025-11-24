@@ -505,8 +505,8 @@ router.use("/search-participants", searchParticipantsRoutes);
 // Monta el bot: /forusbot/mfa-reset
 router.use("/mfa-reset", mfaResetRoutes);
 
-// Monta el bot: /forusbot/emailtrigger
-router.use("/emailtrigger", emailTriggerRoutes);
+// Monta el bot: /forusbot/email-trigger
+router.use("/email-trigger", emailTriggerRoutes);
 
 // Monta el bot: /forusbot/update-participant
 router.use("/update-participant", updateParticipantRoutes);

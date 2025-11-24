@@ -773,11 +773,11 @@ er_match_plan_entry_frequency_second_month</code></pre>
         </div>
       </details>
 
-      <!-- POST /forusbot/emailtrigger -->
+      <!-- POST /forusbot/email-trigger -->
       <details class="op post" id="emailtrigger">
         <summary>
           <span class="method post">POST</span>
-          <span class="path">/forusbot/emailtrigger</span>
+          <span class="path">/forusbot/email-trigger</span>
           <span class="sum">Trigger email communications (queued)</span>
         </summary>
         <div class="op-body">
@@ -875,7 +875,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
           </div>
 
           <h4>cURL Example</h4>
-          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/emailtrigger \
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/email-trigger \
   -H "x-auth-token: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
