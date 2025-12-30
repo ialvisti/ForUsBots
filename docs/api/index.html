@@ -105,7 +105,7 @@
                 <td>header</td>
                 <td>string</td>
                 <td>yes</td>
-                <td>Must end with <code>.pdf</code>.</td>
+                <td>Must end with <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code>.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -441,7 +441,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
 
           <h4>Example: Extract All Modules</h4>
           <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/scrape-plan \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "x-auth-token: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "planId": "627",
@@ -457,7 +457,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
 
           <h4>Example: Extract Specific Fields</h4>
           <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/scrape-plan \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "x-auth-token: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "planId": "627",
@@ -728,6 +728,42 @@ er_match_plan_entry_frequency_second_month</code></pre>
                 <td>-</td>
                 <td>Phone number</td>
               </tr>
+              <tr>
+                <td><code>preferredFirstName</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Preferred first name</td>
+              </tr>
+              <tr>
+                <td><code>preferredLastName</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Preferred last name</td>
+              </tr>
+              <tr>
+                <td><code>rehireDate</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+                <td>Rehire date (nullable)</td>
+              </tr>
+              <tr>
+                <td><code>projectedPlanEntryDate</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+                <td>Projected plan entry date (nullable)</td>
+              </tr>
+              <tr>
+                <td><code>address2</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Address line 2</td>
+              </tr>
+              <tr>
+                <td><code>homeEmail</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Home email address</td>
+              </tr>
             </tbody>
           </table>
 
@@ -952,8 +988,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
         <div class="op-body">
           <p class="muted">
             Returns the role and user metadata associated with the provided API
-            token. Send the token via <code>x-auth-token</code> or
-            <code>Authorization: Bearer &lt;token&gt;</code>.
+            token. Send the token via <code>x-auth-token</code> header.
           </p>
 
           <h4>Responses</h4>
@@ -991,8 +1026,9 @@ er_match_plan_entry_frequency_second_month</code></pre>
         </summary>
         <div class="op-body">
           <p class="muted">
-            Accepts a raw binary body (PDF/Octet-Stream) with headers carrying
-            metadata. The server logs in (TOTP), fills the form, and processes
+            Accepts a raw binary body (PDF, Excel, or CSV) with headers carrying
+            metadata. Supported file types: <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>.
+            The server logs in (TOTP), fills the form, and processes
             the job asynchronously. Returns <strong>202</strong> with a
             <code>jobId</code> and ETA.
           </p>
@@ -1021,7 +1057,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
                 <td>header</td>
                 <td>string</td>
                 <td>yes</td>
-                <td>Original filename (used for temp write).</td>
+                <td>Original filename. Must end with <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code>.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -1036,8 +1072,9 @@ er_match_plan_entry_frequency_second_month</code></pre>
                 <td>enum</td>
                 <td>yes</td>
                 <td>
-                  <code>application/octet-stream</code> or
-                  <code>application/pdf</code>.
+                  <code>application/octet-stream</code>, <code>application/pdf</code>, 
+                  <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code> (.xlsx), 
+                  <code>application/vnd.ms-excel</code> (.xls), or <code>text/csv</code>.
                 </td>
               </tr>
             </tbody>

@@ -110,9 +110,9 @@
             <ul class="list">
               <li>
                 <strong>Headers</strong>: <code>x-auth-token</code> (req),
-                <code>x-filename</code> (req), <code>x-meta</code> (JSON, req),
-                <code>Content-Type</code>=<code>application/octet-stream</code>
-                o <code>application/pdf</code>
+                <code>x-filename</code> (req, .pdf/.xlsx/.xls/.csv), <code>x-meta</code> (JSON, req),
+                <code>Content-Type</code>=<code>application/octet-stream</code>,
+                <code>application/pdf</code>, <code>text/csv</code>, etc.
               </li>
             </ul>
           </div>
@@ -312,7 +312,7 @@
               <td><code>x-filename</code></td>
               <td>string</td>
               <td>sí</td>
-              <td>Nombre original (p. ej., <code>document.pdf</code>).</td>
+              <td>Nombre original. Soporta <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>.</td>
             </tr>
             <tr>
               <td><code>x-meta</code></td>
@@ -328,14 +328,15 @@
               <td>enum</td>
               <td>sí</td>
               <td>
-                <code>application/pdf</code> o
-                <code>application/octet-stream</code>.
+                <code>application/pdf</code>, <code>application/octet-stream</code>, 
+                <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code>, 
+                <code>application/vnd.ms-excel</code>, o <code>text/csv</code>.
               </td>
             </tr>
           </tbody>
         </table>
         <h4>Body</h4>
-        <p>Binario (el archivo PDF).</p>
+        <p>Archivo binario (PDF, Excel o CSV).</p>
         <h4>Respuestas</h4>
         <ul>
           <li>

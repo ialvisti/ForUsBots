@@ -232,6 +232,8 @@ paths:
   /forusbot/sandbox/vault-file-upload:
     post:
       summary: Dry-run validator for upload headers/body
+      description: |
+        Validates x-filename and x-meta without creating a job. Accepts .pdf, .xlsx, .xls, .csv files.
       requestBody:
         required: false
         content:
@@ -239,11 +241,18 @@ paths:
             schema: { type: string, format: binary }
           application/pdf:
             schema: { type: string, format: binary }
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema: { type: string, format: binary }
+          application/vnd.ms-excel:
+            schema: { type: string, format: binary }
+          text/csv:
+            schema: { type: string, format: binary }
       parameters:
         - in: header
           name: x-filename
           schema: { type: string }
           required: true
+          description: Must end with .pdf, .xlsx, .xls, or .csv
         - in: header
           name: x-meta
           schema: { type: string }
@@ -537,6 +546,8 @@ paths:
   /forusbot/vault-file-upload:
     post:
       summary: Accept a new upload job (202 Accepted)
+      description: |
+        Uploads a document to the ForUsAll portal. Supports PDF, Excel (.xlsx, .xls), and CSV files.
       parameters:
         - in: header
           name: x-auth-token
@@ -546,6 +557,7 @@ paths:
           name: x-filename
           schema: { type: string }
           required: true
+          description: Must end with .pdf, .xlsx, .xls, or .csv
         - in: header
           name: x-meta
           schema: { type: string }
@@ -556,6 +568,12 @@ paths:
           application/octet-stream:
             schema: { type: string, format: binary }
           application/pdf:
+            schema: { type: string, format: binary }
+          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+            schema: { type: string, format: binary }
+          application/vnd.ms-excel:
+            schema: { type: string, format: binary }
+          text/csv:
             schema: { type: string, format: binary }
       responses:
         '202': { description: Accepted (returns jobId and estimate) }
@@ -603,7 +621,6 @@ paths:
                     hireDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
                     rehireDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
                     terminationDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
-                    useProjectedEntryDefault: { type: boolean }
                     projectedPlanEntryDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
                     address1: { type: string, nullable: true }
                     address2: { type: string, nullable: true }

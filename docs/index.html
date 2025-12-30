@@ -313,7 +313,7 @@ x-auth-token: ...
               <td><code>x-filename</code></td>
               <td>string</td>
               <td>yes</td>
-              <td>Original filename (e.g., <code>document.pdf</code>).</td>
+              <td>Original filename. Supports <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>.</td>
             </tr>
             <tr>
               <td><code>x-meta</code></td>
@@ -329,14 +329,15 @@ x-auth-token: ...
               <td>enum</td>
               <td>yes</td>
               <td>
-                <code>application/pdf</code> or
-                <code>application/octet-stream</code>.
+                <code>application/pdf</code>, <code>application/octet-stream</code>, 
+                <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code>, 
+                <code>application/vnd.ms-excel</code>, or <code>text/csv</code>.
               </td>
             </tr>
           </tbody>
         </table>
         <h4>Body</h4>
-        <p>Binary (the PDF file).</p>
+        <p>Binary file (PDF, Excel, or CSV).</p>
         <h4>Responses</h4>
         <ul>
           <li>

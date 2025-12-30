@@ -114,8 +114,7 @@
         <div class="op-body">
           <p class="muted">
             Devuelve el rol y los metadatos de usuario asociados al token de API
-            enviado. Envía el token mediante <code>x-auth-token</code> o
-            <code>Authorization: Bearer &lt;token&gt;</code>.
+            enviado. Envía el token mediante el header <code>x-auth-token</code>.
           </p>
 
           <h4>Respuestas</h4>
@@ -153,8 +152,9 @@
         </summary>
         <div class="op-body">
           <p class="muted">
-            Recibe el cuerpo binario (PDF/Octet-Stream) con metadatos en
-            headers. El servidor inicia sesión (TOTP), completa el formulario y
+            Recibe el cuerpo binario (PDF, Excel o CSV) con metadatos en
+            headers. Tipos de archivo soportados: <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>.
+            El servidor inicia sesión (TOTP), completa el formulario y
             procesa el job de forma asíncrona. Devuelve <strong>202</strong> con
             <code>jobId</code> y ETA.
           </p>
@@ -185,7 +185,7 @@
                 <td>header</td>
                 <td>string</td>
                 <td>sí</td>
-                <td>Nombre de archivo (para escritura temporal).</td>
+                <td>Nombre de archivo. Debe terminar en <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, o <code>.csv</code>.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -200,8 +200,9 @@
                 <td>enum</td>
                 <td>sí</td>
                 <td>
-                  <code>application/octet-stream</code> o
-                  <code>application/pdf</code>.
+                  <code>application/octet-stream</code>, <code>application/pdf</code>, 
+                  <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code> (.xlsx), 
+                  <code>application/vnd.ms-excel</code> (.xls), o <code>text/csv</code>.
                 </td>
               </tr>
             </tbody>
@@ -293,7 +294,7 @@
                 <td>header</td>
                 <td>string</td>
                 <td>sí</td>
-                <td>Debe terminar en <code>.pdf</code>.</td>
+                <td>Debe terminar en <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, o <code>.csv</code>.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -631,7 +632,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
 
           <h4>Ejemplo: Extraer Todos los Módulos</h4>
           <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/scrape-plan \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "x-auth-token: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "planId": "627",
@@ -647,7 +648,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
 
           <h4>Ejemplo: Extraer Campos Específicos</h4>
           <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/scrape-plan \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "x-auth-token: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "planId": "627",
@@ -919,6 +920,42 @@ er_match_plan_entry_frequency_second_month</code></pre>
                 <td>string</td>
                 <td>-</td>
                 <td>Teléfono</td>
+              </tr>
+              <tr>
+                <td><code>preferredFirstName</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Nombre preferido</td>
+              </tr>
+              <tr>
+                <td><code>preferredLastName</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Apellido preferido</td>
+              </tr>
+              <tr>
+                <td><code>rehireDate</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+                <td>Fecha de recontratación (nullable)</td>
+              </tr>
+              <tr>
+                <td><code>projectedPlanEntryDate</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+                <td>Fecha proyectada de entrada al plan (nullable)</td>
+              </tr>
+              <tr>
+                <td><code>address2</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Dirección línea 2</td>
+              </tr>
+              <tr>
+                <td><code>homeEmail</code></td>
+                <td>string</td>
+                <td>-</td>
+                <td>Email de casa</td>
               </tr>
             </tbody>
           </table>

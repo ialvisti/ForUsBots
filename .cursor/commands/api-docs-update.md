@@ -16,7 +16,7 @@ Perform a comprehensive, systematic audit of the ForUsBots API documentation and
 ## 📋 Task Overview
 
 You will:
-1. **Discover**: Systematically map ALL endpoints, bots, and routes in the codebase
+1. **Discover**: Systematically map ALL endpoints and their fields, bots, and routes in the codebase
 2. **Audit**: Compare implementation vs documentation across all 6 doc files
 3. **Identify**: Document all discrepancies, missing information, and outdated content
 4. **Plan**: Create a detailed update strategy with prioritized tasks
