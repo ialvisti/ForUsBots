@@ -4,7 +4,6 @@
 // - Phase 1 (Nov 2025): Eliminated tab navigation (all content pre-loaded in DOM) - 95% faster
 // - Phase 2 (Nov 2025): Skip navigation if already on target page - reduces goto-plan from 3.3s to ~0.1s (cached)
 //
-const speakeasy = require("speakeasy");
 const {
   getPageFromPool,
   releasePage,
@@ -14,19 +13,13 @@ const {
   SITE_USER,
   SITE_PASS,
   TOTP_SECRET,
-  TOTP_STEP_SECONDS,
 } = require("../../config");
 const { saveEvidence } = require("../../engine/evidence");
 const { getSpec } = require("../../providers/forusall/planMap");
 const {
   getExtractor,
 } = require("../../extractors/forusall-plan/registry");
-const { saveContextStorageState } = require("../../engine/sessions");
-const {
-  acquireLogin,
-  waitNewTotpWindowIfNeeded,
-  markTotpUsed,
-} = require("../../engine/loginLock");
+const { ensureAuthForTarget } = require("../../engine/auth/loginOtp");
 
 function envBool(v, def = false) {
   if (v == null) return def;
@@ -89,49 +82,6 @@ async function waitForShellFast(
     await page.waitForTimeout(pollMs);
   }
   return false;
-}
-
-async function doLoginWithOtp(page, selectors, loginUrl, jobCtx) {
-  jobCtx?.setStage?.("login");
-  await gotoFast(page, loginUrl, Math.max(20000, PW_DEFAULT_TIMEOUT + 2000));
-  await page.fill(selectors.user, SITE_USER);
-  await page.fill(selectors.pass, SITE_PASS);
-  await page.click(selectors.loginButton);
-
-  jobCtx?.setStage?.("otp", { otpLock: "waiting" });
-  const release = await acquireLogin(SITE_USER);
-  try {
-    jobCtx?.setStage?.("otp", { otpLock: "holder" });
-    await waitNewTotpWindowIfNeeded(SITE_USER);
-    await page.waitForSelector(selectors.otpInput, { timeout: 30000 });
-
-    const step = Number(TOTP_STEP_SECONDS || 30);
-    const candidates = [
-      speakeasy.totp({
-        secret: TOTP_SECRET,
-        encoding: "base32",
-        step,
-        window: 0,
-      }),
-      speakeasy.totp({
-        secret: TOTP_SECRET,
-        encoding: "base32",
-        step,
-        window: 1,
-      }),
-    ];
-    for (const code of candidates) {
-      await page.fill(selectors.otpInput, code);
-      await page.click(selectors.otpSubmit);
-      try {
-        await page.waitForTimeout(350);
-        break;
-      } catch {}
-    }
-    markTotpUsed(SITE_USER);
-  } finally {
-    release();
-  }
 }
 
 /** 
@@ -305,42 +255,38 @@ module.exports = async function runFlow({ meta, jobCtx }) {
 
     // 4) Login + OTP si hace falta
     if (needLogin) {
-      await doLoginWithOtp(page, selectors, loginUrl, jobCtx);
-      if (includeScreens) {
+      // Define shell selectors for the plan edit page
+      const SHELL_PLAN = [
+        "#plan-attr-form",
+        "#bitemporal-plan-attrs",
+        "#plan-design",
+        "form[name='plan_attr_form']",
+      ];
+
+      // Use centralized auth that handles OTP robustly
+      const authRes = await ensureAuthForTarget(page, {
+        loginUrl,
+        targetUrl,
+        selectors,
+        shellSelectors: SHELL_PLAN,
+        jobCtx,
+        saveSession: true,
+      });
+
+      if (includeScreens && authRes.didLogin) {
         await saveEvidence(page, `scrape-login-plan-${planId}`);
       }
-      await saveContextStorageState(page.context(), SITE_USER);
       
       // OPTIMIZATION PHASE 2: Reduced wait from 500ms to 100ms
       await page.waitForTimeout(100);
       
-      // OPTIMIZATION PHASE 2: Check if already on target page after login (return_to redirect)
-      const postLoginUrl = page.url() || "";
-      const normalizedPostLogin = postLoginUrl.split('?')[0].split('#')[0];
+      // Shell is already verified by ensureAuthForTarget
+      hasShell = authRes.shellReady;
       
-      if (normalizedPostLogin !== normalizedTarget) {
-        // Need to navigate to plan page
-        await gotoFast(page, targetUrl, Math.max(20000, timeoutMs));
-      }
-      // else: Already redirected to the plan page, skip navigation
-      
-      // OPTIMIZATION PHASE 2: Reduced wait from SHELL_WAIT_MS (3000ms) to 2000ms
-      hasShell = await waitForShellFast(page, { timeoutMs: 2000 });
       if (!hasShell) {
-        try {
-          await page.waitForSelector(
-            "#plan-attr-form, #bitemporal-plan-attrs, form[name='plan_attr_form']",
-            {
-              timeout: 3000, // OPTIMIZATION PHASE 2: Reduced from 5000ms to 3000ms
-              state: "attached",
-            }
-          );
-          hasShell = true;
-        } catch {
-          throw new Error(
-            "No se detectó el formulario del plan después del login."
-          );
-        }
+        throw new Error(
+          "No se detectó el formulario del plan después del login."
+        );
       }
     }
 
