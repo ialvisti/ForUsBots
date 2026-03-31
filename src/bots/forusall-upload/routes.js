@@ -40,7 +40,7 @@ router.post(
   '/',
   auth, // resuelve req.auth { role, isAdmin, user }
   attachCreatorToMetaHeader, // inserta createdBy en x-meta
-  bodyParser.raw({ type: ['application/pdf', 'application/octet-stream'], limit: '50mb' }),
+  bodyParser.raw({ type: ['application/pdf', 'application/octet-stream', 'application/zip'], limit: '50mb' }),
   controller
 );
 

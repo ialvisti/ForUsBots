@@ -29,7 +29,7 @@ function prevalidate(metaIn, hasBinary) {
   }
 }
 
-const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls", ".zip"]);
 function mimeFromExt(ext) {
   switch (ext) {
     case ".pdf":
@@ -40,6 +40,8 @@ function mimeFromExt(ext) {
       return "application/vnd.ms-excel";
     case ".csv":
       return "text/csv";
+    case ".zip":
+      return "application/zip";
     default:
       return "application/octet-stream";
   }
@@ -73,8 +75,8 @@ module.exports = async function controller(req, res) {
         ok: false,
         errorType: "validation",
         error:
-          "Invalid file type. Allowed extensions are: .pdf, .xlsx, .csv, .xls",
-        hint: "Examples: contract_1704-02-29.pdf | data_upload.xls | export.csv | template.xlsx",
+          "Invalid file type. Allowed extensions are: .pdf, .xlsx, .csv, .xls, .zip",
+        hint: "Examples: contract_1704-02-29.pdf | data_upload.xls | export.csv | template.xlsx | archive.zip",
         warnings,
       });
     }
