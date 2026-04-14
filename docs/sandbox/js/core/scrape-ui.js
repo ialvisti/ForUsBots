@@ -103,7 +103,7 @@ const AVAILABLE_MODULES = [
     label: "payroll",
     fields: {
       mode: "mixed",
-      static: ["Payroll Frequency", "Next Schedule paycheck"],
+      static: ["Payroll Frequency", "Next Schedule paycheck", "Latest Payroll"],
       // Input de years token: years:<all|YYYY[,YYYY...]>
       tokens: [{ name: "years", pattern: "years:<all|YYYY[,YYYY...]>" }],
       // Tablas concretas "Payroll YYYY"

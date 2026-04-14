@@ -13,6 +13,7 @@ const SUPPORTED_FIELDS = [
   "Payroll Frequency",
   "Next Schedule paycheck",
   "Available Years",
+  "Latest Payroll",
 ];
 
 // Política de campos para validación previa (en el registry / endpoint)
@@ -283,6 +284,20 @@ async function extractPayroll(page, opts = {}) {
       if (parsed) {
         data[`Payroll ${y}`] = parsed;
       }
+    }
+
+    // -------- 5) Latest Payroll: first detail row from most recent year --------
+    const latestGroup = allGroups[0];
+    if (latestGroup) {
+      const latestYear = (latestGroup.id.match(/(\d{4})/) || [])[1];
+      const parsed = data[`Payroll ${latestYear}`] || parseYearGroup(latestYear);
+      if (parsed && parsed.Rows && parsed.Rows.length) {
+        data["Latest Payroll"] = parsed.Rows[0];
+      } else {
+        data["Latest Payroll"] = null;
+      }
+    } else {
+      data["Latest Payroll"] = null;
     }
 
     return { data };

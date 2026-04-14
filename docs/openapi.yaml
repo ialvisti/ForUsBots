@@ -265,6 +265,11 @@ paths:
   /forusbot/scrape-participant:
     post:
       summary: Enqueue participant scraping job
+      description: |
+        Modules: census, savings_rate, plan_details, loans, payroll, communications, documents, mfa.
+        Payroll static fields: Payroll Frequency, Next Schedule paycheck, Available Years, Latest Payroll.
+        Latest Payroll returns the first detail row (most recent pay date) from the most recent payroll year.
+        Dynamic payroll fields: "Payroll YYYY" for year tables; tokens "years:all" or "years:2024,2025".
       parameters:
         - in: header
           name: x-auth-token

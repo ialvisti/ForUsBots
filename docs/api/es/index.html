@@ -383,9 +383,43 @@
   "timeoutMs": 30000,
   "modules": [
     "census",
-    { "key": "payroll", "fields": ["years:all", "2024", "2025"] }
+    { "key": "payroll", "fields": ["Latest Payroll", "years:2026"] }
   ]
 }</code></pre>
+
+          <h4>Campos de Payroll</h4>
+          <table class="params">
+            <thead>
+              <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>Payroll Frequency</code></td>
+                <td>string</td>
+                <td>Ej. "Bi-weekly", "Monthly"</td>
+              </tr>
+              <tr>
+                <td><code>Next Schedule paycheck</code></td>
+                <td>string</td>
+                <td>YYYY-MM-DD</td>
+              </tr>
+              <tr>
+                <td><code>Available Years</code></td>
+                <td>string[]</td>
+                <td>Años con datos de payroll</td>
+              </tr>
+              <tr>
+                <td><code>Latest Payroll</code></td>
+                <td>object | null</td>
+                <td>Primera fila de detalle del año de payroll más reciente (Pay Date, Pre-tax, Roth, Employer Match, Loan, Plan comp, Hours, Pay Date URL)</td>
+              </tr>
+              <tr>
+                <td><code>Payroll YYYY</code></td>
+                <td>object</td>
+                <td>Tabla completa del año (Total + Rows). Usar <code>years:all</code> o <code>years:2024,2025</code></td>
+              </tr>
+            </tbody>
+          </table>
 
           <h4>Respuestas</h4>
           <div class="resp">
