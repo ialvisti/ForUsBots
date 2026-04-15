@@ -16,7 +16,7 @@ const SUPPORTED_FIELDS = [
   "Roth Deferral Balance",
   "Rollover Balance",
   "Employer Match Balance",
-  "Vested Balance",
+  "Employer Match Vested Balance",
   "Loan Balance",
   "YTD Employee contributions",
   "YTD Employer contributions",
@@ -166,12 +166,12 @@ async function extractSavingsRate(page, opts = {}) {
     if (asOf) data["Account Balance As Of"] = asOf;
   }
 
-  // 2) Employer Match Balance → extrae "(... vested)" y crea Vested Balance
+  // 2) Employer Match Balance → extrae "(... vested)" y crea Employer Match Vested Balance
   if (typeof data["Employer Match Balance"] === 'string') {
     const raw = data["Employer Match Balance"];
     const vestedMatch = raw.match(/\(\s*(\$\s*[\d,]+(?:\.\d{2})?)\s*vested\s*\)/i);
     if (vestedMatch) {
-      data["Vested Balance"] = vestedMatch[1].replace(/\s+/g, '');
+      data["Employer Match Vested Balance"] = vestedMatch[1].replace(/\s+/g, '');
     }
     data["Employer Match Balance"] = raw.replace(/\s*\([^)]*\)\s*$/, '').trim();
   }

@@ -51,7 +51,7 @@ const AVAILABLE_MODULES = [
         "Roth Deferral Balance",
         "Rollover Balance",
         "Employer Match Balance",
-        "Vested Balance",
+        "Employer Match Vested Balance",
         "Loan Balance",
         "YTD Employee contributions",
         "YTD Employer contributions",
