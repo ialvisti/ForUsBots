@@ -72,6 +72,64 @@
         </div>
       </details>
 
+      <!-- POST /forusbot/sandbox/update-plan (dry-run) -->
+      <details class="op post" id="sandbox-update-plan">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/sandbox/update-plan</span>
+          <span class="sum">Validate plan updates without launching a job</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Dry-run validator for plan updates. Auth required (<code>x-auth-token</code>) and restricted to allow list.
+            Validates <code>planId</code>, <code>note</code>, and <code>updates</code> without queuing a job. Returns <code>200</code>
+            with normalized data or <code>400</code> on validation errors.
+          </p>
+
+          <h4>Request Body</h4>
+          <pre><code class="json">{
+  "planId": "627",
+  "note": "Testing plan updates",
+  "updates": {
+    "company_name": "Test Company",
+    "effective_date": "2025-06-01"
+  }
+}</code></pre>
+
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "mode": "dry-run",
+  "wouldEnqueue": {
+    "botId": "forusall-update-plan",
+    "endpoint": "/forusbot/update-plan",
+    "targetUrl": "https://employer.forusall.com/plans/627/edit"
+  },
+  "normalized": {
+    "planId": "627",
+    "note": "Testing plan updates",
+    "updateKeys": ["company_name", "effective_date"],
+    "tiersCount": 0,
+    "updates": { "company_name": "Test Company", "effective_date": "2025-06-01" }
+  },
+  "warnings": []
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "mode": "dry-run",
+  "error": "validation",
+  "details": ["planId is required", "note cannot be empty"]
+}</code></pre>
+          </div>
+        </div>
+      </details>
+
       <!-- POST /forusbot/sandbox/vault-file-upload (dry-run) -->
       <details class="op post" id="sandbox-upload">
         <summary>
@@ -668,11 +726,11 @@ er_match_plan_entry_frequency_second_month</code></pre>
   "participantId": "12345",
   "note": "Correcting hire date per HR records",
   "updates": {
-    "hireDate": "2024-01-15",
-    "address1": "123 Main St",
-    "city": "San Francisco",
-    "state": "CA",
-    "zipcode": "94102"
+    "Hire Date": "2024-01-15",
+    "Address 1": "123 Main St",
+    "City": "San Francisco",
+    "State": "CA",
+    "Zip Code": "94102"
   },
   "options": {
     "evidenceOnSuccess": false
@@ -691,109 +749,109 @@ er_match_plan_entry_frequency_second_month</code></pre>
             </thead>
             <tbody>
               <tr>
-                <td><code>firstName</code></td>
+                <td><code>First Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>First name</td>
               </tr>
               <tr>
-                <td><code>lastName</code></td>
+                <td><code>Last Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Last name</td>
               </tr>
               <tr>
-                <td><code>eligibilityStatus</code></td>
+                <td><code>Eligibility Status</code></td>
                 <td>string</td>
                 <td>A,D,I,X,U</td>
                 <td>Eligibility status (Active, Deferred, Ineligible, Excluded, Unknown)</td>
               </tr>
               <tr>
-                <td><code>birthDate</code></td>
+                <td><code>Birth Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Date of birth</td>
               </tr>
               <tr>
-                <td><code>hireDate</code></td>
+                <td><code>Hire Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Hire date</td>
               </tr>
               <tr>
-                <td><code>terminationDate</code></td>
+                <td><code>Termination Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Termination date (nullable)</td>
               </tr>
               <tr>
-                <td><code>address1</code></td>
+                <td><code>Address 1</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Address line 1</td>
               </tr>
               <tr>
-                <td><code>city</code></td>
+                <td><code>City</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>City</td>
               </tr>
               <tr>
-                <td><code>state</code></td>
+                <td><code>State</code></td>
                 <td>string</td>
                 <td>2 chars</td>
                 <td>State code (e.g., CA, NY)</td>
               </tr>
               <tr>
-                <td><code>zipcode</code></td>
+                <td><code>Zip Code</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>ZIP code</td>
               </tr>
               <tr>
-                <td><code>email</code></td>
+                <td><code>Primary Email</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Primary email</td>
               </tr>
               <tr>
-                <td><code>phone</code></td>
+                <td><code>Phone</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Phone number</td>
               </tr>
               <tr>
-                <td><code>preferredFirstName</code></td>
+                <td><code>Preferred First Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Preferred first name</td>
               </tr>
               <tr>
-                <td><code>preferredLastName</code></td>
+                <td><code>Preferred Last Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Preferred last name</td>
               </tr>
               <tr>
-                <td><code>rehireDate</code></td>
+                <td><code>Rehire Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Rehire date (nullable)</td>
               </tr>
               <tr>
-                <td><code>projectedPlanEntryDate</code></td>
+                <td><code>Projected Plan Entry Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Projected plan entry date (nullable)</td>
               </tr>
               <tr>
-                <td><code>address2</code></td>
+                <td><code>Address 2</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Address line 2</td>
               </tr>
               <tr>
-                <td><code>homeEmail</code></td>
+                <td><code>Home Email</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Home email address</td>
@@ -837,9 +895,133 @@ er_match_plan_entry_frequency_second_month</code></pre>
     "participantId": "12345",
     "note": "Correcting hire date",
     "updates": {
-      "hireDate": "2024-01-15"
+      "Hire Date": "2024-01-15"
     }
   }'</code></pre>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/update-plan -->
+      <details class="op post" id="update-plan">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/update-plan</span>
+          <span class="sum">Update plan fields (queued)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Auth required (<code>x-auth-token</code>) and restricted to authorized email addresses.
+            Updates plan configuration fields via Playwright automation on the employer portal.
+            Accepts any HTML <code>name</code> attribute from the plan edit form. Returns 202 with job tracking.
+          </p>
+
+          <h4>Request Body</h4>
+          <pre><code class="json">{
+  "planId": "627",
+  "note": "Updating plan design per annual review",
+  "updates": {
+    "company_name": "Updated Company Name",
+    "effective_date": "2025-06-01",
+    "default_savings_rate": "3",
+    "employer_contribution_formula": [
+      { "match_value": 100, "percent_pay": 3 },
+      { "match_value": 50, "percent_pay": 2 }
+    ],
+    "enrollment_type": "Eligible automatic",
+    "blackout_begins_date": "2025-12-20",
+    "blackout_ends_date": "2026-01-15"
+  },
+  "includeScreens": false,
+  "timeoutMs": 30000
+}</code></pre>
+
+          <p class="muted small">
+            <strong>Field name format:</strong> Use the HTML <code>name</code> attribute from the plan edit form (snake_case).
+            Aliases accepted for request envelope: <code>planId</code> / <code>planID</code> / <code>id</code>, and
+            <code>note</code> / <code>description</code> / <code>noteDescription</code>.
+          </p>
+
+          <h4>Common Fields</h4>
+          <details class="nested">
+            <summary>Frequently updated fields (reference)</summary>
+            <pre><code class="json">company_name, official_plan_name, ein, effective_date, status, status_as_of,
+record_keeper_id, rk_plan_id, external_name, enrollment_type, employer_contribution,
+default_savings_rate, employer_contribution_formula, employer_contribution_cap,
+employer_contribution_timing, first_deferral_date, blackout_begins_date,
+blackout_ends_date, plan_year_start, rk_upload_mode, payroll_xray, payroll_issue,
+alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
+          </details>
+
+          <h4>Special Cases</h4>
+          <ul class="list">
+            <li><strong>Date fields</strong> (any key ending in <code>_date</code>): Must be <code>YYYY-MM-DD</code> format or null.</li>
+            <li><strong><code>employer_contribution_formula</code></strong>: Array of tier objects. Each tier requires: <code>{ "match_value": number, "percent_pay": number }</code></li>
+            <li><strong>Unknown fields</strong>: Will cause a validation error. Double-check field names against the plan edit form.</li>
+          </ul>
+
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "2026-04-25T10:30:00Z",
+  "queuePosition": 1,
+  "estimate": {
+    "method": "lanes+movingAvg",
+    "avgDurationSeconds": 180,
+    "startAt": "2026-04-25T10:31:00Z",
+    "finishAt": "2026-04-25T10:34:00Z"
+  },
+  "capacitySnapshot": {
+    "maxConcurrency": 3,
+    "running": 0,
+    "queued": 0,
+    "slotsAvailable": 3
+  },
+  "warnings": [],
+  "executedBy": {
+    "name": "Ivan Alvis",
+    "role": "user",
+    "at": "2026-04-25T10:30:00Z"
+  }
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "planId is required"
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">422 <span class="muted">Unprocessable Entity</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "Invalid date format for effective_date: expected YYYY-MM-DD"
+}</code></pre>
+          </div>
+
+          <h4>cURL Example</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/update-plan \
+  -H "x-auth-token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "planId": "627",
+    "note": "Annual plan review update",
+    "updates": {
+      "effective_date": "2025-06-01",
+      "default_savings_rate": "3"
+    }
+  }'</code></pre>
+
+          <p class="muted small">
+            Poll <code>/forusbot/jobs/:id</code> until the job finishes.
+            Related: <a href="#sandbox-update-plan">Sandbox update-plan</a>,
+            <a href="#jobs-get">Get Job</a>
+          </p>
         </div>
       </details>
 
@@ -1555,8 +1737,8 @@ er_match_plan_entry_frequency_second_month</code></pre>
 }</code></pre>
       </details>
 
-      <footer class="foot muted small">
-        Last updated 2025-08-20 • Static docs (no “Try it out”). Set
+      <footer class=”foot muted small”>
+        Last updated 2026-04-25 • Static docs (no “Try it out”). Set
         <code>HEADFUL=0</code> in cloud.
       </footer>
     </main>

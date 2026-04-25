@@ -261,6 +261,64 @@
         </div>
       </details>
 
+      <!-- POST /forusbot/sandbox/update-plan (dry-run) -->
+      <details class="op post" id="sandbox-update-plan">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/sandbox/update-plan</span>
+          <span class="sum">Validar actualizaciones del plan sin lanzar un job</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Validador de prueba para actualizaciones del plan. Requiere auth (<code>x-auth-token</code>) y está restringido a lista de permitidos.
+            Valida <code>planId</code>, <code>note</code> y <code>updates</code> sin encolar un job. Devuelve <code>200</code>
+            con datos normalizados o <code>400</code> ante errores de validación.
+          </p>
+
+          <h4>Body</h4>
+          <pre><code class="json">{
+  "planId": "627",
+  "note": "Probando actualizaciones del plan",
+  "updates": {
+    "company_name": "Empresa de Prueba",
+    "effective_date": "2025-06-01"
+  }
+}</code></pre>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "mode": "dry-run",
+  "wouldEnqueue": {
+    "botId": "forusall-update-plan",
+    "endpoint": "/forusbot/update-plan",
+    "targetUrl": "https://employer.forusall.com/plans/627/edit"
+  },
+  "normalized": {
+    "planId": "627",
+    "note": "Probando actualizaciones del plan",
+    "updateKeys": ["company_name", "effective_date"],
+    "tiersCount": 0,
+    "updates": { "company_name": "Empresa de Prueba", "effective_date": "2025-06-01" }
+  },
+  "warnings": []
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">400 <span class="muted">Solicitud incorrecta</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "mode": "dry-run",
+  "error": "validation",
+  "details": ["planId es requerido", "note no puede estar vacío"]
+}</code></pre>
+          </div>
+        </div>
+      </details>
+
       <!-- POST /forusbot/sandbox/vault-file-upload (dry-run) -->
       <details class="op post" id="sandbox-upload">
         <summary>
@@ -861,11 +919,11 @@ er_match_plan_entry_frequency_second_month</code></pre>
   "participantId": "12345",
   "note": "Corrigiendo fecha de contratación según registros de RRHH",
   "updates": {
-    "hireDate": "2024-01-15",
-    "address1": "123 Main St",
-    "city": "San Francisco",
-    "state": "CA",
-    "zipcode": "94102"
+    "Hire Date": "2024-01-15",
+    "Address 1": "123 Main St",
+    "City": "San Francisco",
+    "State": "CA",
+    "Zip Code": "94102"
   },
   "options": {
     "evidenceOnSuccess": false
@@ -884,109 +942,109 @@ er_match_plan_entry_frequency_second_month</code></pre>
             </thead>
             <tbody>
               <tr>
-                <td><code>firstName</code></td>
+                <td><code>First Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Nombre</td>
               </tr>
               <tr>
-                <td><code>lastName</code></td>
+                <td><code>Last Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Apellido</td>
               </tr>
               <tr>
-                <td><code>eligibilityStatus</code></td>
+                <td><code>Eligibility Status</code></td>
                 <td>string</td>
                 <td>A,D,I,X,U</td>
                 <td>Estado de elegibilidad (Activo, Diferido, Inelegible, Excluido, Desconocido)</td>
               </tr>
               <tr>
-                <td><code>birthDate</code></td>
+                <td><code>Birth Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Fecha de nacimiento</td>
               </tr>
               <tr>
-                <td><code>hireDate</code></td>
+                <td><code>Hire Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Fecha de contratación</td>
               </tr>
               <tr>
-                <td><code>terminationDate</code></td>
+                <td><code>Termination Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Fecha de terminación (nullable)</td>
               </tr>
               <tr>
-                <td><code>address1</code></td>
+                <td><code>Address 1</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Dirección línea 1</td>
               </tr>
               <tr>
-                <td><code>city</code></td>
+                <td><code>City</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Ciudad</td>
               </tr>
               <tr>
-                <td><code>state</code></td>
+                <td><code>State</code></td>
                 <td>string</td>
                 <td>2 chars</td>
                 <td>Código de estado (ej., CA, NY)</td>
               </tr>
               <tr>
-                <td><code>zipcode</code></td>
+                <td><code>Zip Code</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Código postal</td>
               </tr>
               <tr>
-                <td><code>email</code></td>
+                <td><code>Primary Email</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Email principal</td>
               </tr>
               <tr>
-                <td><code>phone</code></td>
+                <td><code>Phone</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Teléfono</td>
               </tr>
               <tr>
-                <td><code>preferredFirstName</code></td>
+                <td><code>Preferred First Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Nombre preferido</td>
               </tr>
               <tr>
-                <td><code>preferredLastName</code></td>
+                <td><code>Preferred Last Name</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Apellido preferido</td>
               </tr>
               <tr>
-                <td><code>rehireDate</code></td>
+                <td><code>Rehire Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Fecha de recontratación (nullable)</td>
               </tr>
               <tr>
-                <td><code>projectedPlanEntryDate</code></td>
+                <td><code>Projected Plan Entry Date</code></td>
                 <td>string</td>
                 <td>YYYY-MM-DD</td>
                 <td>Fecha proyectada de entrada al plan (nullable)</td>
               </tr>
               <tr>
-                <td><code>address2</code></td>
+                <td><code>Address 2</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Dirección línea 2</td>
               </tr>
               <tr>
-                <td><code>homeEmail</code></td>
+                <td><code>Home Email</code></td>
                 <td>string</td>
                 <td>-</td>
                 <td>Email de casa</td>
@@ -1030,9 +1088,133 @@ er_match_plan_entry_frequency_second_month</code></pre>
     "participantId": "12345",
     "note": "Corrigiendo fecha de contratación",
     "updates": {
-      "hireDate": "2024-01-15"
+      "Hire Date": "2024-01-15"
     }
   }'</code></pre>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/update-plan -->
+      <details class="op post" id="update-plan">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/update-plan</span>
+          <span class="sum">Actualizar campos del plan (en cola)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Requiere auth (<code>x-auth-token</code>) y está restringido a direcciones de correo autorizadas.
+            Actualiza campos de configuración del plan vía automatización con Playwright en el portal del empleador.
+            Acepta cualquier atributo <code>name</code> del formulario de edición del plan. Devuelve 202 con seguimiento del job.
+          </p>
+
+          <h4>Body</h4>
+          <pre><code class="json">{
+  "planId": "627",
+  "note": "Actualizando diseño del plan según revisión anual",
+  "updates": {
+    "company_name": "Nombre de Empresa Actualizado",
+    "effective_date": "2025-06-01",
+    "default_savings_rate": "3",
+    "employer_contribution_formula": [
+      { "match_value": 100, "percent_pay": 3 },
+      { "match_value": 50, "percent_pay": 2 }
+    ],
+    "enrollment_type": "Elegible automático",
+    "blackout_begins_date": "2025-12-20",
+    "blackout_ends_date": "2026-01-15"
+  },
+  "includeScreens": false,
+  "timeoutMs": 30000
+}</code></pre>
+
+          <p class="muted small">
+            <strong>Formato de nombres de campo:</strong> Usa el atributo <code>name</code> del formulario de edición del plan (snake_case).
+            Aliases aceptados para el envelope de la solicitud: <code>planId</code> / <code>planID</code> / <code>id</code>, y
+            <code>note</code> / <code>description</code> / <code>noteDescription</code>.
+          </p>
+
+          <h4>Campos Comúnmente Actualizados</h4>
+          <details class="nested">
+            <summary>Campos frecuentemente actualizados (referencia)</summary>
+            <pre><code class="json">company_name, official_plan_name, ein, effective_date, status, status_as_of,
+record_keeper_id, rk_plan_id, external_name, enrollment_type, employer_contribution,
+default_savings_rate, employer_contribution_formula, employer_contribution_cap,
+employer_contribution_timing, first_deferral_date, blackout_begins_date,
+blackout_ends_date, plan_year_start, rk_upload_mode, payroll_xray, payroll_issue,
+alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
+          </details>
+
+          <h4>Casos Especiales</h4>
+          <ul class="list">
+            <li><strong>Campos de fecha</strong> (cualquier clave que termine en <code>_date</code>): Deben estar en formato <code>YYYY-MM-DD</code> o null.</li>
+            <li><strong><code>employer_contribution_formula</code></strong>: Array de objetos de tier. Cada tier requiere: <code>{ "match_value": número, "percent_pay": número }</code></li>
+            <li><strong>Campos desconocidos</strong>: Causarán un error de validación. Verifica los nombres de campos en el formulario de edición del plan.</li>
+          </ul>
+
+          <h4>Respuestas</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "2026-04-25T10:30:00Z",
+  "queuePosition": 1,
+  "estimate": {
+    "method": "lanes+movingAvg",
+    "avgDurationSeconds": 180,
+    "startAt": "2026-04-25T10:31:00Z",
+    "finishAt": "2026-04-25T10:34:00Z"
+  },
+  "capacitySnapshot": {
+    "maxConcurrency": 3,
+    "running": 0,
+    "queued": 0,
+    "slotsAvailable": 3
+  },
+  "warnings": [],
+  "executedBy": {
+    "name": "Ivan Alvis",
+    "role": "user",
+    "at": "2026-04-25T10:30:00Z"
+  }
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">400 <span class="muted">Solicitud incorrecta</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "planId es requerido"
+}</code></pre>
+          </div>
+
+          <div class="resp">
+            <div class="code">422 <span class="muted">Entidad no procesable</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "Formato de fecha inválido para effective_date: esperado YYYY-MM-DD"
+}</code></pre>
+          </div>
+
+          <h4>Ejemplo cURL</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/update-plan \
+  -H "x-auth-token: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "planId": "627",
+    "note": "Actualización de revisión anual del plan",
+    "updates": {
+      "effective_date": "2025-06-01",
+      "default_savings_rate": "3"
+    }
+  }'</code></pre>
+
+          <p class="muted small">
+            Consulta <code>/forusbot/jobs/:id</code> hasta que el job finalice.
+            Relacionado: <a href="#sandbox-update-plan">Validador update-plan</a>,
+            <a href="#jobs-get">Obtener Job</a>
+          </p>
         </div>
       </details>
 
@@ -1523,7 +1705,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
       </details>
 
       <footer class="foot muted small">
-        Última actualización 2025-08-20 • Docs estáticas. En nube usa
+        Última actualización 2026-04-25 • Docs estáticas. En nube usa
         <code>HEADFUL=0</code>.
       </footer>
     </main>
