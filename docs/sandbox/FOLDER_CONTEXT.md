@@ -205,17 +205,20 @@ The **email-trigger** endpoint is a complex form with 10 different email types, 
 ## Update Plan Implementation
 
 ### Overview
-The **update-plan** endpoint uses a dropdown-based field selector UI with 47 pre-configured plan form fields organized by category. Users select fields from grouped dropdowns instead of typing field names manually.
+The **update-plan** endpoint uses a dropdown-based field selector UI with 68 pre-configured plan form fields organized by category. Users select fields from grouped dropdowns instead of typing field names manually.
 
-### Field Categories
-1. **Basic Info** (5 fields): company_name, official_plan_name, external_name, ein, symlink
+### Field Categories (68 total)
+1. **Basic Info** (8 fields): company_name, official_plan_name, external_name, ein, symlink, logo, rk_plan_id
 2. **Status** (4 fields): active, status, effective_date, status_as_of
-3. **Plan Design** (13 fields): plan_type, service_type, lt_plan_type, record_keeper_id, enrollment_type, contribution_type, roth_contributions_allowed, profit_sharing, e_statement, spanish_participants, eaca
-4. **Eligibility** (4 fields): eligibility_min_age, eligibility_hours_requirement, eligibility_duration_value, plan_entry_frequency
+3. **Plan Design** (19 fields): plan_type, service_type, lt_plan_type, record_keeper_id, enrollment_type, contribution_type, roth_contributions_allowed, profit_sharing, e_statement, spanish_participants, eaca, is_3_16_only, is_critical, roth_match_allowed, fund_lineup_id, rk_upload_mode, enrollment_method
+4. **Eligibility** (10 fields): eligibility_min_age, eligibility_hours_requirement, eligibility_duration_value, plan_entry_frequency, plan_entry_frequency_first_month, plan_entry_frequency_second_month, weekly_assumed_hours, force_out_limit, loan_number_cap, max_crypto_percent_balance
 5. **Employer Match** (5 fields): employer_contribution, employer_contribution_formula (tiers), employer_contribution_cap, er_contribution_monthly_cap, employer_contribution_timing
 6. **Savings & Auto-Escalation** (6 fields): default_savings_rate, max_deferral_rate, autoescalate_rate, autoescalation_limit, autoescalation_source, autoescalation_timing
 7. **Key Dates** (8 fields): first_deferral_date, special_participation_date, blackout_begins_date, blackout_ends_date, website_live_date, enrollment_window_begins, enrollment_window_ends, reenrollment_date
 8. **Compliance / Features** (4 fields): accept_covid19_amendment, support_aftertax, alts_crypto, alts_waitlist_crypto
+9. **Administration** (3 fields): rm_id, im_id, version_id
+10. **Audit & Organization** (2 fields): audit_year, organization_type
+11. **Marketing & Events** (2 fields): raffle_prize, raffle_date
 
 ### Field Types
 - **text**: Plain text input (company_name, ein, etc.)
@@ -284,6 +287,43 @@ The **update-plan** endpoint uses a dropdown-based field selector UI with 47 pre
 - Field names (backend keys) remain unchanged
 - Category names translated: "Información Básica", "Diseño del Plan", etc.
 - Buttons and placeholders translated
+
+### Fields Not Included (by design)
+Of the 137 total form fields in the backend, 68 are available in the UI. The remaining 69 fields are excluded because they are:
+
+**Secondary/Conditional Fields** (fields that appear conditionally based on other field values):
+- `er_match_*` fields: Employer match eligibility duplicates
+- `profit_sharing_*` fields: Profit sharing eligibility duplicates
+- Month-based fields: `*_first_month`, `*_second_month` variants (covered by existing frequency selectors)
+
+**Administrative/Audit Fields** (rarely changed, metadata):
+- `audit_start`, `audit_end`: Date ranges (use audit_year instead)
+- `nce_status_as_of`, `psa_ext_status_as_of`, `actively_managed_status_as_of`, `pending_termination_status_as_of`, `terminated_status_as_of`: Read-only status snapshots
+- `sfdc_id`: Read-only Salesforce ID
+- `plan_id`: Passed via URL, not updated via form
+
+**Complex/Array Fields** (require special handling beyond simple value inputs):
+- `rk_dates_range[][]`: Nested array structure
+- `excluded_employees[]`: Employee array
+- `year_end_match_information_choice[]`: Multi-select array
+- `employer_contribution_options[qaca]`: Nested checkbox
+
+**Participant-Related Fields** (not about the plan itself):
+- `deceased_participants_*`, `military_participants_*`, `retired_participants_*`, `company_officers`, `unreported_compensation`
+
+**Rarely-Modified Specialized Fields**:
+- `crypto_portfolio_alert_blacklist`, `payroll_issue`, `payroll_xray`, `simple_upload`: Feature flags
+- `collective_bargaining`, `mergers_and_acquisitions_participation`, `significant_ownership_in_other_businesses`, `other_businesses_have_employees`, `other_retirement_plans_any`, `other_retirement_plans_contact`, `outside_assets_any`: Compliance/eligibility flags
+
+**Type-Specific Legacy Fields**:
+- `file_type`, `enrollment_method` variants covered by main `enrollment_method`
+- `er_contribution_eligibility`: Covered by other employer match fields
+
+To add any of these fields to the UI:
+1. Add entry to `FIELD_SPECS` array with appropriate `type` and `options`
+2. If field is conditional, add logic to `repopulateLabelSelects()` or consider grouping with related fields
+3. For array fields, may need custom `buildValueInput()` logic
+4. Update both EN and ES versions with translated labels
 
 ## When to Work Here
 
