@@ -1,0 +1,3328 @@
+<body>
+    <header>
+      <nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Home</a>
+    </div>
+    <div class="collapse navbar-collapse">
+      <ul class="nav navbar-nav navbar-right">
+            <li><a data-method="get" href="/admin_panel">Admin</a></li>
+  <li><a data-method="get" href="/edit">Edit account</a></li>
+  <li><a rel="nofollow" data-method="delete" href="/sign_out">Sign out</a></li>
+
+      </ul>
+        <!--<p class="navbar-text navbar-right">
+          Signed in as <a href="#" class="navbar-link">ivan.alvis@forusall.com</a>
+        </p> -->
+    </div>
+  </div>
+</nav>
+
+      <style>
+  :root {
+    --color-env-label--black: #333333;
+    --color-env-label--white: #f2f2f2;
+    --color-env-label--blue: #1d76db;
+    --color-env-label--yellow: #fbca04;
+    --color-env-label--gray: #777777;
+    --color-env-label--red: #FF0000;
+  }
+
+  .env_info {
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    top: 12px;
+    left: 0;
+    right: 0;
+    z-index: 1500; /* bootstrap uses z-index from 1000~1100.. */
+    pointer-events: none;
+  }
+
+  .env_info__label {
+    display: none;
+    padding: 5px 10px;
+    color: transparent;
+    background-color: transparent;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .env_info__label--development {
+    display: inline-block;
+    color: var(--color-env-label--white);
+    background-color: var(--color-env-label--blue);
+  }
+
+  div[class*='env_info__label--sp'] {
+    display: inline-block;
+    color: var(--color-env-label--white);
+    background-color: var(--color-env-label--red);
+  }
+</style>
+
+<div class="env_info">
+  <div class="env_info__label env_info__label--production">    Production
+</div></div>
+
+    </header>
+    <main role="main">
+       <div data-alerts="alerts" data-ids="notify-me" data-fade="10000"></div>
+       <div class="container-fluid">
+  <h4>Edit Plan Setup</h4>
+  <div class="row" align="left">
+    <form name="plan_attr_form" id="plan-attr-form" novalidate="novalidate" action="plans/save" accept-charset="UTF-8" data-remote="true" method="post"><input name="utf8" type="hidden" value="✓">
+    <div class="col-md-7">
+      <div align="right">
+        <button class="btn btn-primary y-margin--md" type="button" onclick="create_plan_snapshot()">Create New Plan Snapshot</button>
+        <a class="btn btn-primary y-margin--md open-add-new-document-record-popup" target="_blank" rel="noopener" data-method="get" href="/fv_documents_console/259/manage_fv_document?add_new_document_record=true">Add Document</a>
+        <div class="row y-margin--md">
+          <div class="col-md-8">
+            <label for="Choose_Plan_Setup">Choose plan setup</label>
+          </div>
+          <div class="col-md-4">
+            <select name="version_id" id="version_id" class="form-control" onchange="change_plan_version($(this).val())"><option value=""></option><option value="9881">2016-11-20</option>
+<option value="11331">2022-02-05</option>
+<option selected="selected" value="15725">2022-02-12</option></select>
+          </div>
+        </div>
+      </div>
+      <div id="bitemporal-plan-attrs">
+        <input type="hidden" name="plan_id" id="plan_id" value="259">
+<div class="panel panel-default panel-body pad-top">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Short_Name">Short Name</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="This is the unique short version of the name created by ForUsAll used to search for the plan in other tools." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="symlink" id="symlink" value="1000heads" placeholder="" class="form-control">
+  </div> 
+</div>
+
+<div id="sfdc-id" class="row">
+  <div class="col-md-4">
+    <a onclick="change_sfdc_id()">Sfdc id: <span>0011a00000LwXJj </span> </a>
+    <input type="hidden" name="sfdc_id" id="sfdc_id" value="0011a00000LwXJj">
+  </div>
+</div>
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Company_Name">Company Name</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="This is the company name used in communications." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="company_name" id="company_name" value="1000heads" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Legal_Plan_Name">Legal Plan Name</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="This is the legal name used in legal notices." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="official_plan_name" id="official_plan_name" value="" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Relationship_Manager">Relationship Manager</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="rm_id" id="rm_id" class="form-control" onchange=""><option value=""></option><option value="2893">andres.alvarez@forusall.com</option>
+<option value="2980">andres.bermudez@forusall.com</option>
+<option value="2797">aya.chehabi@forusall.com</option>
+<option value="2797">aya.chehabi@forusall.com</option>
+<option value="2938">brent.bowers@forusall.com</option>
+<option value="2475">camila.londono@forusall.com</option>
+<option value="2179">camilo@forusall.com</option>
+<option value="3">cindy@forusall.com</option>
+<option value="3474">daniel.amaya@forusall.com</option>
+<option value="10">dave@forusall.com</option>
+<option value="3263">david.attolino@forusall.com</option>
+<option value="4">david@forusall.com</option>
+<option value="3292">david.jimenez@forusall.com</option>
+<option value="3376">david.sarmiento@forusall.com</option>
+<option value="2945">esteban.zapata@forusall.com</option>
+<option value="3204">greg.stein@forusall.com</option>
+<option value="3561">isabella.prada@forusall.com</option>
+<option value="3229">ivan.alvis@forusall.com</option>
+<option value="3539">james.shen@forusall.com</option>
+<option value="2035">jeri.hansmann@forusall.com</option>
+<option value="3163">jhonatan.aguilar@forusall.com</option>
+<option value="3378">jorge.iriso@forusall.com</option>
+<option value="3393">jose.alcaraz@forusall.com</option>
+<option value="3433">juan.hernandez@forusall.com</option>
+<option value="3294">juan.trejos@forusall.com</option>
+<option value="3399">juliana.ramirez@forusall.com</option>
+<option value="2902">kevin.payton@forusall.com</option>
+<option value="2934">laura.toro@forusall.com</option>
+<option value="3080">luis.rojas@forusall.com</option>
+<option value="3379">michael.liubarskyi@forusall.com</option>
+<option value="2929">nicolas.mejia@forusall.com</option>
+<option value="3228">oscar.garcia@forusall.com</option>
+<option value="2209">paris.andricos@forusall.com</option>
+<option value="933">robert@forusall.com</option>
+<option value="3242">samuel.bedoya@forusall.com</option>
+<option value="2892">santiago.velez@forusall.com</option>
+<option value="3533">sebastian.olaciregui@forusall.com</option>
+<option value="3207">simon.echeverri@forusall.com</option>
+<option selected="selected" value="1174">sponsorservices@forusall.com</option>
+<option value="3267">tomas.martinez@forusall.com</option>
+<option value="3008">tomas.ochoa@forusall.com</option>
+<option value="2347">trista.thomas@forusall.com</option>
+<option value="729">triveni@forusall.com</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Implementation_Manager">Implementation Manager</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="im_id" id="im_id" class="form-control" onchange=""><option value=""></option><option value="146">temp@forusall.com</option>
+<option value="10">dave@forusall.com</option>
+<option value="237">jason@forusall.com</option>
+<option value="36">chandra@forusall.com</option>
+<option value="583">evan.ross@forusall.com</option>
+<option value="1">dhamo@forusall.com</option>
+<option value="37">devopsadmin@forusall.com</option>
+<option value="910">sandi.caalim+virtual@forusall.com</option>
+<option value="911">mandy.mackay@forusall.com</option>
+<option value="16">shashank@forusall.com</option>
+<option value="721">sandi.caalim+cowib@forusall.com</option>
+<option value="826">sandi.caalim+biocentric@forusall.com</option>
+<option value="744">sandi.caalim+jonrenau@forusall.com</option>
+<option value="727">sandi.caalim+standish@forusall.com</option>
+<option value="710">sandi.caalim+affirm@forusall.com</option>
+<option value="755">sandi.caalim+acorns@forusall.com</option>
+<option value="757">sandi.caalim+yoke@forusall.com</option>
+<option value="187">taylor@forusall.com</option>
+<option value="2">james@forusall.com</option>
+<option value="764">sandi.caalim+skill@forusall.com</option>
+<option value="914">stephanie.lee@forusall.com</option>
+<option value="888">jennie.wong+test9@forusall.com</option>
+<option value="913">sandi.caalim+digitalmm@forusall.com</option>
+<option value="172">alison@forusall.com</option>
+<option value="124">colleen@forusall.com</option>
+<option value="1056">nina.foo@forusall.com</option>
+<option value="366">holly+test1@forusall.com</option>
+<option value="1638">gina.gajewski@forusall.com</option>
+<option value="240">george@forusall.com</option>
+<option value="922">sandi.caalim+don@forusall.com</option>
+<option value="234">stephanie@forusall.com</option>
+<option value="918">sandi.caalim+zenith@forusall.com</option>
+<option value="874">sandi.caalim+omni@forusall.com</option>
+<option value="915">bryan.tollefson@forusall.com</option>
+<option value="3121">engineeering+harvey@forusall.com</option>
+<option value="928">cas.oliver+wps@forusall.com</option>
+<option value="935">tara.guardia@forusall.com</option>
+<option value="885">cindy+generalaviation@forusall.com</option>
+<option value="723">sandi.caalim+bavarian@forusall.com</option>
+<option value="390">karlie.evangelista@forusall.com</option>
+<option value="887">cas.oliver+northstrat@forusall.com</option>
+<option value="718">sandi.caalim+mcc@forusall.com</option>
+<option value="859">arnie@forusall.com</option>
+<option value="724">sandi.caalim+bricklin@forusall.com</option>
+<option value="942">sandi.caalim+master@forusall.com</option>
+<option value="936">sandi.caalim+shopkick@forusall.com</option>
+<option value="909">sandi.caalim+forus@forusall.com</option>
+<option value="907">liz.fagan+echalk@forusall.com</option>
+<option value="726">sandi.caalim+kinkosha@forusall.com</option>
+<option value="1236">jennie.wong+cirrus@forusall.com</option>
+<option value="680">xinyu.feng@forusall.com</option>
+<option value="963">phil.mauck@forusall.com</option>
+<option value="728">cody.kubitz@forusall.com</option>
+<option value="934">rob.sobrepena@forusall.com</option>
+<option value="168">holly@forusall.com</option>
+<option value="1150">anthony.grossi+emails@forusall.com</option>
+<option value="961">jennie.wong+serra@forusall.com</option>
+<option value="972">sandi.caalim+creative@forusall.com</option>
+<option value="973">sandi.caalim+kemco@forusall.com</option>
+<option value="2123">alea.vikraman@forusall.com</option>
+<option value="960">kareesha.carter@forusall.com</option>
+<option value="589">sandi.caalim+nac@forusall.com</option>
+<option value="228">will@forusall.com</option>
+<option value="6">vitthal@forusall.com</option>
+<option value="950">sandi.caalim+jumpstart@forusall.com</option>
+<option value="984">jennie.wong+micro@forusall.com</option>
+<option value="977">jennie.wong+honor1@forusall.com</option>
+<option value="432">jill.owen@forusall.com</option>
+<option value="591">sandi.caalim+beechmont@forusall.com</option>
+<option value="409">chjames@forusall.com</option>
+<option value="463">jeffschulte@forusall.com</option>
+<option value="978">jennie.wong+honor2@forusall.com</option>
+<option value="399">andrew.wu@forusall.com</option>
+<option value="171">hazel@forusall.com</option>
+<option value="625">sandi.caalim+god@forusall.com</option>
+<option value="624">sandi.caalim+calnonprofits@forusall.com</option>
+<option value="616">seth.bartlett@forusall.com</option>
+<option value="498">zhiqin.liao@forusall.com</option>
+<option value="259">wil.curiel@forusall.com</option>
+<option value="981">gian.panetta@forusall.com</option>
+<option value="482">ch.james@forusall.com</option>
+<option value="392">ryan.young@forusall.com</option>
+<option value="1109">jennie.wong+wework@forusall.com</option>
+<option value="988">arnie+zenith@forusall.com</option>
+<option value="500">stephen.adaya@forusall.com</option>
+<option value="732">sandi.caalim+bhammer@forusall.com</option>
+<option value="989">arnie+jumpstart@forusall.com</option>
+<option value="640">alden.wonnell+consultingservices@forusall.com</option>
+<option value="644">taylor+all@forusall.com</option>
+<option value="501">jeff.dean@forusall.com</option>
+<option value="646">alden.wonnell+pss@forusall.com</option>
+<option value="509">alden.wonnell@forusall.com</option>
+<option value="505">holly+a@forusall.com</option>
+<option value="537">jill.owen+@forusall.com</option>
+<option value="526">sandi.caalim++@forusall.com</option>
+<option value="524">sandi.caalim+@forusall.com</option>
+<option value="1116">jennie.wong+soiree@forusall.com</option>
+<option value="3163">jhonatan.aguilar@forusall.com</option>
+<option value="1003">emmanuel.solano@forusall.com</option>
+<option value="548">sandi.caalim+++@forusall.com</option>
+<option value="551">sandi.caalim+brooks@forusall.com</option>
+<option value="734">sandi.caalim+infomatics@forusall.com</option>
+<option value="659">sandi.caalim+m9@forusall.com</option>
+<option value="552">sandi.caalim+idfour@forusall.com</option>
+<option value="656">sandi.caalim+applied@forusall.com</option>
+<option value="735">terry.chen@forusall.com</option>
+<option value="574">sandi.caalim+bow@forusall.com</option>
+<option value="601">alden.wonnell+stimulus@forusall.com</option>
+<option value="561">sandi.caalim+youth@forusall.com</option>
+<option value="600">sandi.caalim+brightsign@forusall.com</option>
+<option value="665">shin+all@forusall.com</option>
+<option value="653">jennie.wong+test7@forusall.com</option>
+<option value="612">sandi.caalim+peninsula@forusall.com</option>
+<option value="603">sandi.caalim+rain@forusall.com</option>
+<option value="608">sandi.caalim+toole@forusall.com</option>
+<option value="1286">neeraj+hhi@forusall.com</option>
+<option value="1329">nicholas.simeus@forusall.com</option>
+<option value="737">sandi.caalim+krausz@forusall.com</option>
+<option value="182">tatiana@forusall.com</option>
+<option value="739">sandi.caalim+slimhaney@forusall.com</option>
+<option value="668">sandi.caalim+highland@forusall.com</option>
+<option value="615">esther.wang@forusall.com</option>
+<option value="623">michael.vitali@forusall.com</option>
+<option value="520">tatiana+all@forusall.com</option>
+<option value="639">jamie.chen@forusall.com</option>
+<option value="738">nathan.tanner@forusall.com</option>
+<option value="527">jennie.wong+demo@forusall.com</option>
+<option value="682">sandi.caalim+bolt@forusall.com</option>
+<option value="685">alden.wonnell+echalk@forusall.com</option>
+<option value="688">sandi.caalim+gmb@forusall.com</option>
+<option value="690">alden.wonnell+ucm@forusall.com</option>
+<option value="681">sandi.caalim+alation@forusall.com</option>
+<option value="701">sandi.caalim+pulmonary@forusall.com</option>
+<option value="696">surbhi.jain+gmb@forusall.com</option>
+<option value="706">sandi.caalim+utah@forusall.com</option>
+<option value="543">surbhi.jain@forusall.com</option>
+<option value="699">alden.wonnell+med@forusall.com</option>
+<option value="296">katie.dewey@forusall.com</option>
+<option value="708">sandi.caalim+mm@forusall.com</option>
+<option value="741">sandi.caalim+fongandchan@forusall.com</option>
+<option value="820">monique.sanmiguellopez@forusall.com</option>
+<option value="686">revan.vendidandi@forusall.com</option>
+<option value="730">govind.kulkarni@forusall.com</option>
+<option value="753">sandi.caalim+rsc@forusall.com</option>
+<option value="720">sandi.caalim+cmc@forusall.com</option>
+<option value="827">sandi.caalim+gateway@forusall.com</option>
+<option value="596">rod.yazdi@forusall.com</option>
+<option value="1189">diego.ruiz@forusall.com</option>
+<option value="633">esther.wang+all@forusall.com</option>
+<option value="808">cody.kubitz+all@forusall.com</option>
+<option value="812">sandi.caalim+alliance@forusall.com</option>
+<option value="814">josh.wilson+kruger@forusall.com</option>
+<option value="544">jeff+xray@forusall.com</option>
+<option value="610">josh.wilson@forusall.com</option>
+<option value="752">forrest.kitlas@forusall.com</option>
+<option value="776">rod.yazdi+all@forusall.com</option>
+<option value="779">sandi.caalim+harmsen@forusall.com</option>
+<option value="778">sandi.caalim+wework@forusall.com</option>
+<option value="774">xinyu.feng+all@forusall.com</option>
+<option value="797">sandi.caalim+zealandia@forusall.com</option>
+<option value="798">sandi.caalim+acme@forusall.com</option>
+<option value="394">holly+all@forusall.com</option>
+<option value="473">liz.fagan+all@forusall.com</option>
+<option value="829">cas.oliver+portal@forusall.com</option>
+<option value="40">al@forusall.com</option>
+<option value="825">jason+test1@forusall.com</option>
+<option value="5">shin@forusall.com</option>
+<option value="546">dan.fleischer+all@forusall.com</option>
+<option value="1174">sponsorservices@forusall.com</option>
+<option value="550">liz.fagan@forusall.com</option>
+<option value="472">dan.fleischer@forusall.com</option>
+<option value="261">sandi.caalim@forusall.com</option>
+<option value="1356">robert.encinas@forusall.com</option>
+<option value="619">mark.barbella+all@forusall.com</option>
+<option value="3378">jorge.iriso@forusall.com</option>
+<option value="173">esther@forusall.com</option>
+<option value="465">mark.barbella@forusall.com</option>
+<option value="1219">holly+test123@forusall.com</option>
+<option value="395">george+all@forusall.com</option>
+<option value="1170">neeraj@forusall.com</option>
+<option value="1016">amir.afshar@forusall.com</option>
+<option value="671">jennie.wong+pumps123@forusall.com</option>
+<option value="1354">bryan.calderon@forusall.com</option>
+<option value="1185">bt@forusall.com</option>
+<option value="700">alden.wonnell+health@forusall.com</option>
+<option value="2938">brent.bowers@forusall.com</option>
+<option value="641">test123@forusall.com</option>
+<option value="777">taylor+portal@forusall.com</option>
+<option value="1700">tatum.lifgren@forusall.com</option>
+<option value="611">josh.wilson+all@forusall.com</option>
+<option value="1353">wendy.conway@forusall.com</option>
+<option value="2959">spencer.markowski@forusall.com</option>
+<option value="1355">justin@forusall.com</option>
+<option value="3376">david.sarmiento@forusall.com</option>
+<option value="1015">lindsey.pollack@forusall.com</option>
+<option value="669">josh.wilson+pss@forusall.com</option>
+<option value="3009">jesus.zuluaga@forusall.com</option>
+<option value="1002">dominic.cheung@forusall.com</option>
+<option value="1039">matthew.dielman@forusall.com</option>
+<option value="1249">janiela.campusano@forusall.com</option>
+<option value="1014">jason.hannibal@forusall.com</option>
+<option value="1213">tj.muhar@forusall.com</option>
+<option value="1117">shelton.scharhag@forusall.com</option>
+<option value="1851">dan.belling@forusall.com</option>
+<option value="1285">neeraj+alation@forusall.com</option>
+<option value="663">jennie.wong@forusall.com</option>
+<option value="1352">britney@forusall.com</option>
+<option value="1284">neeraj+lever@forusall.com</option>
+<option value="1898">bevan@forusall.com</option>
+<option value="925">jennie.wong+honor@forusall.com</option>
+<option value="1850">anthony.harvey@forusall.com</option>
+<option value="1166">jason.lamacchia@forusall.com</option>
+<option value="1698">darwin.lui@forusall.com</option>
+<option value="1544">trevor.turner@forusall.com</option>
+<option value="1190">courtenay.davis@forusall.com</option>
+<option value="1357">tolu@forusall.com</option>
+<option value="102">sponsorservices1@forusall.com</option>
+<option value="1233">john.garcia@forusall.com</option>
+<option value="856">maddie.holtzer@forusall.com</option>
+<option value="391">amy.wang@forusall.com</option>
+<option value="1500">briana.burgess@forusall.com</option>
+<option value="1340">eddie.daniel@forusall.com</option>
+<option value="1847">justin.chang@forusall.com</option>
+<option value="271">chenxing.guo@forusall.com</option>
+<option value="1837">kim@forusall.com</option>
+<option value="545">melissa+test@forusall.com</option>
+<option value="1327">zach@forusall.com</option>
+<option value="3292">david.jimenez@forusall.com</option>
+<option value="1330">erich.pleimling@forusall.com</option>
+<option value="932">ryan@forusall.com</option>
+<option value="1842">thomas@forusall.com</option>
+<option value="1404">james.antompietrinarvaez@forusall.com</option>
+<option value="1526">alana.turangan@forusall.com</option>
+<option value="1506">richard.lee@forusall.com</option>
+<option value="1093">anthony.grossi@forusall.com</option>
+<option value="1486">saurabh.kaushal@forusall.com</option>
+<option value="1316">mela.moss@forusall.com</option>
+<option value="1183">ben.werdmuller@forusall.com</option>
+<option value="3208">tomas.ferrer@forusall.com</option>
+<option value="1178">tzipora.henig@forusall.com</option>
+<option value="3224">ops-temporary@forusall.com</option>
+<option value="1148">florence.enueme@forusall.com</option>
+<option value="3226">esteban.saldarriaga@forusall.com</option>
+<option value="1899">sangeethapriya@forusall.com</option>
+<option value="1504">keyli.aldana@forusall.com</option>
+<option value="1273">steve@forusall.com</option>
+<option value="3227">ana.diaz@forusall.com</option>
+<option value="7">support@forusall.com</option>
+<option value="1897">sharmila@forusall.com</option>
+<option value="3073">luis.miguel@forusall.com</option>
+<option value="1545">paige.larson@forusall.com</option>
+<option value="1841">michael.thomas@forusall.com</option>
+<option value="3133">carolina.borja@forusall.com</option>
+<option value="1480">kayla.hansen@forusall.com</option>
+<option value="2699">payroll-integration+fmntx@forusall.com</option>
+<option value="1525">brittany.restine@forusall.com</option>
+<option value="2826">sakshi.mittal@forusall.com</option>
+<option value="1242">julie.phan@forusall.com</option>
+<option value="3162">kelly.barrera@forusall.com</option>
+<option value="565">philip.balliet@forusall.com</option>
+<option value="2952">felipe.angel@forusall.com</option>
+<option value="617">cindy+all@forusall.com</option>
+<option value="1809">calla.price@forusall.com</option>
+<option value="1637">gilbert.guevara@forusall.com</option>
+<option value="1640">bridget.dobbs@forusall.com</option>
+<option value="1794">katherine.portelli@forusall.com</option>
+<option value="78">melissa@forusall.com</option>
+<option value="1832">aukai.kea@forusall.com</option>
+<option value="3368">cristian.vasquez@forusall.com</option>
+<option value="2892">santiago.velez@forusall.com</option>
+<option value="586">jake.maciulewicz+all@forusall.com</option>
+<option value="835">lois@forusall.com</option>
+<option value="2979">sofia.velez@forusall.com</option>
+<option value="3242">samuel.bedoya@forusall.com</option>
+<option value="2951">sergio.caro@forusall.com</option>
+<option value="1742">rennie@forusall.com</option>
+<option value="1662">melissa+test2@forusall.com</option>
+<option value="485">advisor@forusall.com</option>
+<option value="736">haotian.lyu@forusall.com</option>
+<option value="2626">keyonna.house@forusall.com</option>
+<option value="775">sponsorservices+new@forusall.com</option>
+<option value="1091">cas.oliver+bg@forusall.com</option>
+<option value="1728">sallie.aquiningoc@forusall.com</option>
+<option value="1351">ricardo.urquides@forusall.com</option>
+<option value="3539">james.shen@forusall.com</option>
+<option value="2035">jeri.hansmann@forusall.com</option>
+<option value="3377">william.garcia@forusall.com</option>
+<option value="1709">tim.smale@forusall.com</option>
+<option value="1782">kirk.danielson@forusall.com</option>
+<option value="1674">payroll-integration@forusall.com</option>
+<option value="3533">sebastian.olaciregui@forusall.com</option>
+<option value="2692">manuel.orellana@forusall.com</option>
+<option value="3294">juan.trejos@forusall.com</option>
+<option value="2945">esteban.zapata@forusall.com</option>
+<option value="1810">brian.marty@forusall.com</option>
+<option value="1317">max.peterson@forusall.com</option>
+<option value="3379">michael.liubarskyi@forusall.com</option>
+<option value="1341">patrick.miller+audits@forusall.com</option>
+<option value="499">patrick.miller@forusall.com</option>
+<option value="592">patrick.miller+all@forusall.com</option>
+<option value="3228">oscar.garcia@forusall.com</option>
+<option value="855">madeline.rocco@forusall.com</option>
+<option value="2209">paris.andricos@forusall.com</option>
+<option value="1651">tony.peterson@forusall.com</option>
+<option value="2902">kevin.payton@forusall.com</option>
+<option value="3241">jose.zuluaga@forusall.com</option>
+<option value="1785">john.gaschler@forusall.com</option>
+<option value="577">jake.maciulewicz@forusall.com</option>
+<option value="3474">daniel.amaya@forusall.com</option>
+<option value="1852">tom.sullivan@forusall.com</option>
+<option value="1795">daniela.diaz@forusall.com</option>
+<option value="2893">andres.alvarez@forusall.com</option>
+<option value="1781">jon.achtenhagen@forusall.com</option>
+<option value="3080">luis.rojas@forusall.com</option>
+<option value="2954">ian.james@forusall.com</option>
+<option value="3433">juan.hernandez@forusall.com</option>
+<option value="1715">garrett.cross@forusall.com</option>
+<option value="933">robert@forusall.com</option>
+<option value="3204">greg.stein@forusall.com</option>
+<option value="260">kevin@forusall.com</option>
+<option value="1022">sandi.caalim+juno@forusall.com</option>
+<option value="1722">james.kallod@forusall.com</option>
+<option value="1713">jacob.kopycinski@forusall.com</option>
+<option value="773">cas.oliver@forusall.com</option>
+<option value="2981">valentina.correa@forusall.com</option>
+<option value="1853">pete.naquin@forusall.com</option>
+<option value="2179">camilo@forusall.com</option>
+<option value="462">james.conklin@forusall.com</option>
+<option value="2980">andres.bermudez@forusall.com</option>
+<option value="2347">trista.thomas@forusall.com</option>
+<option value="23">jeff@forusall.com</option>
+<option value="2929">nicolas.mejia@forusall.com</option>
+<option value="3399">juliana.ramirez@forusall.com</option>
+<option value="2934">laura.toro@forusall.com</option>
+<option value="729">triveni@forusall.com</option>
+<option value="4">david@forusall.com</option>
+<option value="2045">alex.webb@forusall.com</option>
+<option value="2514">aaron.jackson@forusall.com</option>
+<option value="2960">jeremy.pinnix@forusall.com</option>
+<option value="3267">tomas.martinez@forusall.com</option>
+<option value="1905">andrea.rivera@forusall.com</option>
+<option value="2010">rowan.franks@forusall.com</option>
+<option value="1989">vy.nguyen@forusall.com</option>
+<option value="1988">payroll-integration+rlduggervectorone@forusall.com</option>
+<option value="2277">payroll-integration+realogicsbrokerage@forusall.com</option>
+<option value="2276">payroll-integration+iow@forusall.com</option>
+<option value="2022">andrea.daszkiewicz@forusall.com</option>
+<option value="2278">payroll-integration+ezrental@forusall.com</option>
+<option value="1946">arty@forusall.com</option>
+<option value="2073">jesse.shawl@forusall.com</option>
+<option value="2241">payroll-integration+toolworks@forusall.com</option>
+<option value="3">cindy@forusall.com</option>
+<option value="3263">david.attolino@forusall.com</option>
+<option value="2029">christian.frink@forusall.com</option>
+<option value="2220">payroll-integration+willcockson@forusall.com</option>
+<option value="2222">payroll-integration+schutzco@forusall.com</option>
+<option value="2871">dasha.duncan@forusall.com</option>
+<option value="1997">monica@forusall.com</option>
+<option value="2297">payroll-integration+zap@forusall.com</option>
+<option value="2021">christy.ayers@forusall.com</option>
+<option value="2225">payroll-integration+masterworks@forusall.com</option>
+<option value="2310">payroll-integration+ucm@forusall.com</option>
+<option value="2226">payroll-integration+krugerpack@forusall.com</option>
+<option value="2309">payroll-integration+jks@forusall.com</option>
+<option value="2703">new-payroll-integration@forusall.com</option>
+<option value="2745">lucas@forusall.com</option>
+<option value="2696">mandeep.kaur@forusall.com</option>
+<option value="2072">marc.krusko@forusall.com</option>
+<option value="2411">nicholas.doehring@forusall.com</option>
+<option value="2513">brendan.reilley@forusall.com</option>
+<option value="2289">payroll-integration+realogicsinc@forusall.com</option>
+<option value="2475">camila.londono@forusall.com</option>
+<option value="2534">joshua.alvarez@forusall.com</option>
+<option value="2391">kate.dovnar@forusall.com</option>
+<option value="2839">pablo.isaza@forusall.com</option>
+<option value="2097">chase.clyma@forusall.com</option>
+<option value="2796">anisha.samant@forusall.com</option>
+<option value="3207">simon.echeverri@forusall.com</option>
+<option value="2221">payroll-integration+clearthought@forusall.com</option>
+<option value="2422">jayne.baucom@forusall.com</option>
+<option value="2030">gustavo.hernandez@forusall.com</option>
+<option value="2700">payroll-integration+medi@forusall.com</option>
+<option value="2567">payroll-integration+met@forusall.com</option>
+<option value="2903">vincent.herrera@forusall.com</option>
+<option value="3393">jose.alcaraz@forusall.com</option>
+<option value="2572">sydney.johnson@forusall.com</option>
+<option value="2050">alexander.jacobsen@forusall.com</option>
+<option value="3229">ivan.alvis@forusall.com</option>
+<option value="2659">james.gramata@forusall.com</option>
+<option value="2908">nick.pilner@forusall.com</option>
+<option value="2887">payroll-integration+graypants@forusall.com</option>
+<option value="2632">henri.bricard@forusall.com</option>
+<option value="1998">eva.koehne@forusall.com</option>
+<option value="2033">shanley.rowe@forusall.com</option>
+<option value="2000">alicia.palmer@forusall.com</option>
+<option value="2900">joan.macias@forusall.com</option>
+<option value="3008">tomas.ochoa@forusall.com</option>
+<option value="2964">helen.poumbouras@forusall.com</option>
+<option value="2797">aya.chehabi@forusall.com</option>
+<option value="3561">isabella.prada@forusall.com</option>
+<option value="2953">carlos.guerrero@forusall.com</option>
+<option value="2990">iouri.kostine@forusall.com</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Service_Type">Service Type</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="service_type" id="service_type" class="form-control" onchange=""><option value=""></option><option value="0">Free</option>
+<option selected="selected" value="10">Full</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Plan_Type">Plan Type</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="plan_type" id="plan_type" class="form-control" onchange="change_plan_type($(this).val())"><option value=""></option><option value="conversion">Conversion</option>
+<option selected="selected" value="start_up">Startup</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Active">Active</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="The plan should only be set to active = false when the plan is fully terminated with no remaining balance." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <select name="active" id="active" class="form-control" onchange="change_active($(this).val())"><option value=""></option><option value="true">True</option>
+<option selected="selected" value="false">False</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Status">Status</label>
+  </div>
+  <div class="col-md-4">
+    <select name="status" id="status" class="form-control" onchange="change_status($(this).val())"><option value=""></option><option selected="selected" value="terminated">Terminated</option></select>
+  </div>
+  <div class="col-md-4">
+    <input type="hidden" name="nce_status_as_of" id="nce_status_as_of" value="">
+    <input type="hidden" name="psa_ext_status_as_of" id="psa_ext_status_as_of" value="">
+    <input type="hidden" name="actively_managed_status_as_of" id="actively_managed_status_as_of" value="2016-12-30">
+    <input type="hidden" name="pending_termination_status_as_of" id="pending_termination_status_as_of" value="">
+    <input type="hidden" name="terminated_status_as_of" id="terminated_status_as_of" value="2022-04-30">
+    <input type="text" name="status_as_of" id="status_as_of" value="2022-04-30" placeholder="As of" class="form-control datepicker">
+  </div> 
+</div>
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="3_16__Standalone_only">3(16) Standalone only</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="is_3_16_only" id="is_3_16_only" class="form-control" onchange=""><option selected="selected" value="false">False</option>
+<option value="true">True</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="EIN">EIN</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="This is the company's EIN number" data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="ein" id="ein" value="383824432" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+</div>
+<div class="row y-margin--md top-margin--lg ">
+  <div class="col-md-3">
+    <label for="Effective_Date">Effective date</label>
+  </div>
+  <div class="col-md-3">
+    <input type="text" name="effective_date" id="effective_date" value="2022-02-12" class="form-control datepicker" onchange="effective_date_change($(this).val());">
+  </div>
+</div>
+<div class="panel pad-top">
+  <div class="row">
+    <div class="col-md-3">
+      <ul class="nav nav-pills nav-stacked" role="tablist">
+        <li role="presentation" class="active">
+          <a class="plan-feature-tab" href="#plan-design" aria-controls="plan-design" role="tab" data-toggle="tab">
+            Plan Design
+          </a>
+        </li>
+        <li role="presentation">
+          <a class="plan-feature-tab" href="#onboarding" aria-controls="onboarding" role="tab" data-toggle="tab">
+            Onboarding
+          </a>
+        </li>
+        <li role="presentation">
+          <a class="plan-feature-tab" href="#communications" aria-controls="communications" role="tab" data-toggle="tab">
+            Communications
+          </a>
+        </li>
+        <li role="presentation">
+          <a class="plan-feature-tab" href="#extra-settings" aria-controls="extra-settings" role="tab" data-toggle="tab">
+            Extra Settings
+          </a>
+        </li>
+        <li role="presentation">
+          <a class="plan-feature-tab" href="#feature-flags" aria-controls="feature-flags" role="tab" data-toggle="tab">
+            Feature Flags
+          </a>
+        </li>
+          <li role="presentation">
+            <a class="plan-year-end-tab" href="#year-end" aria-controls="year-end" role="tab" data-toggle="tab">
+              Year End Fields
+            </a>
+          </li>
+        <li role="presentation">
+          <a class="plan-divisions-tab" href="#plan-divisions" id="plan_division_tab" aria-controls="plan-divisions" role="tab" data-toggle="tab">
+            Plan Divisions
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="col-md-9 panel panel-default panel-body pad-top tab-content">
+      <div id="plan-design" role="tabpanel" class="tab-pane active">
+        <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Record_Keeper">Record Keeper</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="record_keeper_id" id="record_keeper_id" class="form-control" onchange="rk_id_change($(this).val())"><option value=""></option><option value="1">The Payroll Company</option>
+<option value="3">ACME</option>
+<option value="4">Fidelity</option>
+<option value="7">Empower</option>
+<option selected="selected" value="2">LT Trust</option>
+<option value="54">LT Trust (non-FUA)</option>
+<option value="48">Zahn Financial Services Inc.</option>
+<option value="9">AXA</option>
+<option value="46">T. Rowe Price</option>
+<option value="55">Equitable</option>
+<option value="26">Securian</option>
+<option value="17">PAi</option>
+<option value="6">Ascensus</option>
+<option value="10">Transamerica</option>
+<option value="29">Pension Dynamics</option>
+<option value="11">Ubiquity</option>
+<option value="21">CUNA Mutual</option>
+<option value="16">ADP</option>
+<option value="13">John Hancock</option>
+<option value="18">BPAS</option>
+<option value="19">American Funds</option>
+<option value="30">Lincoln Financial</option>
+<option value="8">Schwab</option>
+<option value="31">Mutual of America</option>
+<option value="27">Mutual of Omaha</option>
+<option value="15">Nationwide</option>
+<option value="22">Newport</option>
+<option value="20">TD Ameritrade</option>
+<option value="33">The Standard</option>
+<option value="12">TIAA</option>
+<option value="32">Valic</option>
+<option value="23">Principal</option>
+<option value="5">Paychex</option>
+<option value="25">Pension Corporation of America</option>
+<option value="34">Milliman</option>
+<option value="47">Correll</option>
+<option value="36">Sentry</option>
+<option value="37">Fifth Third Bank</option>
+<option value="35">Voya for Engineered Profiles</option>
+<option value="58">Slavic</option>
+<option value="49">Guideline</option>
+<option value="50">Sentinel Benefits</option>
+<option value="51">FinDec</option>
+<option value="52">Human Interest</option>
+<option value="53">Millennium Pension Services</option>
+<option value="42">Voya for MDSI</option>
+<option value="38">Employee Fiduciary</option>
+<option value="39">Wells Fargo</option>
+<option value="40">Tester</option>
+<option value="41">Freedom One</option>
+<option value="14">Vanguard</option>
+<option value="57">Epic</option>
+<option value="43">Pensys, Inc</option>
+<option value="44">Johnson Financial Group</option>
+<option value="45">Ameritas</option>
+<option value="59">BlueStar</option>
+<option value="28">Empower Retirement</option>
+<option value="24">Voya</option>
+<option value="60">Vestwell</option>
+<option value="61">Betterment</option>
+<option value="56">Voya for PTS Group</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Plan_ID">Plan ID</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="This is LT Matrix account number." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="rk_plan_id" id="rk_plan_id" value="07C67DPM" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+<div id="lt-rk-fields" class="">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="External_Name">External Name</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="external_name" id="external_name" value="4US1000HEADS" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="LT_Plan_Type">LT Plan Type</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="lt_plan_type" id="lt_plan_type" class="form-control" onchange=""><option value=""></option><option selected="selected" value="mep">MEP</option>
+<option value="standalone">Standalone</option></select>
+  </div> 
+</div>
+
+</div>
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="CARES_Act__COVID19__Amendment">CARES Act (COVID19) Amendment</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="accept_covid19_amendment" id="accept_covid19_amendment" value="false">
+    <input type="checkbox" name="accept_covid19_amendment" id="accept_covid19_amendment" value="true" checked="checked">
+  </div>
+</div>
+
+<div id="fund-lineup">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Fund_Lineup">Fund Lineup</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="fund_lineup_id" id="fund_lineup_id" class="form-control" onchange=""><option value=""></option><option value="60">60 Standalone Inst TDF (Gabelli)</option>
+<option value="15">Pulmonary</option>
+<option value="21">ESI SVF</option>
+<option value="29">Xara Lineup</option>
+<option value="81">MEP no ESG with Crypto</option>
+<option value="42">Alaska Temporary Lineup - May 2019</option>
+<option value="57">Foundation Cap 2019-07-14</option>
+<option value="58">Standish LT Trust Both Brokerage</option>
+<option value="115">Cognativ</option>
+<option value="116">Pitch Public</option>
+<option value="113">Carbon Collective with TIAA as Default</option>
+<option value="2">Generic Lineup (old)</option>
+<option value="90">LT MEP Lineup - as of 2019 with ESG added and Vanguard Fund merger completed</option>
+<option value="107">generic</option>
+<option value="110">110 Carbon Collective TIAA QDIA</option>
+<option value="108">108. Carbon Collective 2025 ClimateSmart QDIA</option>
+<option value="106">77. Standalone Lineup - as of 2021-06-25 - lineup#77 w/ Crypto</option>
+<option value="96">LT MEP Lineup plan onboarded after june 2021 after Vanguard fund merger  - lineup#89 w/ fund#185</option>
+<option value="97">Lineup 89 with Crypto</option>
+<option value="112">112 Finch Insights - based on carbon collective</option>
+<option value="117">Custom - Marv Studios - 3/2026</option>
+<option selected="selected" value="88">88 2022 MEP no Crypto</option>
+<option value="89">89 LT MEP Lineup plan onboarded after june 2021 after Vanguard fund merger </option>
+<option value="77">77. Standalone Lineup - as of 2021-06-25</option>
+<option value="76">76. LT MEP Lineup - as of 2021-06-25 </option>
+<option value="70">70. CrowdCircle dba HealthCrowd 2021-01-01</option>
+<option value="30">30. Standalone Lineup - as of 2019</option>
+<option value="59">59. LT MEP Lineup (Gabelli)</option>
+<option value="27">27. LT MEP Lineup - as of 2019</option>
+<option value="91">91. LT with Crypto FUA</option></select>
+  </div> 
+</div>
+
+
+</div>
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Enrollment_Type">Enrollment Type</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="enrollment_type" id="enrollment_type" class="form-control" onchange="enrollment_type_change($(this).val())"><option value=""></option><option value="opt_in_for_all">opt in for all</option>
+<option selected="selected" value="opt_out_for_all">opt out for all</option>
+<option value="opt_out_new_hires_only">opt out for new hires only</option></select>
+  </div> 
+</div>
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Age_Requirement">Age Requirement</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="Eligibility age requirement for employee deferrals." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="eligibility_min_age" id="eligibility_min_age" value="18.0" step="0.5" class="form-control" min="0" max="50">
+  </div> 
+</div>
+
+
+<div class="row field form-group">
+  <div class="col-md-4"> 
+    <label for="Eligibility_Duration">Eligibility Duration</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="Eligibility tenure requirement for employee deferrals." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+ 
+  </div>
+  <div class="col-md-4 ">
+    <select name="eligibility_duration_value" id="eligibility_duration_value" class="form-control"><option value="0">0</option>
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+<option value="5">5</option>
+<option value="6">6</option>
+<option value="7">7</option>
+<option value="8">8</option>
+<option value="9">9</option>
+<option value="10">10</option>
+<option value="11">11</option>
+<option selected="selected" value="12">12</option></select>
+  </div> 
+  <div class="col-md-4 ">
+    <select name="eligibility_duration_unit" id="eligibility_duration_unit" class="form-control" onchange="change_duration_unit($(this).val(), 'eligibility_duration_value')"><option selected="selected" value="months">Months</option></select>
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Eligibility_Hours">Eligibility Hours</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="Eligibility hours of service requirement for employee deferrals." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="eligibility_hours_requirement" id="eligibility_hours_requirement" value="0" step="1" class="form-control" min="0" max="2000">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Plan_Entry_Frequency">Plan Entry Frequency</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="plan_entry_frequency" id="plan_entry_frequency" class="form-control" onchange="frequency_change($(this).val(), 'plan_entry_frequency_first_month', 'plan_entry_frequency_second_month')"><option value="i">Immediate</option>
+<option selected="selected" value="m">Monthly</option>
+<option value="q">Quarterly</option>
+<option value="sa">Semi-annually</option>
+<option value="a">Annually</option></select>
+  </div> 
+</div>
+
+<div id="plan_entry_frequency_first_month_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Month">Month</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="plan_entry_frequency_first_month" id="plan_entry_frequency_first_month" class="form-control" onchange="first_month_change($(this).val(), 'plan_entry_frequency_second_month_block')"><option value=""></option><option value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+</div>
+<div id="plan_entry_frequency_second_month_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Second_Month">Second Month</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="plan_entry_frequency_second_month" id="plan_entry_frequency_second_month" class="form-control" onchange="" readonly="readonly"><option value=""></option><option value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+</div>
+
+
+<div class="">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Employer_Contribution">Employer Contribution</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-html="true" data-content="&lt;p style=&quot;margin-bottom:12px;&quot;&gt;Example, a formula of 100% of the first 3%, then 50% of the next 2% must be entered as&lt;/p&gt;&lt;p style=&quot;margin-bottom:12px;&quot;&gt;&lt;strong&gt;Tier 1:&lt;/strong&gt; 100% up to 3%&lt;br&gt;&lt;strong&gt;Tier 2:&lt;/strong&gt; 50% up to 5%.&lt;/p&gt;&lt;p style=&quot;margin-bottom:0;font-style:italic;&quot;&gt;Note: The second tier should reflect the total contribution percentage reached, not only the additional tier amount.&lt;/p&gt;" data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <select name="employer_contribution" id="employer_contribution" class="form-control" onchange="change_er_contribution($(this).val())"><option value=""></option><option selected="selected" value="No employer contribution">No Employer Contribution</option>
+<option value="SH Match Traditional">SH Match Traditional</option>
+<option value="SH Match Other">SH Match Other</option>
+<option value="Non-SH match">Non-SH Match</option>
+<option value="SH 3% Non-elective">SH 3% Non-elective</option>
+<option value="SH Non-elective Other">SH Non-elective Other</option></select>
+  </div> 
+</div>
+
+</div>
+<div id="contribution-control-fields" class="block-hide ">
+  <div class="add-monthly-cap block-hide">
+    <div class="col-md-4"></div>
+    <div class="col-md-8"><a onclick="add_remove_monthly_cap(this)">Add $ monthly limit</a></div>
+  </div>
+  <div class="add-cap block-hide">
+    <div class="col-md-4"></div>
+    <div class="col-md-8"><a onclick="add_remove_cap(this)">Add $ annual limit</a></div>
+  </div>
+  <div id="er-contribution-formula">
+    <div class="employer-match-tiers-instructions small text-muted" style="margin-bottom: 12px;">
+      <div class="row">
+        <div class="col-md-4"></div>
+        <div class="col-md-8">
+          Enter employer match tiers using cumulative contribution percentages.
+        </div>
+      </div>
+    </div>
+    <div class="row employer-match-tier-headers" style="margin-bottom: 4px;">
+      <div class="col-md-4"></div>
+      <div class="col-md-3">
+        <label class="control-label" style="font-weight: 600;">Match %</label>
+      </div>
+      <div class="col-md-3">
+        <label class="control-label" style="font-weight: 600;">Employee Contribution % (Up to)</label>
+      </div>
+      <div class="col-md-2"></div>
+    </div>
+    
+  </div>
+  <div id="er-contribution-monthly-cap" class="block-hide">
+    <div class="row field form-group">
+  <div class="col-md-4"></div>
+  <div class="col-md-6">
+    <input type="number" name="er_contribution_monthly_cap" id="er_contribution_monthly_cap" value="" step="1" min="1" class="form-control">
+  </div>
+  <div class="col-md-2">
+    <a onclick="add_remove_monthly_cap(this)">Remove $ monthly limit</a>
+  </div>
+</div>
+
+  </div>
+  <div id="er-contribution-cap" class="block-hide">
+    <div class="row field form-group">
+  <div class="col-md-4"></div>
+  <div class="col-md-6">
+    <input type="number" name="employer_contribution_cap" id="employer_contribution_cap" value="" step="1" min="1" class="form-control">
+  </div>
+  <div class="col-md-2">
+    <a onclick="add_remove_cap(this)">Remove $ annual limit</a>
+  </div>
+</div>
+
+  </div>
+
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Employer_Contribution_Timing">Employer Contribution Timing</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="employer_contribution_timing" id="employer_contribution_timing" class="form-control" onchange=""><option value=""></option><option value="ongoing">Ongoing</option>
+<option value="year end">Year-end</option>
+<option value="quarterly">Quarterly</option></select>
+  </div> 
+</div>
+
+</div>
+
+<script type="text/javascript">
+  function change_er_contribution(value) {
+    var multi_tier_options = ['SH Match Other', 'Non-SH match']
+    if (!value || value == 'No employer contribution') {
+      clean_er_contribution_monthly_cap();
+      clean_er_contribution_cap();
+      $('#contribution-control-fields').hide();
+      return;
+    } else {
+      $('#contribution-control-fields').show();
+      if(multi_tier_options.includes(value)) {
+        $('.contribution-formula').each( (idx, item) => {
+          $(item).remove();
+        });
+        append_tier('', '');
+        $('.add-remove-tier').show();
+        $('.add-remove-tier a').text('Remove Tier');
+        $('.add-remove-tier a').last().text('Add Tier');
+
+        $('.add-monthly-cap').show();
+        clean_er_contribution_monthly_cap();
+        $('.add-cap').show();
+        clean_er_contribution_cap();
+        $('#er-contribution-formula div input').prop('readonly', false);
+      } else {
+        $('.contribution-formula').each( (idx, item) => {
+          $(item).remove();
+        });
+        if (value == 'SH Match Traditional'){
+          append_tier(100, 3);
+          append_tier(50, 5);
+          $('#er-contribution-formula div input').prop('readonly', true);
+        } else if (value == 'SH 3% Non-elective') {
+          append_tier(100, 3);
+          $('#er-contribution-formula div input').prop('readonly', true);
+        } else if (value == 'SH Non-elective Other') {
+          append_tier(100, 3);
+          $('#er-contribution-formula div input').prop('readonly', false);
+        }
+        $('.add-monthly-cap').show();
+        clean_er_contribution_monthly_cap();
+        $('.add-cap').hide();
+        clean_er_contribution_cap();
+        $('.add-remove-tier').hide();
+      }
+    }
+  }
+  function add_remove_tier(element) {
+    if($(element).text().includes('Remove Tier')){
+      $(element).parent().parent().remove();
+    } else {
+      append_tier('', '');
+      $('.add-remove-tier a').text('Remove Tier');
+    }
+    $('.add-remove-tier a').last().text('Add Tier');
+    $('.add-remove-tier').show();
+    $('#er-contribution-formula div input').prop('readonly', false);
+  }
+  function add_remove_monthly_cap(element) {
+    if($(element).text().includes('Remove $ monthly limit')){
+      clean_er_contribution_monthly_cap();
+      $('.add-monthly-cap').show();
+    } else {
+      $('#er-contribution-monthly-cap').show();
+      $('.add-monthly-cap').hide();
+    }
+  }
+  function add_remove_cap(element) {
+    if($(element).text().includes('Remove $ annual limit')){
+      clean_er_contribution_cap();
+      $('.add-cap').show();
+    } else {
+      $('#er-contribution-cap').show();
+      $('.add-cap').hide();
+    }
+  }
+
+  function clean_er_contribution_monthly_cap() {
+    $('#er_contribution_monthly_cap').val(0);
+    $('#er-contribution-monthly-cap').hide();
+  }
+  function clean_er_contribution_cap() {
+    $('#employer_contribution_cap').val(0);
+    $('#er-contribution-cap').hide();
+  }
+  function append_tier(match, percent) {
+    var rand_id = Math.floor(Math.random() * 10000);
+    var html = `\n  <div class=\"row contribution-formula field form-group\">\n    <div class=\"col-md-4\"><\/div>\n    <div class=\"col-md-3\">\n      <input value=\"${match}\" placeholder=\"match %\" class=\"form-control\" readonly=\"readonly\" type=\"text\" name=\"employer_contribution_formula[${rand_id}][match_value]\" id=\"employer_contribution_formula_${rand_id}_match_value\" />\n    <\/div>\n    <div class=\"col-md-3\">\n      <input value=\"${percent}\" placeholder=\"cumulative % of pay\" class=\"form-control\" readonly=\"readonly\" type=\"text\" name=\"employer_contribution_formula[${rand_id}][percent_pay]\" id=\"employer_contribution_formula_${rand_id}_percent_pay\" />\n    <\/div>\n    <div class=\"col-md-2 add-remove-tier block-hide\">\n      <a onclick=\"add_remove_tier(this)\">Remove Tier<\/a>\n    <\/div>\n  <\/div>\n`;
+    if ($('#er-contribution-formula .help-block').length){
+      $(html).insertBefore('#er-contribution-formula .help-block');
+    } else {
+      $('#er-contribution-formula').append(html);
+    }
+  }
+</script>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="QACA_Plan_">QACA Plan?</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="QACA plans have a vesting schedule and are a specific type of SH plan. Check this box if the plan documents specify that this is a QACA plan." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="employer_contribution_options[qaca]" id="employer_contribution_options_qaca" value="false">
+    <input type="checkbox" name="employer_contribution_options[qaca]" id="employer_contribution_options_qaca" value="true">
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Default_Savings_Rate">Default Savings Rate</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="default_savings_rate" id="default_savings_rate" value="6" step="1" class="form-control" min="0" max="100">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Contribution_Type">Contribution Type</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="contribution_type" id="contribution_type" class="form-control" onchange=""><option selected="selected" value="0">both dollar &amp; percent</option>
+<option value="1">dollar only</option>
+<option value="2">percent only</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Auto-escalation_Rate">Auto-escalation Rate</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="autoescalate_rate" id="autoescalate_rate" value="1" step="1" class="form-control" min="0" max="100">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Support_Aftertax">Support Aftertax</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="support_aftertax" id="support_aftertax" value="false">
+    <input type="checkbox" name="support_aftertax" id="support_aftertax" value="true">
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Supports_Crypto">Supports Crypto</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="alts_crypto" id="alts_crypto" value="false">
+    <input type="checkbox" name="alts_crypto" id="alts_crypto" value="true">
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="On_Crypto_Waitlist">On Crypto Waitlist</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="alts_waitlist_crypto" id="alts_waitlist_crypto" value="false">
+    <input type="checkbox" name="alts_waitlist_crypto" id="alts_waitlist_crypto" value="true">
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Crypto_Balance_Percent_Limit">Crypto Balance Percent Limit</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="max_crypto_percent_balance" id="max_crypto_percent_balance" value="5" step="1" class="form-control" min="0" max="100">
+  </div> 
+</div>
+
+
+      </div>
+      <div id="onboarding" role="tabpanel" class="tab-pane">
+        <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="First_Deferral_Date">First Deferral Date</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="first_deferral_date" id="first_deferral_date" value="2016-12-30" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Special_Participation_Date">Special Participation Date</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="special_participation_date" id="special_participation_date" value="" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+<div id="conversion-plan-features" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Enrollment_Method">Enrollment Method</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="enrollment_method" id="enrollment_method" class="form-control" onchange=""><option value=""></option><option selected="selected" value="default">Default rate</option>
+<option value="higher_default_or_current">Default or current rate if higher</option>
+<option value="current">Current rates</option></select>
+  </div> 
+</div>
+
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Blackout_Begins">Blackout Begins</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="blackout_begins_date" id="blackout_begins_date" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Blackout_Ends">Blackout Ends</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="blackout_ends_date" id="blackout_ends_date" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+</div>
+
+<div id="non-lt-trust-fields" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Website_Live_Date">Website Live Date</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="website_live_date" id="website_live_date" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+</div>
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Enrollment_Window_Begins">Enrollment Window Begins</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="enrollment_window_begins" id="enrollment_window_begins" value="" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Enrollment_Window_Ends">Enrollment Window Ends</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="enrollment_window_ends" id="enrollment_window_ends" value="" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Re-enrollment_Date">Re-enrollment Date</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="reenrollment_date" id="reenrollment_date" value="" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+
+      </div>
+      <div id="communications" role="tabpanel" class="tab-pane">
+        <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Dave_Text">Dave Text</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="dave_text" id="dave_text" value="1000heads'&lt;br&gt;401(k) Plan" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Logo_Key">Logo Key</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="logo" id="logo" value="" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Has_Spanish_Participants">Has Spanish Participants</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="spanish_participants" id="spanish_participants" class="form-control" onchange=""><option value="true">Yes</option>
+<option selected="selected" value="false">No</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Paperless_Statement_Delivery">Paperless Statement Delivery</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="e_statement" id="e_statement" class="form-control" onchange=""><option selected="selected" value="true">Yes</option>
+<option value="false">No</option></select>
+  </div> 
+</div>
+
+
+<div id="raffle-fields" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Raffle_Prize">Raffle Prize</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="raffle_prize" id="raffle_prize" value="" placeholder="" class="form-control">
+  </div> 
+</div>
+
+
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Raffle_Date">Raffle Date</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="text" name="raffle_date" id="raffle_date" value="" placeholder="" class="form-control datepicker">
+  </div> 
+</div>
+
+</div>
+
+      </div>
+      <div id="extra-settings" role="tabpanel" class="tab-pane">
+        <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="RK_Upload_Mode">RK Upload Mode</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="rk_upload_mode" id="rk_upload_mode" class="form-control" onchange=""><option selected="selected" value="legacy">Legacy</option>
+<option value="rk2">RK2</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Plan_Year_Start">Plan Year Start</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="plan_year_start" id="plan_year_start" class="form-control" onchange=""><option value=""></option><option selected="selected" value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="ER_Match_Eligibility">ER Match Eligibility</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="er_contribution_eligibility" id="er_contribution_eligibility" class="form-control" onchange="change_eligibility($(this).val(), 'er_contribution_eligibility')"><option value=""></option><option selected="selected" value="same">Same as EE deferrals</option>
+<option value="diff">Different requirements</option></select>
+  </div> 
+</div>
+
+<div id="er_contribution_eligibility_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="ER_Match_Eligibility_Age">ER Match Eligibility Age</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="er_match_eligibility_age" id="er_match_eligibility_age" step="0.5" class="form-control" min="0" max="50">
+  </div> 
+</div>
+
+
+  <div class="row field form-group">
+  <div class="col-md-4"> 
+    <label for="ER_Match_Eligibility_Duration">ER Match Eligibility Duration</label>
+ 
+  </div>
+  <div class="col-md-4 ">
+    <select name="er_match_eligibility_duration_value" id="er_match_eligibility_duration_value" class="form-control"><option value="0">0</option>
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+<option value="5">5</option>
+<option value="6">6</option>
+<option value="7">7</option>
+<option value="8">8</option>
+<option value="9">9</option>
+<option value="10">10</option>
+<option value="11">11</option>
+<option value="12">12</option></select>
+  </div> 
+  <div class="col-md-4 ">
+    <select name="er_match_eligibility_duration_unit" id="er_match_eligibility_duration_unit" class="form-control" onchange="change_duration_unit($(this).val(), 'er_match_eligibility_duration_value')"><option value="months">Months</option></select>
+  </div>
+</div>
+
+
+  <div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="ER_Match_Eligibility_Hours">ER Match Eligibility Hours</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="er_match_eligibility_hours_requirement" id="er_match_eligibility_hours_requirement" step="1" class="form-control" min="0" max="2000">
+  </div> 
+</div>
+
+    <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="ER_Match_Plan_Entry_Frequency">ER Match Plan Entry Frequency</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="er_match_plan_entry_frequency" id="er_match_plan_entry_frequency" class="form-control" onchange="frequency_change($(this).val(), 'er_match_plan_entry_frequency_first_month', 'er_match_plan_entry_frequency_second_month')"><option value="i">Immediate</option>
+<option value="m">Monthly</option>
+<option value="q">Quarterly</option>
+<option value="sa">Semi-annually</option>
+<option value="a">Annually</option></select>
+  </div> 
+</div>
+
+<div id="er_match_plan_entry_frequency_first_month_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Month">Month</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="er_match_plan_entry_frequency_first_month" id="er_match_plan_entry_frequency_first_month" class="form-control" onchange="first_month_change($(this).val(), 'er_match_plan_entry_frequency_second_month_block')"><option value=""></option><option value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+</div>
+<div id="er_match_plan_entry_frequency_second_month_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Second_Month">Second Month</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="er_match_plan_entry_frequency_second_month" id="er_match_plan_entry_frequency_second_month" class="form-control" onchange="" readonly="readonly"><option value=""></option><option value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+</div>
+
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Profit_Sharing">Profit Sharing</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="profit_sharing" id="profit_sharing" class="form-control" onchange="change_profit_sharing($(this).val())"><option value="true">Yes</option>
+<option selected="selected" value="false">No</option></select>
+  </div> 
+</div>
+
+
+<div id="profit-sharing-fields" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Profit_Sharing_Eligibility">Profit Sharing Eligibility</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="profit_sharing_eligibility" id="profit_sharing_eligibility" class="form-control" onchange="change_eligibility($(this).val(), 'profit_sharing_eligibility')"><option value=""></option><option selected="selected" value="same">Same as EE deferrals</option>
+<option value="diff">Different requirements</option></select>
+  </div> 
+</div>
+
+<div id="profit_sharing_eligibility_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Profit_Sharing_Eligibility_Age">Profit Sharing Eligibility Age</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="profit_sharing_eligibility_age" id="profit_sharing_eligibility_age" step="0.5" class="form-control" min="0" max="50">
+  </div> 
+</div>
+
+
+  <div class="row field form-group">
+  <div class="col-md-4"> 
+    <label for="Profit_Sharing_Eligibility_Duration">Profit Sharing Eligibility Duration</label>
+ 
+  </div>
+  <div class="col-md-4 ">
+    <select name="profit_sharing_eligibility_duration_value" id="profit_sharing_eligibility_duration_value" class="form-control"><option value="0">0</option>
+<option value="1">1</option>
+<option value="2">2</option>
+<option value="3">3</option>
+<option value="4">4</option>
+<option value="5">5</option>
+<option value="6">6</option>
+<option value="7">7</option>
+<option value="8">8</option>
+<option value="9">9</option>
+<option value="10">10</option>
+<option value="11">11</option>
+<option value="12">12</option></select>
+  </div> 
+  <div class="col-md-4 ">
+    <select name="profit_sharing_eligibility_duration_unit" id="profit_sharing_eligibility_duration_unit" class="form-control" onchange="change_duration_unit($(this).val(), 'profit_sharing_eligibility_duration_value')"><option value="months">Months</option></select>
+  </div>
+</div>
+
+
+  <div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Profit_Sharing_Eligibility_Hours">Profit Sharing Eligibility Hours</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="profit_sharing_eligibility_hours_requirement" id="profit_sharing_eligibility_hours_requirement" step="1" class="form-control" min="0" max="2000">
+  </div> 
+</div>
+
+    <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Profit_Sharing_Plan_Entry_Frequency">Profit Sharing Plan Entry Frequency</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="profit_sharing_plan_entry_frequency" id="profit_sharing_plan_entry_frequency" class="form-control" onchange="frequency_change($(this).val(), 'profit_sharing_plan_entry_frequency_first_month', 'profit_sharing_plan_entry_frequency_second_month')"><option value="i">Immediate</option>
+<option value="m">Monthly</option>
+<option value="q">Quarterly</option>
+<option value="sa">Semi-annually</option>
+<option value="a">Annually</option></select>
+  </div> 
+</div>
+
+<div id="profit_sharing_plan_entry_frequency_first_month_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Month">Month</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="profit_sharing_plan_entry_frequency_first_month" id="profit_sharing_plan_entry_frequency_first_month" class="form-control" onchange="first_month_change($(this).val(), 'profit_sharing_plan_entry_frequency_second_month_block')"><option value=""></option><option value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+</div>
+<div id="profit_sharing_plan_entry_frequency_second_month_block" class="block-hide">
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Second_Month">Second Month</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="profit_sharing_plan_entry_frequency_second_month" id="profit_sharing_plan_entry_frequency_second_month" class="form-control" onchange="" readonly="readonly"><option value=""></option><option value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+</div>
+
+</div>
+
+
+  <div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Profit_Sharing_-_Hired_On_Last_Day_Of_Year_">Profit Sharing - Hired On Last Day Of Year?</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="profit_sharing_hire_last_day_of_year" id="profit_sharing_hire_last_day_of_year" class="form-control" onchange=""><option value="true">Yes</option>
+<option value="false">No</option></select>
+  </div> 
+</div>
+
+</div>
+
+<script type="text/javascript">
+  function change_profit_sharing(has_profit_sharing) {
+    if(has_profit_sharing == "true"){
+      $('#profit-sharing-fields').show();
+    } else {
+      $('#profit-sharing-fields').hide();
+    }
+  }
+</script>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Maximum_Deferral_Rate">Maximum Deferral Rate</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="max_deferral_rate" id="max_deferral_rate" value="92" step="1" class="form-control" min="0" max="100">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Roth_Contributions_Allowed_">Roth Contributions Allowed?</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="roth_contributions_allowed" id="roth_contributions_allowed" class="form-control" onchange=""><option selected="selected" value="true">Yes</option>
+<option value="false">No</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Roth_Match_Allowed_">Roth Match Allowed?</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="roth_match_allowed" id="roth_match_allowed" class="form-control" onchange=""><option selected="selected" value="true">Yes</option>
+<option value="false">No</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Force-out_Limit">Force-out Limit</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="force_out_limit" id="force_out_limit" value="5000" step="1" class="form-control" min="0" max="500000">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Loan_Number_Cap">Loan Number Cap</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="loan_number_cap" id="loan_number_cap" value="2" step="1" class="form-control" min="0" max="20">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="EACA">EACA</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="eaca" id="eaca" class="form-control" onchange=""><option value=""></option><option selected="selected" value="true">True</option>
+<option value="false">False</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Excluded_Employees">Excluded Employees</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="Select the employee classes who should be excluded from the plan. This configuration affects ADP WFN API and Trinet API downloads." data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <select name="excluded_employees[]" id="excluded_employees" class="form-control" onchange="" multiple="multiple"><option value=""></option><option value="part-time">Part-time</option>
+<option value="full-time">Full-time</option>
+<option value="intern">Intern</option>
+<option value="contractor">Contractor</option>
+<option selected="selected" value="temporary">Temporary</option>
+<option value="volunteer">Volunteer</option>
+<option value="exempt">Exempt</option>
+<option value="other">Other</option>
+<option value="non_resident_aliens">Non-resident aliens (currently not tracking)</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Auto_Escalation_Source">Auto Escalation Source</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="autoescalation_source" id="autoescalation_source" class="form-control" onchange=""><option value=""></option><option selected="selected" value="t+r">Pre-tax + Roth</option>
+<option value="t">Pre-tax only</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Auto_Escalation_Limit">Auto Escalation Limit</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="autoescalation_limit" id="autoescalation_limit" value="15" step="1" class="form-control" min="0" max="92">
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Auto_Escalation_Timing">Auto Escalation Timing</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="autoescalation_timing" id="autoescalation_timing" class="form-control" onchange=""><option value=""></option><option selected="selected" value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+<option value="5">May</option>
+<option value="6">June</option>
+<option value="7">July</option>
+<option value="8">August</option>
+<option value="9">September</option>
+<option value="10">October</option>
+<option value="11">November</option>
+<option value="12">December</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">  
+    <label for="Is_Critical_Plan_">Is Critical Plan?</label>
+
+  </div>
+  <div class="col-md-8">
+    <select name="is_critical" id="is_critical" class="form-control" onchange=""><option value="true">True</option>
+<option value="false">False</option></select>
+  </div> 
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Weekly_Assumed_Hours">Weekly Assumed Hours</label>
+    <i class="fa fa-info-circle plan-setup-field popover-inited" data-toggle="popover" data-placement="right" data-content="For every partial week worked, we will assume that a participant has worked these hours if the scheduled payroll does not list hours" data-original-title="" title=""></i>
+<script type="text/javascript">
+  $(document).ready(function(){
+    $('[data-toggle="popover"]').not('.popover-inited').each(function(){
+      var $el = $(this);
+      $el.popover({
+        trigger: 'hover',
+        html: ($el.attr('data-html') === 'true')
+      }).addClass('popover-inited');
+    });
+  });
+</script>
+
+  </div>
+  <div class="col-md-8">
+    <input type="number" name="weekly_assumed_hours" id="weekly_assumed_hours" value="45.0" step="0.1" class="form-control" min="0" max="144.0">
+  </div> 
+</div>
+
+
+<!-- For Fidelity record keeper only -->
+
+<!-- For Fidelity record keeper only -->
+
+<div id="adjust-rk-fields" class="">
+    <div class="row field form-group rk_date_row">
+      <div class="col-md-2" style="padding-left: 0px !important; margin-left: 15px !important;">
+        <input type="number" name="rk_dates_range[][plan_year]" id="rk_dates_range__plan_year" step="1" class="form-control" min="1900" max="10000">
+      </div>
+      <div class="col-md-4" style="padding-left: 0px !important;">
+        <input type="text" name="rk_dates_range[][year_begins_date]" id="rk_dates_range__year_begins_date" placeholder="Enter Year Begins (yyyy-mm-dd)" class="form-control datepicker">
+      </div>
+      <div class="col-md-4" style="padding-left: 0px !important;">
+        <input type="text" name="rk_dates_range[][year_end_date]" id="rk_dates_range__year_end_date" placeholder="Enter Year End (yyyy-mm-dd)" class="form-control datepicker">
+      </div>  
+      <div class="col-md-1" style="padding-left: 0px !important;">
+        <button type="button" class="btn btn-primary" onclick="add_date_range(this);"> Add </button>
+      </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+  function show_rk_dates(show_dates) {
+    if(show_dates == "true"){
+      $('#adjust-rk-fields').attr("class", '');
+    } else {
+      $('#adjust-rk-fields').attr("class", 'block-hide');
+    }
+  }
+
+  function add_date_range(elem) {
+    html = "<div class='row field form-group rk_date_row'><div class='col-md-2' style='padding-left: 0px !important; margin-left: 15px !important;'> <input class='form-control' id='rk_dates_range__plan_year' max='10000' min='1900' name='rk_dates_range[][plan_year]' step='1' type='number' value=''> </div> <div class='col-md-4' style='padding-left: 0px !important;'> <input class='form-control datepicker' id='rk_dates_range__year_begins_date' name='rk_dates_range[][year_begins_date]' placeholder='Enter Year Begins (yyyy-mm-dd)' type='text'> </div> <div class='col-md-4' style='padding-left: 0px !important;'> <input class='form-control datepicker' id='rk_dates_range__year_end_date' name='rk_dates_range[][year_end_date]' placeholder='Enter Year End (yyyy-mm-dd)' type='text'> </div> <div class='col-md-1' style='padding-left: 0px !important;'> <button type='button' class='btn btn-primary' onclick='add_date_range(this);'> Add </button> </div> </div>"
+    $(elem).parent().parent().after(html);
+  }
+</script>
+
+
+      </div>
+      <div id="feature-flags" role="tabpanel" class="tab-pane">
+        <div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Payroll_X-Ray">Payroll X-Ray</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="payroll_xray" id="payroll_xray" value="false">
+    <input type="checkbox" name="payroll_xray" id="payroll_xray" value="true" checked="checked">
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Payroll_Issue">Payroll Issue</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="payroll_issue" id="payroll_issue" value="false">
+    <input type="checkbox" name="payroll_issue" id="payroll_issue" value="true" checked="checked">
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Simple_Upload">Simple Upload</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="simple_upload" id="simple_upload" value="false">
+    <input type="checkbox" name="simple_upload" id="simple_upload" value="true">
+  </div>
+</div>
+
+
+<div class="row field form-group ">
+  <div class="col-md-4">
+    <label for="Suppress_Crypto_Portfolio_Alert_Email">Suppress Crypto Portfolio Alert Email</label>
+
+  </div>
+  <div class="col-md-8">
+    <input type="hidden" name="crypto_portfolio_alert_blacklist" id="crypto_portfolio_alert_blacklist" value="false">
+    <input type="checkbox" name="crypto_portfolio_alert_blacklist" id="crypto_portfolio_alert_blacklist" value="true">
+  </div>
+</div>
+
+
+      </div>
+        <div id="year-end" role="tabpanel" class="tab-pane">
+          <div class="field form-group">
+  <label for="select_year_end">Select year end</label>
+  <select name="audit_year" id="audit_year" class="form-control" style="height: 30px;" onchange="change_year($(this).val())"><option value="2016">2016</option>
+<option value="2017">2017</option>
+<option value="2018">2018</option>
+<option value="2019">2019</option>
+<option value="2020">2020</option>
+<option value="2021">2021</option>
+<option value="2022">2022</option>
+<option value="2023">2023</option>
+<option value="2024">2024</option>
+<option selected="selected" value="2025">2025</option>
+<option value="2026">2026</option></select>
+</div>
+
+<label for="company_info">Company Info</label><br>
+<div class="field form-group">
+  <label for="company_officers">Please provide the full name of the company officer(s) (These are generally individuals named in the company's by-laws or appointed through board resolutions:</label><br>
+  <input type="text" name="company_officers" id="company_officers" class="form-control" style="height: 30px;">
+</div>
+
+<div class="field form-group">
+  <label for="organization_type">How is your company organized?</label><br>
+  <select name="organization_type" id="organization_type" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="c-corp">C-Corp</option>
+<option value="llc">LLC</option>
+<option value="partnership">Partnership</option>
+<option value="s-corp">S-Corp</option>
+<option value="sole proprieter">Sole Proprieter</option>
+<option value="not for profit">Not for profit</option></select>
+</div>
+
+<div class="field form-group">
+  <label for="company_control_type">Is the company part of a controlled group of businesses or an affiliated service group?</label><br>
+  <select name="company_control_type" id="company_control_type" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+<div class="field form-group">
+  <label for="mergers_and_acquisitions_participation">
+    Did you merge with, acquire, or spin off any entities in  <span class="current-year">2025</span>
+</label>  <br>
+  <select name="mergers_and_acquisitions_participation" id="mergers_and_acquisitions_participation" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+
+<div class="field form-group col-md-12 add-merger-info-button">
+  <button name="button" type="button" id="add_merger_info_button" class="btn btn-primary" style="float: left; margin-right: 10px;">add merger</button>
+</div>
+
+<div class="field form-group">
+  <label for="other_retirement_plans_any">Does your company offer any other retirement plans? (Such as a Cash Balance plan, Defined Benefit plans, etc.)</label><br>
+  <select name="other_retirement_plans_any" id="other_retirement_plans_any" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+<div class="field form-group">
+  <label for="other_retirement_plans_contact">Who is responsible for non-discrimination testing?</label><br>
+  <input type="text" name="other_retirement_plans_contact" id="other_retirement_plans_contact" class="form-control" style="height: 30px;">
+</div>
+
+<label for="key_employees">Key Employees</label><br>
+
+<div class="field form-group">
+  <label for="significant_ownership_in_other_businesses">Do the owners of the company own or have a significant ownership interest in any other businesses?</label><br>
+  <select name="significant_ownership_in_other_businesses" id="significant_ownership_in_other_businesses" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+<div class="field form-group">
+  <label for="other_businesses_have_employees">Do the other businesses have employees?</label><br>
+  <select name="other_businesses_have_employees" id="other_businesses_have_employees" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+<div class="field form-group">
+  <label for="unreported_compensation">List individuals who receive K-1 or Schedule C income.</label><br>
+  <input type="text" name="unreported_compensation" id="unreported_compensation" class="form-control" style="height: 30px;">
+</div>
+<!-- Participant Info -->
+<label for="participant_info">Participant Info</label><br>
+<div class="field form-group">
+  <label for="employee_types">Did any of the below types of employees perform service for the company this year?</label><br>
+</div>
+<div class="field form-group">
+  <input type="checkbox" name="employee_types_self_employed" id="employee_types_self_employed" value="true">
+  <label for="employee_types_self_employed">Self-employed</label><br>
+
+  <input type="checkbox" name="employee_types_temporary" id="employee_types_temporary" value="true">
+  <label for="employee_types_temporary">Temporary</label><br>
+
+  <input type="checkbox" name="employee_types_leased" id="employee_types_leased" value="true">
+  <label for="employee_types_leased">Leased</label><br>
+
+  <input type="checkbox" name="employee_types_part_time" id="employee_types_part_time" value="true">
+  <label for="employee_types_part_time">Part-Time</label><br>
+
+  <input type="checkbox" name="employee_types_union" id="employee_types_union" value="true">
+  <label for="employee_types_union">Union</label><br>
+
+  <input type="checkbox" name="employee_types_non_resident" id="employee_types_non_resident" value="true">
+  <label for="employee_types_non_resident">Non-resident Alien</label><br>
+
+  <input type="checkbox" name="employee_types_not_applicable" id="employee_types_not_applicable" value="true">
+  <label for="employee_types_not_applicable">Not Applicable</label>
+</div>
+
+<div class="field form-group">
+  <label for="deceased_participants_any">Were any participants declared deceased this year?</label><br>
+  <select name="deceased_participants_any" id="deceased_participants_any" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+<div class="field form-group">
+  <label for="deceased_participants_names">Please enter the full name of the participant(s) declared deceased this year.</label><br>
+  <input type="text" name="deceased_participants_names" id="deceased_participants_names" class="form-control" style="height: 30px;">
+</div>
+<div class="field form-group">
+  <label for="military_participants_any">Were any participants on military leave this year?</label><br>
+  <select name="military_participants_any" id="military_participants_any" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+<div class="field form-group">
+  <label for="military_participants_names">Please enter the full name of any participant(s) that were on military leave this year.</label><br>
+  <input type="text" name="military_participants_names" id="military_participants_names" class="form-control" style="height: 30px;">
+</div>
+<div class="field form-group">
+  <label for="retired_participants_any">Were there any participants that retired this year?</label><br>
+  <select name="retired_participants_any" id="retired_participants_any" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+<div class="field form-group">
+  <label for="retired_participants_names">Please enter the name of the participant(s) that retired this year.</label><br>
+  <input type="text" name="retired_participants_names" id="retired_participants_names" class="form-control" style="height: 30px;">
+</div>
+
+<label for="plan_info">Plan Info</label><br>
+<div class="field form-group">
+  <label for="collective_bargaining">Is the Plan established or maintained pursuant to a collective bargaining agreement?</label><br>
+  <select name="collective_bargaining" id="collective_bargaining" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+
+<div class="field form-group">
+  <label for="outside_assets_any">Does your Plan have any outside assets? (Such as a brokerage account at a separate provider)</label><br>
+  <select name="outside_assets_any" id="outside_assets_any" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+
+<div class="field form-group col-md-12 add-outside-assets-button">
+  <button name="button" type="button" id="add_outside_assets_button" class="btn btn-primary" style="float: left; margin-right: 10px;">add outside asset</button>
+</div>
+
+<div class="field form-group">
+  <label for="year_end_match_information_plan">
+    Do you plan on making any year-end employer contributions?*<span class="current-year">2025</span>
+</label>  <br>
+  <select name="year_end_match_information_plan" id="year_end_match_information_plan" class="form-control" style="height: 30px;"><option value=""></option>
+<option value="true">true</option>
+<option value="false">false</option></select>
+</div>
+
+<div class="field form-group">
+  <label for="year_end_match_information_whom">Whom should ForUsAll contact to discuss contribution?</label><br>
+  <input type="text" name="year_end_match_information_whom" id="year_end_match_information_whom" class="form-control" style="height: 30px;">
+</div>
+
+<div class="field form-group">
+  <label for="year_end_match_information_choice">Which of the following employer contribution types do you plan to make?</label><br>
+  <select name="year_end_match_information_choice[]" id="year_end_match_information_choice" selected="selected" multiple="multiple" class="form-control"><option value="discretionary">Discretionary employer match</option>
+<option value="profit_sharing">Profit sharing</option>
+<option value="safe_harbor">Safe harbor contribution</option></select>
+</div>
+
+<div class="field form-group">
+  <label for="ownership_information_main">Please provide ownership information for any individual who has vested options or stock with a value of 1% or more of the business. (this includes options which may not have been exercised):</label><br>
+</div>
+<div class="field form-group col-md-12 add-ownership">
+  <button name="button" type="button" id="add_ownership_button" class="btn btn-primary" style="float: left; margin-right: 10px;">add owner</button>
+</div>
+<div class="field form-group col-md-12">
+  <button name="button" type="button" id="audit_button" class="btn btn-primary" style="float: left; margin-right: 10px;" onclick="create_rec()">Save</button>
+  <div style="margin-top: 1%;"> This SAVE button is effective for this tab only. Please click save for each year you edit.</div>
+</div>
+<script type="text/javascript">
+  $('#add_ownership_button').click(function(){
+    $('.add-ownership').before("<div class=\"field form-group col-md-12 ownership-info\">\n  <div class=\"remove col-lg-1\" style=\"cursor: pointer; padding: 20px 0px 0px; width: 20px;\">\n    x\n  <\/div>\n  <div class=\"field form-group col-lg-3\" style=\"padding: 0px;\">\n    <label for=\"ownership_information_owner_first_name\">First Name<\/label><br>\n    <input type=\"text\" name=\"ownership_information_owner_first_name\" id=\"ownership_information_owner_first_name\" placeholder=\"first name\" />\n  <\/div>\n  <div class=\"field form-group col-lg-3\" style=\"padding: 0px;\">\n    <label for=\"ownership_information_owner_last_name\">Last Name<\/label><br>\n    <input type=\"text\" name=\"ownership_information_owner_last_name\" id=\"ownership_information_owner_last_name\" placeholder=\"last name\" />\n  <\/div>\n  <div class=\"field form-group col-lg-3\" style=\"padding: 0px;\">\n    <label for=\"ownership_information_owner_percent\">Ownership %<\/label><br>\n    <input type=\"number\" name=\"ownership_information_owner_percent\" id=\"ownership_information_owner_percent\" placeholder=\"ownership %\" />\n  <\/div>\n  <div class=\"field form-group col-lg-2\" style=\"padding: 0px;\">\n    <label for=\"ownership_information_owner_ssn\">SSN<\/label><br>\n    <input type=\"text\" name=\"ownership_information_owner_ssn\" id=\"ownership_information_owner_ssn\" placeholder=\"ssn\" />\n  <\/div>\n  <div class=\"field form-group\" style=\"padding: 0px;\">\n    <label for=\"ownership_information_relationship_any\">Are there any employed related person(s) (i.e., spouse, parents, grandparents, and children)<\/label><br>\n  <\/div>\n  <div class=\"field form-group col-md-12 add-relation-button\">\n    <button name=\"button\" type=\"button\" id=\"add_relationship_button\" class=\"btn btn-primary\" style=\"float: left; margin-right: 10px;\">add relation<\/button>\n  <\/div>\n<\/div>\n<script type=\"text/javascript\">\n  $(\".add-relation-button\").click(function(e){\n    e.stopPropagation();\n    e.stopImmediatePropagation();\n    $(this).before(\"<div class=\\\"field form-group col-lg-12 ownership-relation-info\\\" style=\\\"padding: 0px;\\\">\\n  <div class=\\\"remove col-lg-1\\\" style=\\\"cursor: pointer; padding: 20px 0px 0px; width: 20px;\\\">\\n    x\\n  <\\/div>\\n  <div class=\\\"field form-group col-lg-3\\\" style=\\\"padding: 0px;\\\">\\n    <label for=\\\"ownership_information_relation_first_name\\\">First Name<\\/label><br>\\n    <input type=\\\"text\\\" name=\\\"ownership_information_relation_first_name\\\" id=\\\"ownership_information_relation_first_name\\\" placeholder=\\\"first name\\\" />\\n  <\\/div>\\n  <div class=\\\"field form-group col-lg-3\\\" style=\\\"padding: 0px;\\\">\\n    <label for=\\\"ownership_information_relation_last_name\\\">Last Name<\\/label><br>\\n    <input type=\\\"text\\\" name=\\\"ownership_information_relation_last_name\\\" id=\\\"ownership_information_relation_last_name\\\" placeholder=\\\"last name\\\" />\\n  <\\/div>\\n  <div class=\\\"field form-group col-lg-3\\\" style=\\\"padding: 0px;\\\">\\n    <label for=\\\"ownership_information_relationship\\\">Relationship to owner<\\/label><br>\\n    <select name=\\\"ownership_information_relationship\\\" id=\\\"ownership_information_relationship\\\" placeholder=\\\"relationship\\\"><option value=\\\"\\\"><\\/option>\\n<option value=\\\"Grandparent-Child\\\">Grandparent-Child<\\/option>\\n<option value=\\\"Parent-Child\\\">Parent-Child<\\/option>\\n<option value=\\\"Spouse\\\">Spouse<\\/option><\\/select>\\n  <\\/div>\\n  <div class=\\\"field form-group col-lg-2\\\" style=\\\"padding: 0px;\\\">\\n    <label for=\\\"ownership_information_relation_ssn\\\">SSN<\\/label><br>\\n    <input type=\\\"text\\\" name=\\\"ownership_information_relation_ssn\\\" id=\\\"ownership_information_relation_ssn\\\" placeholder=\\\"ssn\\\" />\\n  <\\/div>\\n<\\/div>\\n<script type=\\\"text/javascript\\\">\\n  $(\\\".remove\\\").click(function(e){\\n    e.stopPropagation();\\n    e.stopImmediatePropagation();\\n    $(this).parent().remove()\\n  });\\n<\\/script>\\n\");\n  });\n\n  $(\".remove\").click(function(e){\n    e.stopPropagation();\n    e.stopImmediatePropagation();\n    $(this).parent().remove()\n  });\n<\/script>\n");
+  });
+  $('#add_merger_info_button').click(function(){
+    $('.add-merger-info-button').before("<div class=\"field form-group col-lg-12 merge-info\" style=\"padding: 0\">\n    <div class=\"field form-group col-lg-3\" style=\"padding: 0\">\n        <label for=\"close_date\">Close date(YYYY-MM-DD)<\/label><br>\n        <input type=\"text\" name=\"mergers_and_acquisitions_close_date\" id=\"mergers_and_acquisitions_close_date\" placeholder=\"close date\" />\n    <\/div>\n\n    <div class=\"field form-group col-lg-3\">\n        <label for=\"company_name\">Company name<\/label><br>\n        <input type=\"text\" name=\"mergers_and_acquisitions_company_name\" id=\"mergers_and_acquisitions_company_name\" placeholder=\"company name\" />\n    <\/div>\n\n    <div class=\"field form-group col-lg-3\">\n        <label for=\"ein\">Ein<\/label><br>\n        <input type=\"text\" name=\"mergers_and_acquisitions_ein\" id=\"mergers_and_acquisitions_ein\" placeholder=\"EIN\" />\n    <\/div>\n\n    <div class=\"field form-group col-lg-3\">\n        <label for=\"transaction_type\">Transaction type<\/label><br>\n        <select name=\"mergers_and_acquisitions_transaction_type\" id=\"mergers_and_acquisitions_transaction_type\" placeholder=\"transaction type\"><option value=\"\"><\/option>\n<option value=\"asset\">asset<\/option>\n<option value=\"stock\">stock<\/option><\/select>\n    <\/div>\n<\/div>\n");
+  });
+  $('#add_outside_assets_button').click(function(){
+    $('.add-outside-assets-button').before("<div class=\"field form-group col-lg-12 outside-assets\" style=\"padding:0\">\n  <div class=\"field form-group col-lg-6\" style=\"padding: 0\">\n    <label for=\"outside_assets_custodian\">Custodian of the outside accounts. (For example, if the account is a self-directed brokerage account - not associated with your current recordkeeping platform.)<\/label><br>\n    <input type=\"text\" name=\"outside_assets_custodian\" id=\"outside_assets_custodian\" placeholder=\"custodian\" />\n  <\/div>\n\n  <div class=\"field form-group col-lg-6\">\n    <label for=\"outside_assets_participant\">Participant Name<\/label><br>\n    <input type=\"text\" name=\"outside_assets_participant\" id=\"outside_assets_participant\" placeholder=\"participant\" />\n  <\/div>\n<\/div>\n");
+  });
+  $('#erisa_bond_information_expiration_date').datepicker({format: 'yyyy-mm-dd'});
+  $audit_year = $('#audit_year');
+  $audit_button = $('#audit_button');
+  $audit_year.val(2025);
+  function create_rec() {
+    let owner = []
+    $(".ownership-info").each(function(index) {
+      var current_element = $(this);
+      if (['first_name', 'last_name', 'percent', 'ssn'].every((key)=> !$(this).find("#ownership_information_owner_" + key).val())){
+        return
+      }
+      owner.push({
+        first_name: $(this).find("#ownership_information_owner_first_name").val(),
+        last_name:  $(this).find("#ownership_information_owner_last_name").val(),
+        ownership:  $(this).find("#ownership_information_owner_percent").val(),
+        ssn:        $(this).find("#ownership_information_owner_ssn").val(),
+        relations: []
+      });
+      $(this).children(".ownership-relation-info").each(function() {
+        var current_element = $(this);
+        if (['relation_first_name','relation_last_name', 'relationship', 'relation_ssn'].every((key)=> !$(this).find("#ownership_information_" + key).val())){
+          return
+        }
+        owner[index].relations.push({
+          first_name: $(this).find("#ownership_information_relation_first_name").val(),
+          last_name: $(this).find("#ownership_information_relation_last_name").val(),
+          relationship: $(this).find("#ownership_information_relationship").val(),
+          ssn: $(this).find("#ownership_information_relation_ssn").val()
+        })
+      });
+    });
+    let merger_info = []
+    $(".merge-info").each(function() {
+      var current_element = $(this);
+      if (['close_date', 'company_name', 'ein', 'transaction_type'].every((key)=> !$(this).find("#mergers_and_acquisitions_" + key).val())){
+        return
+      }
+      merger_info.push({
+        close_date: $(this).find("#mergers_and_acquisitions_close_date").val(),
+        company_name: $(this).find("#mergers_and_acquisitions_company_name").val(),
+        ein: $(this).find("#mergers_and_acquisitions_ein").val(),
+        transaction_type: $(this).find("#mergers_and_acquisitions_transaction_type").val(),
+      })
+    });
+    let asset = []
+    $(".outside-assets").each(function() {
+      var current_element = $(this);
+      if (['custodian', 'participant'].every((key)=> !$(this).find("#outside_assets_" + key).val())){
+        return
+      }
+      asset.push({
+        custodian: $(this).find("#outside_assets_custodian").val(),
+        participant: $(this).find("#outside_assets_participant").val(),
+      })
+    });
+    let year_end_choices = {};
+
+    $('#year_end_match_information_choice option:selected').each((idx, el) => {
+      year_end_choices[el.value] = el.selected;
+    });
+
+    Array.from($('#year_end_match_information_choice option:selected')).map(x => x.value)
+    values = { 'plan_audit_information': {
+        audit_year: $("#audit_year").val(),
+        collective_bargaining: $("#collective_bargaining").val(),
+        company_control_type: $("#company_control_type").val(),
+        company_officers: $("#company_officers").val(),
+        employee_types: {
+          leased: $("#employee_types_leased").is(":checked"),
+          non_resident: $("#employee_types_non_resident").is(":checked"),
+          not_applicable: $("#employee_types_not_applicable").is(":checked"),
+          part_time: $("#employee_types_part_time").is(":checked"),
+          self_employed: $("#employee_types_self_employed").is(":checked"),
+          temporary: $("#employee_types_temporary").is(":checked"),
+          union: $("#employee_types_union").is(":checked"),
+        },
+        // TODO: We should probably be using nested fields for these sorts of things.
+        erisa_bond_information: {
+          expiration_date: $("#erisa_bond_information_expiration_date").val(),
+          policy_amount:   $("#erisa_bond_information_policy_amount").val(),
+          fua_sourced:     $("#erisa_bond_information_fua_sourced").val(),
+        },
+        mergers_and_acquisitions: {
+          participation: $("#mergers_and_acquisitions_participation").val(),
+          mergers: merger_info,
+        },
+        military_deceased_and_retired_participants: {
+          deceased: {
+            any: $("#deceased_participants_any").val(),
+            names: $("#deceased_participants_names").val(),
+          },
+          military: {
+            any: $("#military_participants_any").val(),
+            names: $("#military_participants_names").val(),
+          },
+          retired: {
+            any: $("#retired_participants_any").val(),
+            names: $("#retired_participants_names").val(),
+          },
+        },
+        organization_type: $("#organization_type").val(),
+        other_businesses_have_employees: $("#other_businesses_have_employees").val(),
+        other_retirement_plans: {
+          any: $("#other_retirement_plans_any").val(),
+          whom: $("#other_retirement_plans_contact").val(),
+        },
+        outside_assets: {
+          any: $("#outside_assets_any").val(),
+          assets: asset,
+        },
+        ownership_information: {
+          owners: owner,
+        },
+        year_end_match_information: Object.assign(year_end_choices, {
+          plan: $('#year_end_match_information_plan').val(),
+          whom: $('#year_end_match_information_whom').val()
+        }),
+        significant_ownership_in_other_businesses: $("#significant_ownership_in_other_businesses").val(),
+        unreported_compensation: $("#unreported_compensation").val(),
+      },
+      plan_id : 259,
+    };
+      values['plan_audit_information_id'] = null
+    $.ajax({
+      type: 'POST',
+      url: 'plan_audit_information/', //sumbits it to the given url of the form
+      data: values,
+      dataType: 'script'
+    }).success(function(json){
+    });
+  }
+  function change_year(val) {
+    $('.current-year').each(function(idx) { this.innerText = val });
+    $.ajax({
+      url: '/plans/' + 259 + '/edit' + '?audit_year='+ val,
+      dataType: "script"
+    });
+  }
+</script>
+
+        </div>
+      <div id="plan-divisions" role="tabpanel" class="tab-pane">
+      </div>
+    </div>
+  </div>
+</div>
+<div class="field form-group ">
+  <label for="Notes">Notes</label>
+
+  <textarea name="notes" id="notes" class="form-control"></textarea>
+</div>
+
+<style>
+.block-hide
+{
+  display: none;
+}
+
+.y-margin--md
+{
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.top-margin--lg
+{
+  margin-top: 32px;
+}
+
+.x-margin--lg
+{
+  margin-left: 32px;
+  margin-right: 32px;
+}
+.plan-feature-tab
+{
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+.popover{
+  min-width: 200px;
+}
+
+</style>
+
+<script type="text/javascript">
+  $('.datepicker').datepicker({
+    format: 'yyyy-mm-dd',
+    autoclose: true,
+  });
+
+  function change_sfdc_id() {
+    var val = $('#sfdc-id div a span').text();
+    val = val.includes('Add') ? '' : val;
+    $("#sfdc-id-popup").html(`<div class=\"modal fade\" id=\"sfdc-id-modal\" role=\"dialog\" aria-hidden=\"true\" tabindex=\"-1\">\n  <div class=\"modal-dialog\">\n    <div class=\"modal-content\">\n      <div class=\"modal-header bumper-bottom--sm\">\n        Enter sfcd id\n        <button type=\"button\" class=\"close fa fa-times fa-2x\" data-dismiss=\"modal\" aria-hidden=\"true\"><\/button>\n      <\/div>\n      <div class=\"modal-body comment-modal-body\">\n        <input type=\"text\" name=\"sfdc_modal_id_field\" id=\"sfdc_modal_id_field\" value=\"${val}\" />\n      <\/div>\n      <div class=\"modal-footer\">\n        <button type=\"button\" class=\"btn btn-primary\" onclick=\"set_sfdc_id()\">Update<\/button>\n      <\/div>\n    <\/div>\n  <\/div>\n<\/div>\n`);
+    $("#sfdc-id-modal").modal({
+      show: true,
+      backdrop: false,
+    });
+  }
+
+  function set_sfdc_id() {
+    var val = $('#sfdc_modal_id_field').val();
+    $('#sfdc-id div a span').text(!!val ? val : 'Add');
+    $('#sfdc_id').val(val);
+    $('#sfdc-id-modal').removeClass('fade').modal('hide').data('bs.modal', null );
+    return false;
+  }
+
+  function change_active(val) {
+    var options = [['', null], ["NCE", "short_psa"], ["Implementation", "extended_psa"], ["Ongoing", "actively_managed"], ["Pending Termination", "pending_termination"]]
+    var inactive_statuses = [['', null], ["Terminated", "terminated"]];
+    if (val == 'false' || val == false) {
+      options = inactive_statuses;
+    }
+    var element = $('#status');
+    element.empty(); // remove old options
+    $.each(options, function(index, option) {
+      element.append($("<option></option>")
+         .attr("value", option[1]).text(option[0]));
+    });
+  }
+
+  function effective_date_change(val) {
+    // new plan
+    if (!$('#version_id').val()) return;
+
+    var re = /^\d{4}-\d{2}-\d{2}$/;
+    var original_date = '2022-02-12';
+    if (original_date && val.match(re) && original_date != val) {
+      $("#effective-date-change-popup").html("<div class=\"modal fade\" id=\"effective-date-change-modal\" role=\"dialog\" aria-hidden=\"true\" tabindex=\"-1\">\n  <div class=\"modal-dialog\">\n    <div class=\"modal-content\">\n      <div class=\"modal-header bumper-bottom--sm\">\n        Change Effective Date\n        <button type=\"button\" class=\"close fa fa-times fa-2x\" data-dismiss=\"modal\" aria-hidden=\"true\"><\/button>\n      <\/div>\n      <div class=\"modal-body comment-modal-body\">\n        <p>\n          It looks like the plan is changing and we should create a new snapshot. Do you want to create a new snapshot with an effective date<sup>*<\/sup> for the change?\n        <\/p>\n        <small class=\"text-muted\">\n         <sup>*<\/sup>By default, we use today as the effective date for the change\n        <\/small>\n      <\/div>\n      <div class=\"modal-footer\">\n        <button type=\"button\" class=\"btn btn-primary\" onclick=\"set_to_new();\">Yes, I want to create one.<\/button>\n        <button type=\"button\" id=\"change-ed-update-plan\" class=\"btn btn-secondary\" data-dismiss=\"modal\">No, we shouldn\'t create a new snapshot.<\/button>\n      <\/div>\n    <\/div>\n  <\/div>\n<\/div>\n<script type=\"text/javascript\">\n  function set_to_new() {\n    $(\'#version_id\').val(null);\n    $(\'#effective-date-change-modal\').removeClass(\'fade\').modal(\'hide\').data(\'bs.modal\', null );\n    return false;\n  }\n\n  $(document).on(\'click\', \'#change-ed-update-plan\', function() {\n    $(\'#effective-date-change-modal\').removeClass(\'fade\').modal(\'hide\').data(\'bs.modal\', null );\n    return false;\n  });\n<\/script>\n");
+      $("#effective-date-change-modal").modal({
+        show: true,
+        backdrop: false,
+      });
+    }
+  }
+
+  function change_plan_type(val) {
+    if(val == 'conversion') {
+      $('#conversion-plan-features').show();
+      var enrollment_type = $('#enrollment_type').val();
+      var method = $('#enrollment_method').val();
+      if (!method){
+        if (enrollment_type == 'opt_in_for_all') {
+          $('#enrollment_method').val('current');
+        } else {
+          $('#enrollment_method').val('default');
+        }
+      }
+    } else {
+      $('#conversion-plan-features').hide();
+    }
+  }
+
+  function change_status(val) {
+    var nce_status_as_of = '';
+    var psa_ext_status_as_of = '';
+    var actively_managed_status_as_of = '2016-12-30';
+    var pending_termination_status_as_of = '';
+    var terminated_status_as_of = '2022-04-30';
+
+    if (val == 'short_psa' ) {
+      $('#status_as_of').val(nce_status_as_of);
+
+    } else if (val == 'extended_psa' ) {
+      $('#status_as_of').val(psa_ext_status_as_of);
+
+    } else if (val == 'actively_managed' ) {
+      $('#status_as_of').val(actively_managed_status_as_of);
+
+    } else if (val == 'pending_termination' ) {
+      $('#status_as_of').val(pending_termination_status_as_of);
+
+    } else if (val == 'terminated' ) {
+      $('#status_as_of').val(terminated_status_as_of);
+    } else {
+      $('#status_as_of').val(null);
+    }
+  }
+
+  function rk_id_change(rk_id) {
+    if(rk_id == 2) {
+      $('#lt-rk-fields').show()
+      $('#non-lt-trust-fields').hide();
+    } else {
+      $('#lt-rk-fields').hide();
+      $('#non-lt-trust-fields').show()
+    }
+    $('#fund-lineup').load('plans/load_fund_lineup?rk_id=' + rk_id);
+  }
+
+  function enrollment_type_change(val) {
+    var affected_fields = [];
+
+    if (val == 'opt_in_for_all') {
+      $('#raffle-fields').show();
+      affected_fields.push({
+        name: 'Auto-escalation Rate',
+        val: 0,
+      })
+      $('#autoescalate_rate').val(0);
+
+      affected_fields.push({
+        name: 'EACA',
+        val: 'False',
+      })
+      $('#eaca').val('false');
+
+      affected_fields.push({
+        name: 'Enrollment Method',
+        val: 'Current rates'
+      });
+      $('#enrollment_method').val('current');
+    } else {
+      $('#raffle-fields').hide();
+      $('#autoescalate_rate').val(1);
+      affected_fields.push({
+        name: 'Auto-escalation Rate',
+        val: 1,
+      })
+      affected_fields.push({
+        name: 'EACA',
+        val: 'True',
+      })
+      $('#eaca').val('true');
+      affected_fields.push({
+        name: 'Enrollment Method',
+        val: 'Default rates'
+      });
+      $('#enrollment_method').val('default');
+    }
+    alert_msg = 'Changing Enrollment Type will set:\n';
+    affected_fields.forEach((item) => {
+      alert_msg = `${alert_msg} \t${item.name}: ${item.val}\n`;
+    });
+    alert(alert_msg);
+  }
+
+  function change_duration_unit(unit, value_field) {
+    var new_options = [];
+    if(unit == 'days') {
+      new_options = [0, 30, 60, 90];
+    } else {
+      new_options = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    }
+
+    var element = $(`#${value_field}`);
+    element.empty(); // remove old options
+    $.each(new_options, function(index, key) {
+      element.append($("<option></option>")
+         .attr("value", key).text(key));
+    });
+  }
+
+  function change_eligibility(eligibility_option, eligibility_field) {
+    if(eligibility_option == 'diff'){
+      $(`#${eligibility_field}_block`).show();
+    } else {
+      $(`#${eligibility_field}_block`).hide();
+    }
+  }
+
+  function frequency_change(frequency, first_month_field, second_month_field) {
+    if(frequency == 'a'){
+      $(`#${first_month_field}_block div div label`).text('Month');
+      $(`#${first_month_field}_block`).show();
+      $(`#${second_month_field}_block div div select`).val('');
+      $(`#${second_month_field}_block`).hide();
+    } else if(frequency == 'sa'){
+      $(`#${first_month_field}_block div div label`).text('First Month');
+      $(`#${first_month_field}_block`).show();
+      $(`#${second_month_field}_block`).show();
+    } else {
+      $(`#${first_month_field}_block div div select`).val('');
+      $(`#${first_month_field}_block`).hide();
+
+      $(`#${second_month_field}_block div div select`).val('');
+      $(`#${second_month_field}_block`).hide();
+    }
+  }
+
+  function first_month_change(val, second_month_field_block) {
+    if(!val){
+      $(`#${second_month_field_block} div div select`).val(val);
+    } else {
+      $(`#${second_month_field_block} div div select`).val((Number(val) + 5) % 12 + 1);
+    }
+  }
+
+  $('#plan_division_tab').on('shown.bs.tab', function() {
+    $('#plan-divisions').html('Processing...');
+    $.ajax({
+      url: '/plans/259/divisions',
+      dataType: 'script',
+      method: 'GET',
+    })
+  });
+
+</script>
+
+      </div>
+      <div class="actions">
+        <input type="submit" name="commit" value="Save" class="btn btn-primary forus-btn-color" data-disable-with="Saving ...">
+        <a class="btn btn-primary forus-btn-color" href="/plans">Cancel</a>
+      </div>
+    </div>
+</form>    <div class="col-md-5" align="left ">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h4>Product Gates</h4>
+            </div>
+            <div class="panel-body">
+              <div class="scrollbar" id="style-default">
+                  <a class="row" href="/product_gate/view/259">
+    <div class="col-xs-6">
+      Payroll Download
+    </div>
+    <div class="col-xs-2">
+      <span class="glyphicon glyphicon-ok text-success"> </span>
+    </div>
+    <div class="col-xs-4">
+        As of 2016-12-30
+    </div>
+  </a>
+  <a class="row" href="/product_gate/view/259">
+    <div class="col-xs-6">
+      New Hire Communication
+    </div>
+    <div class="col-xs-2">
+      <span class="glyphicon glyphicon-ok text-success"> </span>
+    </div>
+    <div class="col-xs-4">
+        As of 2016-12-30
+    </div>
+  </a>
+  <a class="row" href="/product_gate/view/259">
+    <div class="col-xs-6">
+      Onboard Communication
+    </div>
+    <div class="col-xs-2">
+      <span class="glyphicon glyphicon-warning-sign text-warning"> </span>
+    </div>
+    <div class="col-xs-4">
+    </div>
+  </a>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h4>Timeline</h4>
+            </div>
+            <div class="panel-body notes-panel">
+              <div class="scrollbar" id="style-default">
+                  <div>
+    <ul>
+        <li> 
+            Effective on
+           2022-02-12  with the following changes   
+        </li>
+        <li> Changed By: kevin.payton@forusall.com </li>
+        <li> Changes:<br>
+            active : true to false <br>
+            status : actively_managed to terminated <br>
+            terminated_status_as_of : None to 2022-04-30 <br>
+            fund_lineup_id : 81 to 88 <br>
+            excluded_employees : [] to ["temporary"] <br>
+            simple_upload : None to false <br>
+            employer_contribution_options : None to {"qaca"=&gt;"false"} <br>
+            e_statement : None to true <br>
+            contribution_type : None to 0 <br>
+            rk_upload_mode : None to legacy <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            Effective on
+           2022-02-05  with the following changes   
+        </li>
+        <li> Changed By:  </li>
+        <li> Changes:<br>
+            fund_lineup_id : 27 to 81 <br>
+            eligibility_min_age : 18 to 18.0 <br>
+            max_crypto_percent_balance : None to 5 <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li>
+            Effective on
+           2016-11-20 
+        </li>
+        <li> Changed By: tzipora.henig@forusall.com </li>
+    </ul>
+  </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h4>Notes</h4>
+            </div>
+            <div class="panel-body notes-panel">
+              <div class="scrollbar" id="style-default">
+                  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2024-12-17  with the following changes   
+        </li>
+        <li> Changed By: kevin.payton@forusall.com </li>
+          <li> Notes: removed pro </li>
+        <li> Changes:<br>
+            symlink : 1000heads - PRO to 1000heads <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2024-12-17  with the following changes   
+        </li>
+        <li> Changed By: kevin.payton@forusall.com </li>
+          <li> Notes: updated short name </li>
+        <li> Changes:<br>
+            symlink : 1000heads to 1000heads - PRO <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2024-04-12  with the following changes   
+        </li>
+        <li> Changed By: alicia.palmer@forusall.com </li>
+          <li> Notes: reset </li>
+        <li> Changes:<br>
+            company_name : 1000headstest to 1000heads <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2024-04-12  with the following changes   
+        </li>
+        <li> Changed By: alicia.palmer@forusall.com </li>
+          <li> Notes: test </li>
+        <li> Changes:<br>
+            company_name : 1000heads to 1000headstest <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2023-11-29  with the following changes   
+        </li>
+        <li> Changed By: alicia.palmer@forusall.com </li>
+          <li> Notes: reverting test </li>
+        <li> Changes:<br>
+            employer_contribution_options : {"qaca"=&gt;"true"} to {"qaca"=&gt;"false"} <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2023-11-29  with the following changes   
+        </li>
+        <li> Changed By: alicia.palmer@forusall.com </li>
+          <li> Notes: testing </li>
+        <li> Changes:<br>
+            simple_upload : None to false <br>
+            employer_contribution_options : None to {"qaca"=&gt;"true"} <br>
+            rk_upload_mode : None to legacy <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2023-08-04  with the following changes   
+        </li>
+        <li> Changed By: alicia.palmer@forusall.com </li>
+          <li> Notes: test </li>
+        <li> Changes:<br>
+            official_plan_name : test to None <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2023-08-04  with the following changes   
+        </li>
+        <li> Changed By: alicia.palmer@forusall.com </li>
+          <li> Notes: test </li>
+        <li> Changes:<br>
+            official_plan_name : None to test <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2023-02-17  with the following changes   
+        </li>
+        <li> Changed By: eva.koehne@forusall.com </li>
+          <li> Notes: RM 598 </li>
+        <li> Changes:<br>
+            active : true to false <br>
+            status : actively_managed to terminated <br>
+            terminated_status_as_of : None to 2022-04-30 <br>
+            e_statement : None to true <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2022-04-18  with the following changes   
+        </li>
+        <li> Changed By: max.peterson@forusall.com </li>
+          <li> Notes: TEMP </li>
+        <li> Changes:<br>
+            excluded_employees : [] to ["temporary"] <br>
+            contribution_type : None to 0 <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2022-02-22  with the following changes   
+        </li>
+        <li> Changed By: john.gaschler@forusall.com </li>
+          <li> Notes: Updating status to allow deferrals until deconversion in late April </li>
+        <li> Changes:<br>
+            status : pending_termination to actively_managed <br>
+            pending_termination_status_as_of : 2022-01-25 to None <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li> 
+            The snapshot is updated on 
+           2022-02-14  with the following changes   
+        </li>
+        <li> Changed By: john.gaschler@forusall.com </li>
+          <li> Notes: Pending termination (deconverting with LT Trust) </li>
+        <li> Changes:<br>
+            status : actively_managed to pending_termination <br>
+            pending_termination_status_as_of : None to 2022-01-25 <br>
+        </li>
+    </ul>
+  </div>
+  <div>
+    <ul>
+        <li>
+            Created on
+           2022-02-11 
+        </li>
+          <li> Notes: Plan migrated from lineup 81 to lineup 88 </li>
+        <li> Changed By:  </li>
+    </ul>
+  </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h4>Year End Files</h4>
+            </div>
+            <div class="panel-body">
+              <div class="scrollbar" id="style-default">
+                  <div class="col-xs-12">
+    <div class="row">
+      2019
+    </div>
+  
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2019&amp;plan_id=259&amp;file_type=DMGQ">
+        DMGQ
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2019&amp;plan_id=259&amp;file_type=DMGF">
+        DMGF
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2019&amp;plan_id=259&amp;file_type=DMGY">
+        DMGY(Daily Payroll)
+      </a>
+  </div>
+  <div class="col-xs-12">
+    <div class="row">
+      2020
+    </div>
+  
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2020&amp;plan_id=259&amp;file_type=DMGQ">
+        DMGQ
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2020&amp;plan_id=259&amp;file_type=DMGF">
+        DMGF
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2020&amp;plan_id=259&amp;file_type=DMGY">
+        DMGY(Daily Payroll)
+      </a>
+  </div>
+  <div class="col-xs-12">
+    <div class="row">
+      2021
+    </div>
+  
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2021&amp;plan_id=259&amp;file_type=DMGQ">
+        DMGQ
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2021&amp;plan_id=259&amp;file_type=DMGF">
+        DMGF
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2021&amp;plan_id=259&amp;file_type=DMGY">
+        DMGY(Daily Payroll)
+      </a>
+  </div>
+  <div class="col-xs-12">
+    <div class="row">
+      2022
+    </div>
+  
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2022&amp;plan_id=259&amp;file_type=DMGQ">
+        DMGQ
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2022&amp;plan_id=259&amp;file_type=DMGF">
+        DMGF
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2022&amp;plan_id=259&amp;file_type=DMGY">
+        DMGY(Daily Payroll)
+      </a>
+  </div>
+  <div class="col-xs-12">
+    <div class="row">
+      2023
+    </div>
+  
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2023&amp;plan_id=259&amp;file_type=DMGQ">
+        DMGQ
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2023&amp;plan_id=259&amp;file_type=DMGF">
+        DMGF
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2023&amp;plan_id=259&amp;file_type=DMGY">
+        DMGY(Daily Payroll)
+      </a>
+  </div>
+  <div class="col-xs-12">
+    <div class="row">
+      2024
+    </div>
+  
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2024&amp;plan_id=259&amp;file_type=DMGQ">
+        DMGQ
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2024&amp;plan_id=259&amp;file_type=DMGF">
+        DMGF
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2024&amp;plan_id=259&amp;file_type=DMGY">
+        DMGY(Daily Payroll)
+      </a>
+  </div>
+  <div class="col-xs-12">
+    <div class="row">
+      2025
+    </div>
+  
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2025&amp;plan_id=259&amp;file_type=DMGQ">
+        DMGQ
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2025&amp;plan_id=259&amp;file_type=DMGF">
+        DMGF
+      </a>
+      <a class="row" href="plan_audit_information/generate_lt_year_end_file?audit_year=2025&amp;plan_id=259&amp;file_type=DMGY">
+        DMGY(Daily Payroll)
+      </a>
+  </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h4>Arbitrary DMGY Files</h4>
+            </div>
+            <div class="panel-body">
+              <div class="scrollbar" id="style-default">
+                <div>
+  <form action="plan_audit_information/generate_lt_year_end_file" accept-charset="UTF-8" method="get"><input name="utf8" type="hidden" value="✓">
+    <input type="hidden" name="file_type" id="file_type" value="DMGY">
+    <input type="hidden" name="plan_id" id="plan_id" value="259">
+
+    <div class="form-group">
+      <label for="audit_start">Choose Audit Start Date:</label>
+      <input type="text" name="audit_start" id="audit_start" value="2026-01-01" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="audit_end">Choose Audit End Date:</label>
+      <input type="text" name="audit_end" id="audit_end" value="2026-04-25" class="form-control">
+    </div>
+
+    <input type="submit" name="commit" value="Request File" class="btn btn-primary forus-btn-color">
+</form></div>
+
+<script type="text/javascript">
+  $('#audit_start').datepicker({
+    format: 'yyyy-mm-dd',
+    autoclose: true,
+    orientation: 'top left'
+  })
+
+  $('#audit_end').datepicker({
+    format: 'yyyy-mm-dd',
+    autoclose: true,
+    orientation: 'top left'
+  })
+</script>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="effective-date-change-popup"></div>
+<div id="sfdc-id-popup"></div>
+
+<style>
+.block-hide
+{
+  display: none;
+}
+
+.y-margin--md
+{
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.top-margin--lg
+{
+  margin-top: 32px;
+}
+
+.x-margin--lg
+{
+  margin-left: 32px;
+  margin-right: 32px;
+}
+.plan-feature-tab
+{
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+.popover{
+  min-width: 200px;
+}
+
+</style>
+
+<script type="text/javascript">
+  $('.datepicker').datepicker({
+    format: 'yyyy-mm-dd',
+    autoclose: true,
+  });
+  $('#plan-attr-form').on('ajax:error', function (event, xhr, status, error) {
+    alert(xhr.responseText);
+  });
+
+  function create_plan_snapshot() {
+    var plan_id = '259';
+    var base_version = $('#version_id').val();
+    window.location = '/plans/' + plan_id + '/new_version/' +  base_version;
+  }
+
+  function change_plan_version(val) {
+    var plan_id = '259';
+
+    window.location = '/plans/' + plan_id + '/edit/' + val;
+  }
+
+</script>
+
+    </main>
+  
+
+<input type="hidden" id="update-data-field"></body>

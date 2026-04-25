@@ -10,6 +10,23 @@ export const ENDPOINTS = {
     pollJob: true,
   },
 
+  "update-plan": {
+    label: "POST /forusbot/update-plan",
+    method: "POST",
+    path: "/forusbot/update-plan",
+    group: "update-plan",
+    needs: { token: true }, // JSON body — restringido a Ivan Alvis
+    pollJob: true,
+  },
+  "sandbox-update-plan": {
+    label: "POST /forusbot/sandbox/update-plan (dry-run)",
+    method: "POST",
+    path: "/forusbot/sandbox/update-plan",
+    group: "update-plan",
+    needs: { token: true }, // restringido a Ivan Alvis (dry-run, sin browser)
+    pollJob: false,
+  },
+
   "vault-upload": {
     label: "POST /forusbot/vault-file-upload",
     method: "POST",

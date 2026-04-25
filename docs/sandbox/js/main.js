@@ -26,6 +26,10 @@ import {
   wireUpdateUI,
   buildUpdateBodyStr as buildUpdateBodyStrUP,
 } from "./core/update-ui.js";
+import {
+  wireUpdatePlanUI,
+  buildUpdatePlanBodyStr,
+} from "./core/update-plan-ui.js";
 
 import {
   wireSearchUI,
@@ -195,6 +199,11 @@ function refreshAllOutputs() {
     jsonBodyStr = JSON.stringify({ participantId: pid });
   } else if (endpointSel.value === "update-participant") {
     jsonBodyStr = buildUpdateBodyStrUP(false);
+  } else if (
+    endpointSel.value === "update-plan" ||
+    endpointSel.value === "sandbox-update-plan"
+  ) {
+    jsonBodyStr = buildUpdatePlanBodyStr(false);
   }
 
   renderHeaders(metaStr, jsonBodyStr);
@@ -250,6 +259,9 @@ wireSearchUI({ onChange: refreshAllOutputs });
 
 // Update Participant UI
 wireUpdateUI({ onChange: refreshAllOutputs });
+
+// Update Plan UI
+wireUpdatePlanUI({ onChange: refreshAllOutputs });
 
 // Email Trigger UI
 wireEmailUI({ onChange: refreshAllOutputs });
@@ -420,6 +432,25 @@ runBtn.addEventListener("click", async (e) => {
       if (!keys.length) throw new Error("Add at least one update field.");
     }
 
+    // update-plan / sandbox-update-plan: planId, note y al menos 1 update
+    if (
+      endpointSel.value === "update-plan" ||
+      endpointSel.value === "sandbox-update-plan"
+    ) {
+      jsonBodyStr = buildUpdatePlanBodyStr(false);
+      const bodyTest = JSON.parse(jsonBodyStr || "{}");
+      const pid = String(bodyTest.planId || "").trim();
+      const note = String(bodyTest.note || "").trim();
+      const ups =
+        bodyTest.updates && typeof bodyTest.updates === "object"
+          ? bodyTest.updates
+          : {};
+      if (!pid) throw new Error("planId is required for this endpoint.");
+      if (!note) throw new Error("note is required for this endpoint.");
+      const keys = Object.keys(ups);
+      if (!keys.length) throw new Error("Add at least one update field.");
+    }
+
     // search-participants: at least one criteria
     if (endpointSel.value === "search-participants") {
       jsonBodyStr = buildSearchBodyStrSP(false);
@@ -464,6 +495,11 @@ runBtn.addEventListener("click", async (e) => {
     if (endpointSel.value === "mfa-reset") body = jsonBodyStr;
     if (endpointSel.value === "search-participants") body = jsonBodyStr;
     if (endpointSel.value === "update-participant") body = jsonBodyStr;
+    if (
+      endpointSel.value === "update-plan" ||
+      endpointSel.value === "sandbox-update-plan"
+    )
+      body = jsonBodyStr;
     if (endpointSel.value === "email-trigger") body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });

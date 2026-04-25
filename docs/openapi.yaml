@@ -587,6 +587,140 @@ paths:
         '422': { description: Unprocessable Entity }
         '500': { description: Internal Server Error }
     
+  /forusbot/update-plan:
+    post:
+      summary: Update plan edit form with note (RESTRICTED to ivan.alvis@forusall.com)
+      description: |
+        Abre `https://employer.forusall.com/plans/{planId}/edit` y aplica los
+        cambios indicados en `updates`, llena la nota obligatoria y hace click
+        en `Save`. La señal de **éxito** es la navegación/refresh automático
+        de la página; la señal de **fallo** es un `alert()` JS del navegador
+        cuyo texto se devuelve en `error`/`message`.
+
+        Las claves de `updates` son el atributo HTML `name` exacto del
+        formulario (p. ej. `company_name`, `ein`, `effective_date`,
+        `accept_covid19_amendment`, `default_savings_rate`). Cada campo se
+        clasifica automáticamente del DOM (text / number / select / checkbox /
+        date / textarea). Para `employer_contribution_formula` se hace
+        **reemplazo total**: se eliminan los tiers existentes y se agregan los
+        nuevos.
+
+        **Restricción de acceso:** este endpoint sólo acepta el token de
+        `ivan.alvis@forusall.com`. Cualquier otro usuario (incluso admins)
+        recibe `403 forbidden`.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+          description: Token de ivan.alvis@forusall.com (los demás reciben 403)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId, note, updates]
+              properties:
+                planId:
+                  type: string
+                  description: Portal plan ID (e.g. "580")
+                note:
+                  type: string
+                  description: Nota obligatoria con el motivo del cambio
+                updates:
+                  type: object
+                  description: |
+                    Mapa name→value. Las claves son atributos HTML `name` del
+                    formulario. Cualquier clave que termine en `_date` debe
+                    cumplir `^\d{4}-\d{2}-\d{2}$`.
+                  additionalProperties: true
+                  example:
+                    company_name: "Acme Corp"
+                    ein: "98-7654321"
+                    effective_date: "2025-05-01"
+                    accept_covid19_amendment: false
+                    default_savings_rate: 6
+                    employer_contribution_formula:
+                      - { match_value: 100, percent_pay: 3 }
+                      - { match_value: 50, percent_pay: 5 }
+                includeScreens:
+                  type: boolean
+                  default: false
+                  description: Si es `true`, guarda screenshot en éxito y fallo
+                timeoutMs:
+                  type: integer
+                  minimum: 5000
+                  maximum: 120000
+                  default: 30000
+      responses:
+        '202': { description: Accepted (returns jobId) }
+        '400': { description: Bad Request (validation) }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden (token no autorizado para este endpoint) }
+        '422': { description: Unprocessable Entity (validation) }
+        '500': { description: Internal Server Error }
+
+  /forusbot/sandbox/update-plan:
+    post:
+      summary: Dry-run validator for update-plan (RESTRICTED to ivan.alvis@forusall.com)
+      description: |
+        Valida el payload de `update-plan` sin levantar Playwright ni tocar el
+        portal. Devuelve los campos normalizados, el `targetUrl` que sería
+        visitado y cualquier error de validación. Útil para verificar la
+        forma del request antes de ejecutar el real.
+
+        Aplica la **misma restricción de acceso** que el endpoint real: sólo
+        el token de `ivan.alvis@forusall.com`.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId, note, updates]
+              properties:
+                planId: { type: string }
+                note: { type: string }
+                updates:
+                  type: object
+                  additionalProperties: true
+                includeScreens: { type: boolean }
+                timeoutMs: { type: integer }
+      responses:
+        '200':
+          description: OK (dry-run válido)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  mode: { type: string, example: "dry-run" }
+                  wouldEnqueue:
+                    type: object
+                    properties:
+                      botId: { type: string, example: "update-plan" }
+                      endpoint: { type: string, example: "/forusbot/update-plan" }
+                      targetUrl: { type: string }
+                  normalized:
+                    type: object
+                    properties:
+                      planId: { type: string }
+                      note: { type: string }
+                      updateKeys: { type: array, items: { type: string } }
+                      tiersCount: { type: integer }
+                      updates: { type: object, additionalProperties: true }
+        '400': { description: Bad Request (validation) }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '500': { description: Internal Server Error }
+
   /forusbot/update-participant:
     post:
       summary: Update participant (Census tab) with note

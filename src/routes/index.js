@@ -11,6 +11,8 @@ const scrapePlanRoutes = require("../bots/forusall-scrape-plan/routes");
 const searchParticipantsRoutes = require("../bots/forusall-search-participants/routes");
 const emailTriggerRoutes = require("../bots/forusall-emailtrigger/routes");
 const updateParticipantRoutes = require("../bots/forusall-update-participant/routes");
+const updatePlanRoutes = require("../bots/forusall-update-plan/routes");
+const restrictToEmails = require("../middleware/restrictToEmails");
 const queue = require("../engine/queue");
 const { getLoginLocksStatus } = require("../engine/loginLock");
 const auth = require("../middleware/auth"); // default = requireUser (compat)
@@ -510,6 +512,116 @@ router.use("/email-trigger", emailTriggerRoutes);
 
 // Monta el bot: /forusbot/update-participant
 router.use("/update-participant", updateParticipantRoutes);
+
+// Monta el bot: /forusbot/update-plan
+router.use("/update-plan", updatePlanRoutes);
+
+// ===== Sandbox dry-run: /forusbot/sandbox/update-plan =====
+// Valida el payload de update-plan SIN ejecutar el browser. Restringido a la
+// misma allowlist que el endpoint real (Ivan Alvis).
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+router.post(
+  "/sandbox/update-plan",
+  requireUser,
+  restrictToEmails(updatePlanRoutes.ALLOWED_EMAILS),
+  (req, res) => {
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const planId = body.planId ?? body.planID ?? body.id ?? null;
+      const note =
+        body.note != null
+          ? String(body.note).trim()
+          : body.description != null
+          ? String(body.description).trim()
+          : "";
+      const updates =
+        body.updates && typeof body.updates === "object" && !Array.isArray(body.updates)
+          ? body.updates
+          : null;
+
+      const errors = [];
+      const warnings = [];
+
+      if (!planId || String(planId).trim() === "") {
+        errors.push("planId es obligatorio");
+      }
+      if (!note) errors.push("note es obligatoria");
+      if (!updates) errors.push("updates es obligatorio (objeto)");
+
+      let normalized = null;
+      if (updates) {
+        const keys = Object.keys(updates);
+        if (!keys.length) errors.push("updates está vacío");
+
+        const tiers = Array.isArray(updates.employer_contribution_formula)
+          ? updates.employer_contribution_formula
+          : null;
+
+        if (tiers) {
+          tiers.forEach((t, i) => {
+            if (!t || typeof t !== "object" || Array.isArray(t)) {
+              errors.push(`tier[${i}] debe ser objeto`);
+              return;
+            }
+            if (!Number.isFinite(Number(t.match_value)))
+              errors.push(`tier[${i}].match_value debe ser numérico`);
+            if (!Number.isFinite(Number(t.percent_pay)))
+              errors.push(`tier[${i}].percent_pay debe ser numérico`);
+          });
+        }
+
+        for (const k of keys) {
+          if (k === "employer_contribution_formula") continue;
+          const v = updates[k];
+          if (k.endsWith("_date") && v != null) {
+            const s = String(v).trim();
+            if (s !== "" && !ISO_DATE_RE.test(s)) {
+              errors.push(`${k} debe ser yyyy-mm-dd`);
+            }
+          }
+        }
+
+        normalized = {
+          planId: planId != null ? String(planId).trim() : null,
+          note,
+          updateKeys: keys,
+          tiersCount: tiers ? tiers.length : 0,
+          updates,
+        };
+      }
+
+      if (errors.length) {
+        return res.status(400).json({
+          ok: false,
+          mode: "dry-run",
+          error: "validation",
+          details: errors,
+          warnings,
+        });
+      }
+
+      return res.json({
+        ok: true,
+        mode: "dry-run",
+        wouldEnqueue: {
+          botId: "update-plan",
+          endpoint: "/forusbot/update-plan",
+          targetUrl: `https://employer.forusall.com/plans/${encodeURIComponent(
+            normalized.planId
+          )}/edit`,
+        },
+        normalized,
+        warnings,
+      });
+    } catch (e) {
+      console.error("[sandbox update-plan] error", e);
+      return res
+        .status(500)
+        .json({ ok: false, error: e?.message || "Internal Error" });
+    }
+  }
+);
 
 // 🆕 Monta /forusbot/articles (FS)
 router.use("/articles", articlesRoutes);

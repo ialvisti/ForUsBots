@@ -26,6 +26,8 @@ Namespace base: `/forusbot`
 |   POST | /forusbot/search-participants       |  Yes  | Enqueue search; returns 202 with jobId                |
 |   POST | /forusbot/mfa-reset                 |  Yes  | Enqueue MFA reset; returns 202 with jobId             |
 |   POST | /forusbot/update-participant        |  Yes  | Update participant census; returns 202 with jobId     |
+|   POST | /forusbot/update-plan               | Yes\*\* | Update plan edit form; returns 202. Restricted to ivan.alvis@forusall.com |
+|   POST | /forusbot/sandbox/update-plan       | Yes\*\* | Dry-run validator for update-plan. Same restriction.  |
 |   POST | /forusbot/email-trigger             |  Yes  | Trigger email communications; returns 202 with jobId  |
 |    GET | /forusbot/jobs                      |  Yes  | List jobs; filters: state, botId, limit, offset       |
 |    GET | /forusbot/jobs/:id                  |  Yes  | Get job                                               |
@@ -37,7 +39,7 @@ Namespace base: `/forusbot`
 |    GET | /forusbot/version                   | Yes\* | Admin only                                            |
 |    GET | /forusbot/openapi                   | Yes\* | Admin only                                            |
 
-> Auth header: `x-auth-token: YOUR_TOKEN`. Admin routes require an admin token.
+> Auth header: `x-auth-token: YOUR_TOKEN`. Admin routes require an admin token. Routes marked Yes\*\* are restricted to a specific user token (see endpoint description).
 
 ---
 
@@ -117,6 +119,20 @@ curl -sS -X POST "$BASE/forusbot/email-trigger" \
   -H 'Content-Type: application/json' \
   -d '{"planId":627,"emailType":"statement_notice","statement":{"year":2025,"quarter":1,"season":"Q1"}}'
 # Docs: /docs/api#emailtrigger
+```
+
+```bash
+# 8) Update plan (RESTRICTED to ivan.alvis@forusall.com)
+curl -sS -X POST "$BASE/forusbot/update-plan" \
+  -H 'x-auth-token: IVAN_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"planId":"580","note":"Bump default savings rate","updates":{"default_savings_rate":6}}'
+# Dry-run (no browser; same access restriction):
+curl -sS -X POST "$BASE/forusbot/sandbox/update-plan" \
+  -H 'x-auth-token: IVAN_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"planId":"580","note":"Validate payload","updates":{"company_name":"Acme"}}'
+# Other tokens (incl. admins) → 403 forbidden.
 ```
 
 ---

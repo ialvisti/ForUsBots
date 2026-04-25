@@ -36,6 +36,7 @@ routes/
 - `GET /forusbot/openapi` - OpenAPI YAML spec (admin only)
 - `POST /forusbot/_close` - Close shared Playwright context (admin only)
 - `POST /forusbot/sandbox/vault-file-upload` - Dry-run validator (no auth)
+- `POST /forusbot/sandbox/update-plan` - Dry-run validator for update-plan (restricted: only `ivan.alvis@forusall.com`)
 
 **Bot Mounts**:
 ```javascript
@@ -46,6 +47,7 @@ router.use('/search-participants', searchParticipantsRoutes);
 router.use('/mfa-reset', mfaResetRoutes);
 router.use('/email-trigger', emailTriggerRoutes);
 router.use('/update-participant', updateParticipantRoutes);
+router.use('/update-plan', updatePlanRoutes); // restricted to ivan.alvis@forusall.com
 ```
 
 **Admin Mounts**:

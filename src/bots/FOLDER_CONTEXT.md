@@ -50,7 +50,14 @@ bot-name/
 **Features**: Field mapping, validation, note creation, batch updates.
 **When to use**: Participant data maintenance, bulk updates.
 
-### 7. `/forusall-emailtrigger/`
+### 7. `/forusall-update-plan/`
+**Purpose**: Updates fields in the plan edit form (`/plans/{planId}/edit`) and saves with a mandatory note.
+**Endpoints**: `POST /forusbot/update-plan` (real) and `POST /forusbot/sandbox/update-plan` (dry-run validator).
+**Features**: Auto field-type classification (text/select/checkbox/date/textarea), batch DOM writes, datepicker support via `setEffectiveDate`, full replacement of `employer_contribution_formula` tiers via the page's global `append_tier()`, success/failure detection via `Promise.race(framenavigated, dialog)`.
+**Access restriction**: Both endpoints (real and sandbox) are gated by `restrictToEmails(["ivan.alvis@forusall.com"])`. Any other token (including admins) returns `403`.
+**When to use**: Plan configuration updates, automated maintenance tasks restricted to a specific operator.
+
+### 8. `/forusall-emailtrigger/`
 **Purpose**: Triggers email flows in the ForUsAll portal (onboarding, statements, sponsor emails, generic).
 **Endpoints**: `POST /forusbot/email-trigger`
 **Features**: Multi-flow support, preview validation, participant selection, form filling.

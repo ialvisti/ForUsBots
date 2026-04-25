@@ -111,7 +111,14 @@ bot-name/
    - Endpoint: `POST /forusbot/update-participant`
    - Purpose: Update census fields
 
-7. **`forusall-emailtrigger/`** - Email triggering
+7. **`forusall-update-plan/`** - Plan updates (RESTRICTED)
+   - Endpoint: `POST /forusbot/update-plan` (real)
+   - Sandbox: `POST /forusbot/sandbox/update-plan` (dry-run validator)
+   - Purpose: Update fields in the plan edit form and save with a note
+   - Access: Restricted to `ivan.alvis@forusall.com` via
+     `src/middleware/restrictToEmails.js` (other tokens get 403)
+
+8. **`forusall-emailtrigger/`** - Email triggering
    - Endpoint: `POST /forusbot/email-trigger`
    - Purpose: Trigger portal emails
    - Has `/flows/` subdirectory for multi-flow logic

@@ -58,6 +58,33 @@ const users = listUsersPublic();
 ```
 **Behavior**: Returns sanitized user list (for displaying in UIs like knowledge base author attribution). Includes profile image path.
 
+### `restrictToEmails.js`
+**Purpose**: Middleware factory that gates a route to a specific allowlist of user emails. Independent of role — even admins outside the allowlist are blocked.
+
+**Usage**:
+```javascript
+const requireUser = require('../middleware/auth');
+const restrictToEmails = require('../middleware/restrictToEmails');
+
+router.post(
+  '/',
+  requireUser,                                  // 1. authenticate
+  restrictToEmails(['ivan.alvis@forusall.com']), // 2. authorize by email
+  controller
+);
+```
+
+**Behavior**:
+- Must run **after** `requireUser` (depends on `req.auth.user.email`).
+- Compares email case-insensitively against the allowlist.
+- Returns `403 { ok: false, error: "forbidden", reason: "endpoint restricted to specific users" }` for non-listed users.
+- Returns `403` for missing `req.auth.user.email` (defensive).
+
+**Currently used by**:
+- `POST /forusbot/update-plan` (real)
+- `POST /forusbot/sandbox/update-plan` (dry-run)
+- Both restricted to `ivan.alvis@forusall.com`. The allowlist is exported from `src/bots/forusall-update-plan/routes.js` as `ALLOWED_EMAILS` and reused by the sandbox handler in `src/routes/index.js`.
+
 ---
 
 ## Token Format (`tokens.json`)
