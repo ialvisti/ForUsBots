@@ -23,6 +23,7 @@ docs/sandbox/
 │   │   ├── theme.js        # Theme switcher
 │   │   ├── ui.js           # Main UI logic
 │   │   ├── update-ui.js    # Update participant UI
+│   │   ├── update-plan-ui.js # Update plan UI (restricted)
 │   │   ├── utils.js        # Shared utilities
 │   │   └── validate.js     # Input validation
 │   └── endpoints/          # Endpoint handlers
@@ -46,6 +47,8 @@ docs/sandbox/
 
 ### Plan Operations
 - **scrape-plan**: Extract plan data (modules: basic_info, plan_design, onboarding, etc.)
+- **update-plan**: Update fields in the plan edit form (real request) — ⚠️ restricted to `ivan.alvis@forusall.com`
+- **sandbox-update-plan**: Dry-run validator for `update-plan` — same restriction as the real endpoint
 
 ### Communication Operations
 - **email-trigger**: Trigger email communications to participants
@@ -198,6 +201,89 @@ The **email-trigger** endpoint is a complex form with 10 different email types, 
 - `#sponsorQuarterlyFields`: Sponsor quarterly email fields
 - `#onboardNewHireFields`: Onboard/new hire fields
 - `#genericEmailFields`: Generic email fields with nested subtype fields
+
+## Update Plan Implementation
+
+### Overview
+The **update-plan** endpoint uses a dropdown-based field selector UI with 47 pre-configured plan form fields organized by category. Users select fields from grouped dropdowns instead of typing field names manually.
+
+### Field Categories
+1. **Basic Info** (5 fields): company_name, official_plan_name, external_name, ein, symlink
+2. **Status** (4 fields): active, status, effective_date, status_as_of
+3. **Plan Design** (13 fields): plan_type, service_type, lt_plan_type, record_keeper_id, enrollment_type, contribution_type, roth_contributions_allowed, profit_sharing, e_statement, spanish_participants, eaca
+4. **Eligibility** (4 fields): eligibility_min_age, eligibility_hours_requirement, eligibility_duration_value, plan_entry_frequency
+5. **Employer Match** (5 fields): employer_contribution, employer_contribution_formula (tiers), employer_contribution_cap, er_contribution_monthly_cap, employer_contribution_timing
+6. **Savings & Auto-Escalation** (6 fields): default_savings_rate, max_deferral_rate, autoescalate_rate, autoescalation_limit, autoescalation_source, autoescalation_timing
+7. **Key Dates** (8 fields): first_deferral_date, special_participation_date, blackout_begins_date, blackout_ends_date, website_live_date, enrollment_window_begins, enrollment_window_ends, reenrollment_date
+8. **Compliance / Features** (4 fields): accept_covid19_amendment, support_aftertax, alts_crypto, alts_waitlist_crypto
+
+### Field Types
+- **text**: Plain text input (company_name, ein, etc.)
+- **date**: HTML date picker (effective_date, enrollment_window_begins, etc.)
+- **checkbox**: Select true/false (active, profit_sharing, accept_covid19_amendment, etc.)
+- **select**: Dropdown with predefined options (status, plan_type, record_keeper_id, etc.)
+- **tiers**: JSON array for employer_contribution_formula (special: `{match_value, percent_pay}` objects)
+
+### UI Implementation
+
+#### File: `js/core/update-plan-ui.js` and `es/js/core/update-plan-ui.js`
+**Exports:**
+- `wireUpdatePlanUI({ onChange })`: Initializes the update plan form
+  - Clears `#uplRows` container
+  - Adds first row dynamically
+  - Wires "Add field" button to create new rows
+  - Listens for changes on static fields (planId, note, includeScreens, timeoutMs)
+- `buildUpdatePlanBodyStr(pretty)`: Builds JSON body string
+  - Reads planId, note, includeScreens, timeoutMs
+  - Iterates all `.upl-row` elements
+  - Reads field name from `.upl-label` select value
+  - Reads field value from `.upl-input` (type-specific: input, select, or textarea)
+  - Returns compact or pretty-printed JSON
+
+**Key Functions:**
+- `usedNames(exceptRow)`: Returns Set of field names already selected
+- `buildValueInput(spec)`: Creates appropriate widget based on field type
+- `renderRowValueUI(row, name)`: Clears and repopulates value input for selected field
+- `repopulateLabelSelects()`: Rebuilds all field selects with optgroups, disables used fields
+- `addRow({ onChange })`: Creates a new `.module-row.upl-row` with field select + value input
+
+#### HTML Structure
+**Container:** `.ep.ep-update-plan`
+**Static Fields:**
+- `#uplPlanId`: Plan ID input
+- `#uplNote`: Update reason textarea
+- `#uplIncludeScreens`: Screenshot toggle checkbox
+- `#uplTimeoutMs`: Timeout override (5000-120000ms)
+
+**Dynamic Row Section:**
+- `#uplRows`: Container for dynamic field rows
+- `#uplAddRow`: "Add field" button
+
+**Row Structure (each `.upl-row`):**
+```
+.module-row.upl-row
+  .module-row-controls
+    .field
+      label "field"
+      select.upl-label → field name from FIELD_SPECS
+    .module-row-actions
+      button "Remove"
+  .module-fields
+    .upl-value-wrap → .upl-input (text|date|select|textarea)
+```
+
+### Key Design Decisions
+- **Grouped dropdowns**: Fields organized by category via `<optgroup>` for better UX
+- **Duplicate prevention**: `usedNames()` disables already-selected fields in other rows
+- **Type-aware inputs**: Field type determines value input widget (text/date/checkbox/select/tiers)
+- **Field specs**: `FIELD_SPECS` array contains metadata (name, label, group, type, options)
+- **Dynamic repopulation**: All select dropdowns rebuilt when rows added/removed
+
+### Spanish Version
+- `es/js/core/update-plan-ui.js`: Identical logic, Spanish labels/strings
+- Field names (backend keys) remain unchanged
+- Category names translated: "Información Básica", "Diseño del Plan", etc.
+- Buttons and placeholders translated
 
 ## When to Work Here
 
