@@ -133,6 +133,10 @@ const FIELD_SPECS = [
     { value: "true", label: "Verdadero" },
     { value: "false", label: "Falso" }
   ]},
+  { name: "is_3_16_only", label: "Solo 3(16) Independiente", group: "Diseño del Plan", type: "checkbox", options: [
+    { value: "true", label: "Sí" },
+    { value: "false", label: "No" }
+  ]},
 
   // Eligibility
   { name: "eligibility_min_age", label: "Edad Mínima de Elegibilidad", group: "Elegibilidad", type: "text" },

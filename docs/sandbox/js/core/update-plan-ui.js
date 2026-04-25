@@ -133,6 +133,10 @@ const FIELD_SPECS = [
     { value: "true", label: "True" },
     { value: "false", label: "False" }
   ]},
+  { name: "is_3_16_only", label: "3(16) Standalone Only", group: "Plan Design", type: "checkbox", options: [
+    { value: "true", label: "Yes" },
+    { value: "false", label: "No" }
+  ]},
 
   // Eligibility
   { name: "eligibility_min_age", label: "Eligibility Min Age", group: "Eligibility", type: "text" },
