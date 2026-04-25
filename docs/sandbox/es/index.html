@@ -64,6 +64,13 @@
                 POST /forusbot/forusall-update-participant
               </option>
 
+              <option value="update-plan">
+                POST /forusbot/update-plan ⚠️ PRECAUCIÓN: Petición Real ⚠️ (restringido)
+              </option>
+              <option value="sandbox-update-plan">
+                POST /forusbot/sandbox/update-plan (dry-run, restringido)
+              </option>
+
               <!-- NEW -->
               <option value="scrape-participant">
                 POST /forusbot/scrape-participant
@@ -234,6 +241,61 @@
                 valor. Las fechas usan el formato <code>yyyy-mm-dd</code>; si se deja
                 vacío, se envía <code>""</code> para borrar el valor actual.
                 <br />Eligibility Status acepta: <code>A, D, I, X, U</code>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Update Plan builder -->
+          <div class="ep ep-update-plan hidden">
+            <div class="field">
+              <label>planId</label>
+              <input id="uplPlanId" type="text" placeholder="ej. 580" />
+              <div class="help">
+                Endpoint restringido al token de
+                <code>ivan.alvis@forusall.com</code>. Aplica tanto al modo
+                real como al dry-run.
+              </div>
+            </div>
+
+            <div class="field">
+              <label>note</label>
+              <textarea
+                id="uplNote"
+                rows="2"
+                placeholder="Motivo de la actualización del plan"
+              ></textarea>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label class="small"
+                  ><input id="uplIncludeScreens" type="checkbox" />
+                  includeScreens</label
+                >
+              </div>
+              <div class="field">
+                <label>timeoutMs</label>
+                <input
+                  id="uplTimeoutMs"
+                  type="number"
+                  placeholder="30000"
+                  min="5000"
+                  max="120000"
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>updates</label>
+              <div id="uplRows" class="stack"></div>
+              <button class="btn ghost small" id="uplAddRow">
+                Agregar campo
+              </button>
+              <div class="help">
+                Selecciona un campo del menú, luego ingresa su valor. Las fechas
+                usan el formato <code>yyyy-mm-dd</code>; dejar vacío envía
+                <code>""</code> para limpiar. Para match tiers, pega un array
+                JSON de objetos <code>{match_value, percent_pay}</code>.
               </div>
             </div>
           </div>

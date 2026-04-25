@@ -64,6 +64,13 @@
                 POST /forusbot/forusall-update-participant
               </option>
 
+              <option value="update-plan">
+                POST /forusbot/update-plan ⚠️ CAUTION: Real Request ⚠️ (restricted)
+              </option>
+              <option value="sandbox-update-plan">
+                POST /forusbot/sandbox/update-plan (dry-run, restricted)
+              </option>
+
               <!-- NEW -->
               <option value="scrape-participant">
                 POST /forusbot/scrape-participant
@@ -234,6 +241,58 @@
                 value. Dates use the format <code>yyyy-mm-dd</code>; if left
                 empty, <code>""</code> is sent to clear the current value.
                 <br />Eligibility Status accepts: <code>A, D, I, X, U</code>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Update Plan builder -->
+          <div class="ep ep-update-plan hidden">
+            <div class="field">
+              <label>planId</label>
+              <input id="uplPlanId" type="text" placeholder="e.g. 580" />
+              <div class="help">
+                Endpoint restricted to <code>ivan.alvis@forusall.com</code>.
+                Both real and dry-run modes require that token.
+              </div>
+            </div>
+
+            <div class="field">
+              <label>note</label>
+              <textarea
+                id="uplNote"
+                rows="2"
+                placeholder="Reason for the plan update"
+              ></textarea>
+            </div>
+
+            <div class="two">
+              <div class="field">
+                <label class="small"
+                  ><input id="uplIncludeScreens" type="checkbox" />
+                  includeScreens</label
+                >
+              </div>
+              <div class="field">
+                <label>timeoutMs</label>
+                <input
+                  id="uplTimeoutMs"
+                  type="number"
+                  placeholder="30000"
+                  min="5000"
+                  max="120000"
+                />
+              </div>
+            </div>
+
+            <div class="field">
+              <label>updates</label>
+              <div id="uplRows" class="stack"></div>
+              <button class="btn ghost small" id="uplAddRow">Add field</button>
+              <div class="help">
+                Select a field from the dropdown, then enter its value. Dates
+                use <code>yyyy-mm-dd</code> format; leaving blank sends
+                <code>""</code> to clear. For match tiers, paste a JSON array of
+                <code>{match_value, percent_pay}</code> objects.
               </div>
             </div>
           </div>
