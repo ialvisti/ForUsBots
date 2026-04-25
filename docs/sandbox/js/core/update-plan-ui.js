@@ -11,6 +11,13 @@ const FIELD_SPECS = [
   { name: "external_name", label: "External Name", group: "Basic Info", type: "text" },
   { name: "ein", label: "EIN", group: "Basic Info", type: "text" },
   { name: "symlink", label: "Symlink", group: "Basic Info", type: "text" },
+  { name: "logo", label: "Logo URL", group: "Basic Info", type: "text" },
+  { name: "rk_plan_id", label: "RK Plan ID", group: "Basic Info", type: "text" },
+
+  // Administration
+  { name: "rm_id", label: "Relationship Manager", group: "Administration", type: "text" },
+  { name: "im_id", label: "Implementation Manager", group: "Administration", type: "text" },
+  { name: "version_id", label: "Version ID", group: "Administration", type: "text" },
 
   // Status
   { name: "active", label: "Active", group: "Status", type: "checkbox", options: [
@@ -137,6 +144,24 @@ const FIELD_SPECS = [
     { value: "true", label: "Yes" },
     { value: "false", label: "No" }
   ]},
+  { name: "is_critical", label: "Is Critical", group: "Plan Design", type: "checkbox", options: [
+    { value: "true", label: "Yes" },
+    { value: "false", label: "No" }
+  ]},
+  { name: "roth_match_allowed", label: "Roth Match Allowed", group: "Plan Design", type: "checkbox", options: [
+    { value: "true", label: "Yes" },
+    { value: "false", label: "No" }
+  ]},
+  { name: "fund_lineup_id", label: "Fund Lineup ID", group: "Plan Design", type: "text" },
+  { name: "rk_upload_mode", label: "RK Upload Mode", group: "Plan Design", type: "select", options: [
+    { value: "legacy", label: "Legacy" },
+    { value: "rk2", label: "RK2" }
+  ]},
+  { name: "enrollment_method", label: "Enrollment Method", group: "Plan Design", type: "select", options: [
+    { value: "default", label: "Default rate" },
+    { value: "higher_default_or_current", label: "Default or current rate if higher" },
+    { value: "current", label: "Current rates" }
+  ]},
 
   // Eligibility
   { name: "eligibility_min_age", label: "Eligibility Min Age", group: "Eligibility", type: "text" },
@@ -149,6 +174,38 @@ const FIELD_SPECS = [
     { value: "sa", label: "Semi-annually" },
     { value: "a", label: "Annually" }
   ]},
+  { name: "plan_entry_frequency_first_month", label: "Plan Entry Frequency (First Month)", group: "Eligibility", type: "select", options: [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" }
+  ]},
+  { name: "plan_entry_frequency_second_month", label: "Plan Entry Frequency (Second Month)", group: "Eligibility", type: "select", options: [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" }
+  ]},
+  { name: "weekly_assumed_hours", label: "Weekly Assumed Hours", group: "Eligibility", type: "text" },
+  { name: "force_out_limit", label: "Force Out Limit", group: "Eligibility", type: "text" },
+  { name: "loan_number_cap", label: "Loan Number Cap", group: "Eligibility", type: "text" },
+  { name: "max_crypto_percent_balance", label: "Max Crypto Percent Balance", group: "Eligibility", type: "text" },
 
   // Employer Match
   { name: "employer_contribution", label: "Employer Contribution", group: "Employer Match", type: "select", options: [
@@ -219,6 +276,33 @@ const FIELD_SPECS = [
     { value: "true", label: "Yes" },
     { value: "false", label: "No" }
   ]},
+
+  // Audit & Organization
+  { name: "audit_year", label: "Audit Year", group: "Audit & Organization", type: "select", options: [
+    { value: "2016", label: "2016" },
+    { value: "2017", label: "2017" },
+    { value: "2018", label: "2018" },
+    { value: "2019", label: "2019" },
+    { value: "2020", label: "2020" },
+    { value: "2021", label: "2021" },
+    { value: "2022", label: "2022" },
+    { value: "2023", label: "2023" },
+    { value: "2024", label: "2024" },
+    { value: "2025", label: "2025" },
+    { value: "2026", label: "2026" }
+  ]},
+  { name: "organization_type", label: "Organization Type", group: "Audit & Organization", type: "select", options: [
+    { value: "c-corp", label: "C-Corp" },
+    { value: "llc", label: "LLC" },
+    { value: "partnership", label: "Partnership" },
+    { value: "s-corp", label: "S-Corp" },
+    { value: "sole proprieter", label: "Sole Proprieter" },
+    { value: "not for profit", label: "Not for profit" }
+  ]},
+
+  // Marketing & Events
+  { name: "raffle_prize", label: "Raffle Prize", group: "Marketing & Events", type: "text" },
+  { name: "raffle_date", label: "Raffle Date", group: "Marketing & Events", type: "date" },
 ];
 
 function optionEl(value, text, { disabled = false, selected = false } = {}) {

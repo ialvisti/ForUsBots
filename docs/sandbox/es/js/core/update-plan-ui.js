@@ -11,6 +11,13 @@ const FIELD_SPECS = [
   { name: "external_name", label: "Nombre Externo", group: "Información Básica", type: "text" },
   { name: "ein", label: "EIN", group: "Información Básica", type: "text" },
   { name: "symlink", label: "Symlink", group: "Información Básica", type: "text" },
+  { name: "logo", label: "URL del Logo", group: "Información Básica", type: "text" },
+  { name: "rk_plan_id", label: "ID del Plan RK", group: "Información Básica", type: "text" },
+
+  // Administración
+  { name: "rm_id", label: "Gerente de Relaciones", group: "Administración", type: "text" },
+  { name: "im_id", label: "Gerente de Implementación", group: "Administración", type: "text" },
+  { name: "version_id", label: "ID de Versión", group: "Administración", type: "text" },
 
   // Status
   { name: "active", label: "Activo", group: "Estado", type: "checkbox", options: [
@@ -137,6 +144,24 @@ const FIELD_SPECS = [
     { value: "true", label: "Sí" },
     { value: "false", label: "No" }
   ]},
+  { name: "is_critical", label: "Es Crítico", group: "Diseño del Plan", type: "checkbox", options: [
+    { value: "true", label: "Sí" },
+    { value: "false", label: "No" }
+  ]},
+  { name: "roth_match_allowed", label: "Coincidencia Roth Permitida", group: "Diseño del Plan", type: "checkbox", options: [
+    { value: "true", label: "Sí" },
+    { value: "false", label: "No" }
+  ]},
+  { name: "fund_lineup_id", label: "ID de Cartera de Fondos", group: "Diseño del Plan", type: "text" },
+  { name: "rk_upload_mode", label: "Modo de Carga RK", group: "Diseño del Plan", type: "select", options: [
+    { value: "legacy", label: "Legado" },
+    { value: "rk2", label: "RK2" }
+  ]},
+  { name: "enrollment_method", label: "Método de Inscripción", group: "Diseño del Plan", type: "select", options: [
+    { value: "default", label: "Tasa por defecto" },
+    { value: "higher_default_or_current", label: "Tasa por defecto o actual si es mayor" },
+    { value: "current", label: "Tasas actuales" }
+  ]},
 
   // Eligibility
   { name: "eligibility_min_age", label: "Edad Mínima de Elegibilidad", group: "Elegibilidad", type: "text" },
@@ -149,6 +174,38 @@ const FIELD_SPECS = [
     { value: "sa", label: "Semestral" },
     { value: "a", label: "Anual" }
   ]},
+  { name: "plan_entry_frequency_first_month", label: "Frecuencia de Entrada al Plan (Primer Mes)", group: "Elegibilidad", type: "select", options: [
+    { value: "1", label: "Enero" },
+    { value: "2", label: "Febrero" },
+    { value: "3", label: "Marzo" },
+    { value: "4", label: "Abril" },
+    { value: "5", label: "Mayo" },
+    { value: "6", label: "Junio" },
+    { value: "7", label: "Julio" },
+    { value: "8", label: "Agosto" },
+    { value: "9", label: "Septiembre" },
+    { value: "10", label: "Octubre" },
+    { value: "11", label: "Noviembre" },
+    { value: "12", label: "Diciembre" }
+  ]},
+  { name: "plan_entry_frequency_second_month", label: "Frecuencia de Entrada al Plan (Segundo Mes)", group: "Elegibilidad", type: "select", options: [
+    { value: "1", label: "Enero" },
+    { value: "2", label: "Febrero" },
+    { value: "3", label: "Marzo" },
+    { value: "4", label: "Abril" },
+    { value: "5", label: "Mayo" },
+    { value: "6", label: "Junio" },
+    { value: "7", label: "Julio" },
+    { value: "8", label: "Agosto" },
+    { value: "9", label: "Septiembre" },
+    { value: "10", label: "Octubre" },
+    { value: "11", label: "Noviembre" },
+    { value: "12", label: "Diciembre" }
+  ]},
+  { name: "weekly_assumed_hours", label: "Horas Semanales Asumidas", group: "Elegibilidad", type: "text" },
+  { name: "force_out_limit", label: "Límite de Retiro Obligatorio", group: "Elegibilidad", type: "text" },
+  { name: "loan_number_cap", label: "Límite de Número de Préstamos", group: "Elegibilidad", type: "text" },
+  { name: "max_crypto_percent_balance", label: "Porcentaje Máximo de Cripto", group: "Elegibilidad", type: "text" },
 
   // Employer Match
   { name: "employer_contribution", label: "Aportación del Empleador", group: "Coincidencia del Empleador", type: "select", options: [
@@ -219,6 +276,33 @@ const FIELD_SPECS = [
     { value: "true", label: "Sí" },
     { value: "false", label: "No" }
   ]},
+
+  // Auditoría y Organización
+  { name: "audit_year", label: "Año de Auditoría", group: "Auditoría y Organización", type: "select", options: [
+    { value: "2016", label: "2016" },
+    { value: "2017", label: "2017" },
+    { value: "2018", label: "2018" },
+    { value: "2019", label: "2019" },
+    { value: "2020", label: "2020" },
+    { value: "2021", label: "2021" },
+    { value: "2022", label: "2022" },
+    { value: "2023", label: "2023" },
+    { value: "2024", label: "2024" },
+    { value: "2025", label: "2025" },
+    { value: "2026", label: "2026" }
+  ]},
+  { name: "organization_type", label: "Tipo de Organización", group: "Auditoría y Organización", type: "select", options: [
+    { value: "c-corp", label: "C-Corp" },
+    { value: "llc", label: "LLC" },
+    { value: "partnership", label: "Sociedad" },
+    { value: "s-corp", label: "S-Corp" },
+    { value: "sole proprieter", label: "Propietario Único" },
+    { value: "not for profit", label: "Sin Fines de Lucro" }
+  ]},
+
+  // Marketing y Eventos
+  { name: "raffle_prize", label: "Premio de Rifa", group: "Marketing y Eventos", type: "text" },
+  { name: "raffle_date", label: "Fecha de Rifa", group: "Marketing y Eventos", type: "date" },
 ];
 
 function optionEl(value, text, { disabled = false, selected = false } = {}) {
