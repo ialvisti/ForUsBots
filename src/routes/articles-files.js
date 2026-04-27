@@ -3,6 +3,7 @@ const router = require("express").Router();
 const path = require("path");
 const fs = require("fs");
 const { requireAdmin } = require("../middleware/auth");
+const logger = require("../engine/logger");
 
 const KB_DIR = path.join(__dirname, "..", "..", "docs", "knowledge-database", "Articles");
 
@@ -49,7 +50,7 @@ router.get("/", (_req, res) => {
       .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
     return res.json({ ok: true, total: list.length, articles: list });
   } catch (e) {
-    console.error("[articles:list] error", e);
+    logger.error({ type: "route.articles_files.articles_list_error", error: e });
     return res.status(500).json({ ok: false, error: "Could not list articles" });
   }
 });
@@ -69,7 +70,7 @@ router.get("/:id", (req, res) => {
     const data = safeReadJson(fp);
     return res.json({ ok: true, article: data });
   } catch (e) {
-    console.error("[articles:get] error", e);
+    logger.error({ type: "route.articles_files.articles_get_error", error: e });
     return res.status(500).json({ ok: false, error: "Could not get article" });
   }
 });
@@ -103,7 +104,7 @@ router.post("/", requireAdmin, (req, res) => {
     fs.writeFileSync(fp, JSON.stringify(record, null, 2), "utf8");
     return res.json({ ok: true, saved: record.id });
   } catch (e) {
-    console.error("[articles:post] error", e);
+    logger.error({ type: "route.articles_files.articles_post_error", error: e });
     return res.status(500).json({ ok: false, error: "Could not save article" });
   }
 });
@@ -123,7 +124,7 @@ router.delete("/:id", requireAdmin, (req, res) => {
     fs.unlinkSync(fp);
     return res.json({ ok: true, deleted: id });
   } catch (e) {
-    console.error("[articles:delete] error", e);
+    logger.error({ type: "route.articles_files.articles_delete_error", error: e });
     return res.status(500).json({ ok: false, error: "Could not delete article" });
   }
 });

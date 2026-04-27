@@ -5,6 +5,7 @@ const { saveEvidence } = require("../../engine/evidence");
 const { getSpec } = require("../../providers/forusall/participantMap");
 const { FIXED } = require("../../providers/forusall/config");
 const { ensureAuthForTarget } = require("../../engine/auth/loginOtp");
+const logger = require("../../engine/logger");
 
 const PW_DEFAULT_TIMEOUT = Math.max(
   2000,
@@ -282,14 +283,14 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       evidencePath: snap?.path || null,
     };
   } catch (error) {
-    console.error("[mfa-reset] flow error:", error);
+    logger.error({ type: "bot.mfa_reset.flow.mfa_reset_flow_error", error: error });
     if (page) {
       try {
         const snap = await saveEvidence(
           page,
           `mfa-reset-error-${participantId}`
         );
-        console.error("[mfa-reset] error evidence:", snap?.path);
+        logger.warn({ type: "bot.mfa_reset.flow.error_evidence_saved", evidencePath: snap?.path });
       } catch {}
     }
     throw error;

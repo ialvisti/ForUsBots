@@ -3,6 +3,7 @@ const { randomUUID } = require("crypto");
 const { MAX_CONCURRENCY: CFG_MAX } = require("../config");
 const { getSettings } = require("./settings");
 const log = require("./logger");
+const { runWith } = require("./log-context");
 const { normalizeResultEnvelope } = require("./normalizer");
 
 // ===== Config de estimaciones (por bot, moving avg) =====
@@ -409,7 +410,12 @@ function maybeStartNext() {
     );
 
     Promise.resolve()
-      .then(() => job.run(jobCtx))
+      .then(() =>
+        runWith(
+          { jobId: job.jobId, botId: job.botId },
+          () => job.run(jobCtx)
+        )
+      )
       .then(
         (val) => finalize(job, null, val),
         (err) => finalize(job, err, null)

@@ -3,6 +3,7 @@ const express = require("express");
 const { Pool } = require("pg");
 const { getSettings } = require("../engine/settings");
 const { resolveRole } = require("../middleware/auth");
+const logger = require("../engine/logger");
 
 const router = express.Router();
 
@@ -382,7 +383,7 @@ router.get("/metrics-db", dataGate, async (req, res) => {
       client.release();
     }
   } catch (e) {
-    console.error("[data/metrics-db] error", e && e.stack ? e.stack : e);
+    logger.error({ type: "route.data_metrics_db.data_metrics_db_error", error: e });
     return res.status(500).json({ ok: false, error: "db_error" });
   }
 });

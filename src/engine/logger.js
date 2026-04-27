@@ -1,19 +1,25 @@
 // src/engine/logger.js
-// Logger minimalista, sin dependencias, con formato JSON line-oriented.
-// Tipos de evento esperados: job.accepted, job.started, job.succeeded, job.failed,
-// stage.start, stage.succeed, stage.fail, job.summary
+// Logger estructurado, sin dependencias, JSON line-oriented o pretty.
+// Schema cerrado: ver log-schema.md
+//
+// Campos automáticos: ts, severity, level, service, env, pid,
+// y (si hay AsyncLocalStorage context) correlationId/jobId/botId.
+
+const { getContext } = require("./log-context");
 
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
+const SEVERITY = {
+  debug: "DEBUG",
+  info: "INFO",
+  warn: "WARNING",
+  error: "ERROR",
+};
 
 const LOG_LEVEL = String(process.env.LOG_LEVEL || "info").toLowerCase();
 const LOG_FORMAT = String(process.env.LOG_FORMAT || "json").toLowerCase(); // 'json' | 'pretty'
 const SERVICE_NAME = process.env.SERVICE_NAME || "forusbots";
 const ENV = process.env.NODE_ENV || "development";
-const AUDIT_ENABLED = /^(1|true|yes|on)$/i.test(
-  String(process.env.AUDIT_DB || "0")
-);
 
-// límites suaves para evitar payloads gigantes
 const MAX_META_CHARS = Math.max(
   2000,
   parseInt(process.env.LOG_MAX_META_CHARS || "4000", 10)
@@ -22,14 +28,6 @@ const MAX_ERR_STACK_CHARS = Math.max(
   1000,
   parseInt(process.env.LOG_MAX_ERR_STACK_CHARS || "4000", 10)
 );
-
-// Carga perezosa/segura del audit (no rompe si el archivo no existe)
-let audit = null;
-try {
-  audit = require("./audit"); // mismo directorio
-} catch {
-  audit = null;
-}
 
 function levelNum(lvl) {
   return LEVELS[lvl] ?? LEVELS.info;
@@ -64,104 +62,114 @@ function normalizeError(err) {
   return { name, message, stack };
 }
 
-function base() {
-  return { ts: ts(), service: SERVICE_NAME, env: ENV, pid: process.pid };
+function base(lvl) {
+  return {
+    ts: ts(),
+    severity: SEVERITY[lvl] || "INFO",
+    service: SERVICE_NAME,
+    env: ENV,
+    pid: process.pid,
+  };
 }
 
-// ======== Canal a auditoría ========
-// Nota: ahora soporta 'trackEvent' (tu audit.js actual) y también alias comunes.
-function getAuditFn() {
-  if (!audit) return null;
-  return (
-    audit.trackEvent || // 👈 el tuyo
-    audit.onLogEvent ||
-    audit.capture ||
-    audit.record ||
-    audit.logEvent ||
-    audit.write ||
-    audit.event ||
-    audit.emit ||
-    null
-  );
-}
-
-// Buffer opcional para poder “flush” en pruebas (no bloquea el request loop)
-const auditQueue = [];
-let flushing = false;
-
-function forwardToAudit(rec) {
-  if (!AUDIT_ENABLED || !audit) return;
-  const fn = getAuditFn();
-  if (typeof fn !== "function") return;
-  // Encolamos para no bloquear; se puede forzar flush en tests
-  auditQueue.push(rec);
-  // Disparamos un flush asíncrono best-effort
-  if (!flushing) flushAudit().catch(() => {});
+// ======== Auditoría (stub) ========
+// TODO(fase-04): conectar a Firestore. Por ahora es no-op para no acoplar
+// el logger a Postgres ni a un backend opcional.
+function forwardToAudit(_rec) {
+  // intencionalmente vacío hasta fase 04
 }
 
 async function flushAudit() {
-  if (flushing) return;
-  flushing = true;
-  try {
-    const fn = getAuditFn();
-    if (typeof fn !== "function") return;
-    while (auditQueue.length) {
-      const rec = auditQueue.shift();
-      // Si fn devuelve promesa, esperamos; si no, sigue
-      await Promise.resolve(fn.call(audit, rec));
-    }
-  } finally {
-    flushing = false;
-  }
+  // no-op stub: la fase 04 reemplaza esto por un flush real a Firestore
 }
 
-function emit(obj, lvl = "info") {
-  const rec = { ...base(), level: lvl, ...obj };
-
-  // Enviar SIEMPRE a auditoría (independiente del nivel de log a stdout)
-  forwardToAudit(rec);
-  if (!enabled(lvl)) return;
-
-  if (LOG_FORMAT === "pretty") {
-    const head = `[${rec.ts}] ${String(rec.level || "").toUpperCase()} ${
-      rec.type || ""
-    }`;
-    try {
-      // eslint-disable-next-line no-console
-      console.log(`${head} ${safeJson(rec)}`);
-    } catch {
-      // eslint-disable-next-line no-console
-      console.log(safeJson(rec));
-    }
-  } else {
-    // JSON line estricto (ideal para ingesta)
-    // eslint-disable-next-line no-console
-    console.log(safeJson(rec));
-  }
-  
-}
-
+// safeTruncateObj: SIEMPRE devuelve un objeto (truncando valores internos)
+// para no romper consumidores que esperan estructura.
 function safeTruncateObj(obj, maxChars) {
+  if (obj == null || typeof obj !== "object") {
+    return { value: truncateString(safeJson(obj), maxChars) };
+  }
   try {
     const s = safeJson(obj);
     if (s.length <= maxChars) return obj;
-    return truncateString(s, maxChars);
   } catch {
-    return truncateString(String(obj), maxChars);
+    return { value: truncateString(String(obj), maxChars) };
+  }
+  // Truncar por campo manteniendo estructura.
+  const out = Array.isArray(obj) ? [] : {};
+  const perField = Math.max(200, Math.floor(maxChars / Math.max(1, Object.keys(obj).length || 1)));
+  for (const [k, v] of Object.entries(obj)) {
+    if (v == null || typeof v !== "object") {
+      const s = typeof v === "string" ? v : safeJson(v);
+      out[k] = truncateString(s, perField);
+    } else {
+      out[k] = truncateString(safeJson(v), perField);
+    }
+  }
+  out.__truncated = true;
+  return out;
+}
+
+function prettyLine(rec) {
+  const t = (rec.ts || "").slice(11, 19) || ts().slice(11, 19);
+  const level = String(rec.level || "info").toUpperCase().padEnd(5, " ");
+  const type = rec.type || "-";
+  const skip = new Set([
+    "ts",
+    "severity",
+    "service",
+    "env",
+    "pid",
+    "level",
+    "type",
+  ]);
+  const parts = [];
+  // Aliases cortos
+  const alias = {
+    correlationId: "corr",
+    jobId: "job",
+    botId: "bot",
+    durMs: "dur",
+    status: "status",
+    method: "method",
+    path: "path",
+  };
+  for (const [k, v] of Object.entries(rec)) {
+    if (skip.has(k)) continue;
+    if (v == null) continue;
+    const key = alias[k] || k;
+    let val;
+    if (typeof v === "object") val = safeJson(v);
+    else val = String(v);
+    if (val.length > 200) val = val.slice(0, 200) + "…";
+    parts.push(`${key}=${val}`);
+  }
+  return `${t} ${level} ${type} ${parts.join(" ")}`.trimEnd();
+}
+
+function emit(obj, lvl = "info") {
+  const ctx = getContext() || {};
+  const rec = { ...base(lvl), level: lvl, ...ctx, ...obj };
+
+  // Auditoría siempre (stub por ahora)
+  forwardToAudit(rec);
+  if (!enabled(lvl)) return;
+
+  const line = LOG_FORMAT === "pretty" ? prettyLine(rec) : safeJson(rec);
+  // Único punto de stdout/stderr permitido en el codebase (eslint override en .eslintrc).
+  if (lvl === "error" || lvl === "warn") {
+    console.error(line);
+  } else {
+    console.log(line);
   }
 }
 
 function event(obj, lvl = "info") {
   const rec = { ...obj };
 
-  if (rec.meta != null) {
-    const t = safeTruncateObj(rec.meta, MAX_META_CHARS);
-    rec.meta = t;
-  }
-  if (rec.details != null) {
-    const t = safeTruncateObj(rec.details, MAX_META_CHARS);
-    rec.details = t;
-  }
+  if (rec.meta != null) rec.meta = safeTruncateObj(rec.meta, MAX_META_CHARS);
+  if (rec.details != null)
+    rec.details = safeTruncateObj(rec.details, MAX_META_CHARS);
 
   if (rec.error && (rec.error.stack || typeof rec.error === "object")) {
     rec.error = normalizeError(rec.error);
@@ -177,6 +185,5 @@ module.exports = {
   warn: (o) => event(o, "warn"),
   error: (o) => event(o, "error"),
   normalizeError,
-  // utilidades de test
   flushAudit,
 };

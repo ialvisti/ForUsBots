@@ -3,6 +3,7 @@ const router = require("express").Router();
 const path = require("path");
 const fs = require("fs").promises;
 const { requireUser } = require("../middleware/auth"); // << cambia aquí
+const logger = require("../engine/logger");
 
 // ----- Publisher guard: admin + *_lead -----
 const PUBLISH_ROLES = new Set([
@@ -95,7 +96,7 @@ router.get("/_published", requireUser, async (_req, res) => {
     const articles = Array.from(new Map(items.map((i) => [i.id, i])).values());
     res.json({ ok: true, total: articles.length, articles });
   } catch (e) {
-    console.error("[published list]", e);
+    logger.error({ type: "route.articles_draft.published_list_error", error: e });
     res
       .status(500)
       .json({ ok: false, error: "Could not list published articles" });
@@ -112,7 +113,7 @@ router.get("/_published/:id", requireUser, async (req, res) => {
     const article = await readJson(fp);
     res.json({ ok: true, article });
   } catch (e) {
-    console.error("[published get]", e);
+    logger.error({ type: "route.articles_draft.published_get_error", error: e });
     res
       .status(500)
       .json({ ok: false, error: "Could not read published article" });
@@ -142,7 +143,7 @@ router.get("/", requireUser, async (_req, res) => {
     const drafts = Array.from(new Map(items.map((i) => [i.id, i])).values());
     res.json({ ok: true, total: drafts.length, drafts });
   } catch (e) {
-    console.error("[draft list]", e);
+    logger.error({ type: "route.articles_draft.draft_list_error", error: e });
     res.status(500).json({ ok: false, error: "Could not list drafts" });
   }
 });
@@ -196,7 +197,7 @@ router.post("/:id/rename", requireUser, async (req, res) => {
     if (newFp !== oldFp) await fs.unlink(oldFp).catch(() => {});
     res.json({ ok: true, renamed: true, id: newId });
   } catch (e) {
-    console.error("[draft rename]", e);
+    logger.error({ type: "route.articles_draft.draft_rename_error", error: e });
     res.status(500).json({ ok: false, error: "Could not rename draft" });
   }
 });
@@ -255,7 +256,7 @@ router.get("/:id", requireUser, async (req, res) => {
     const article = await readJson(fp);
     res.json({ ok: true, article });
   } catch (e) {
-    console.error("[draft get]", e);
+    logger.error({ type: "route.articles_draft.draft_get_error", error: e });
     res.status(500).json({ ok: false, error: "Could not read draft" });
   }
 });
@@ -271,7 +272,7 @@ router.delete("/:id", requireUser, requirePublisherRole, async (req, res) => {
     await fs.unlink(fp);
     res.json({ ok: true, deleted: true, id });
   } catch (e) {
-    console.error("[draft delete]", e);
+    logger.error({ type: "route.articles_draft.draft_delete_error", error: e });
     res.status(500).json({ ok: false, error: "Could not delete draft" });
   }
 });

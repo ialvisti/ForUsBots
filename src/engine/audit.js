@@ -2,6 +2,7 @@
 // Persiste jobs y stages en Postgres al ritmo de los eventos del logger.
 
 const { Pool } = require("pg");
+const logger = require("../engine/logger");
 
 const ENABLED = String(process.env.AUDIT_DB || "").trim() === "1";
 const DBURL = process.env.DATABASE_URL || "";
@@ -108,7 +109,7 @@ async function ensureSchema() {
     `;
     await p.query(sql);
   })().catch((e) => {
-    console.error("[audit.ensureSchema] error:", e);
+    logger.error({ type: "audit.audit_ensureschema_error", error: e });
     ensured = null;
   });
 
@@ -328,7 +329,7 @@ async function trackEvent(rec) {
     if (t === "stage.fail") return saveStage(rec, "fail");
     if (t === "job.summary") return saveSummary(rec);
   } catch (e) {
-    console.error("[audit.trackEvent] error:", e && e.message ? e.message : e);
+    logger.error({ type: "audit.audit_trackevent_error", error: e });
   }
 }
 

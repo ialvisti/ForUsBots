@@ -2,6 +2,7 @@
 const queue = require("../../engine/queue");
 const { FIXED } = require("../../providers/forusall/config");
 const { allowedKeys } = require("../../providers/forusall/planMap");
+const logger = require("../../engine/logger");
 const {
   validateFieldsForModule,
 } = require("../../extractors/forusall-plan/registry");
@@ -207,7 +208,7 @@ module.exports = async function controller(req, res) {
       },
     });
   } catch (e) {
-    console.error("[scrape-plan controller]", e);
+    logger.error({ type: "bot.scrape_plan.scrape_plan_controller_error", error: e });
     return res
       .status(500)
       .json({

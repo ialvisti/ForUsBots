@@ -5,8 +5,13 @@ const fs = require("fs");
 
 const { getSettings } = require("./engine/settings");
 const { resolveRole, listUsersPublic } = require("./middleware/auth");
+const logger = require("./engine/logger");
+const requestLog = require("./middleware/request-log");
 
 const app = express();
+
+// ===== Request log + correlation (debe ir antes de cualquier ruta) =====
+app.use(requestLog);
 
 // ===== Body parsers =====
 app.use(express.json({ limit: "5mb" }));
@@ -142,7 +147,7 @@ app.post("/forusbot/evidence/login", (req, res) => {
       hint: "Cookie set. Open /evidence on this origin.",
     });
   } catch (e) {
-    console.error("[evidence login] error", e);
+    logger.error({ type: "http.evidence_login.error", error: e });
     return res.status(500).json({ ok: false, error: "login error" });
   }
 });
@@ -170,7 +175,7 @@ app.post("/forusbot/admin/login", (req, res) => {
     setAdminCookie(req, res, token);
     return res.json({ ok: true, role: "admin" });
   } catch (e) {
-    console.error("[admin login] error", e);
+    logger.error({ type: "http.admin_login.error", error: e });
     return res.status(500).json({ ok: false, error: "login error" });
   }
 });
@@ -179,7 +184,7 @@ app.post("/forusbot/admin/logout", (req, res) => {
     clearAdminCookie(req, res);
     return res.json({ ok: true });
   } catch (e) {
-    console.error("[admin logout] error", e);
+    logger.error({ type: "http.admin_logout.error", error: e });
     return res.status(500).json({ ok: false, error: "logout error" });
   }
 });
@@ -190,7 +195,7 @@ app.get("/forusbot/admin/whoami", (req, res) => {
     const role = resolveRole(token);
     return res.json({ ok: true, role, isAdmin: role === "admin" });
   } catch (e) {
-    console.error("[admin whoami] error", e);
+    logger.error({ type: "http.admin_whoami.error", error: e });
     return res.status(500).json({ ok: false, error: "whoami error" });
   }
 });
@@ -208,7 +213,7 @@ app.get("/forusbot/auth/whoami", (req, res) => {
       return res.status(401).json({ ok: false, error: "unauthorized" });
     return res.json({ ok: true, role });
   } catch (e) {
-    console.error("[auth whoami] error", e);
+    logger.error({ type: "http.auth_whoami.error", error: e });
     return res.status(500).json({ ok: false, error: "whoami error" });
   }
 });
@@ -221,7 +226,7 @@ app.get("/forusbot/users", (req, res) => {
       return res.status(401).json({ ok: false, error: "unauthorized" });
     return res.json({ ok: true, users: listUsersPublic() });
   } catch (e) {
-    console.error("[users] error", e);
+    logger.error({ type: "http.users.error", error: e });
     return res.status(500).json({ ok: false, error: "users error" });
   }
 });
@@ -253,7 +258,7 @@ app.use((req, res) => {
 
 // ===== Error handler =====
 app.use((err, _req, res, _next) => {
-  console.error("[express error]", err && err.stack ? err.stack : err);
+  logger.error({ type: "http.express_error", error: err });
   res.status(500).json({ ok: false, error: "Internal Server Error" });
 });
 

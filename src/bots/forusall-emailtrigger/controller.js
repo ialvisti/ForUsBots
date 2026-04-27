@@ -2,6 +2,7 @@
 const { FIXED } = require("../../providers/forusall/config");
 const queue = require("../../engine/queue");
 const runFlow = require("./runFlow");
+const logger = require("../../engine/logger");
 
 const ALLOWED_TYPES = new Set([
   "monthly_balance",
@@ -219,7 +220,7 @@ module.exports = async function controller(req, res) {
       capacitySnapshot: accepted.capacitySnapshot,
     });
   } catch (err) {
-    console.error("[emailtrigger controller]", err);
+    logger.error({ type: "bot.emailtrigger.emailtrigger_controller_error", error: err });
     return res
       .status(500)
       .json({ ok: false, error: err.message || String(err) });

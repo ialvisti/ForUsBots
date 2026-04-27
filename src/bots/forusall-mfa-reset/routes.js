@@ -4,6 +4,7 @@ const requireUser = require("../../middleware/auth"); // auth por token
 const queue = require("../../engine/queue");
 const runFlow = require("./runFlow");
 const { FIXED } = require("../../providers/forusall/config");
+const logger = require("../../engine/logger");
 
 /**
  * POST /forusbot/mfa-reset
@@ -64,7 +65,7 @@ router.post("/", requireUser, (req, res) => {
       meta: { participantId, participantUrl },
     });
   } catch (e) {
-    console.error("[mfa-reset routes] submit error:", e);
+    logger.error({ type: "bot.mfa_reset.routes.mfa_reset_routes_submit_error", error: e });
     return res.status(500).json({ ok: false, error: "submit error" });
   }
 });

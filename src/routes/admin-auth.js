@@ -1,5 +1,6 @@
 // src/routes/admin-auth.js
 const express = require("express");
+const logger = require("../engine/logger");
 const {
   _getFileIdentity,
   _getIdentity,
@@ -36,7 +37,7 @@ router.post("/login", express.json(), (req, res) => {
       expiresAt: new Date(exp).toISOString(),
     });
   } catch (e) {
-    console.error("[admin-auth] login error", e);
+    logger.error({ type: "route.admin_auth.admin_auth_login_error", error: e });
     return res.status(500).json({ ok: false, error: "login_error" });
   }
 });
@@ -48,7 +49,7 @@ router.post("/logout", (_req, res) => {
     if (t) revokeSessionToken(t);
     return res.json({ ok: true });
   } catch (e) {
-    console.error("[admin-auth] logout error", e);
+    logger.error({ type: "route.admin_auth.admin_auth_logout_error", error: e });
     return res.status(500).json({ ok: false, error: "logout_error" });
   }
 });
@@ -66,7 +67,7 @@ router.get("/whoami", (req, res) => {
       user: id.user || null,
     });
   } catch (e) {
-    console.error("[admin-auth] whoami error", e);
+    logger.error({ type: "route.admin_auth.admin_auth_whoami_error", error: e });
     return res.status(500).json({ ok: false, error: "whoami_error" });
   }
 });

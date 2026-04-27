@@ -2,6 +2,7 @@
 const queue = require("../../engine/queue");
 const { FIXED } = require("../../providers/forusall/config");
 const runFlow = require("./runFlow");
+const logger = require("../../engine/logger");
 
 module.exports = async function controller(req, res) {
   try {
@@ -46,7 +47,7 @@ module.exports = async function controller(req, res) {
       },
     });
   } catch (error) {
-    console.error("[mfa-reset] Controller error:", error);
+    logger.error({ type: "bot.mfa_reset.mfa_reset_controller_error", error: error });
     return res
       .status(500)
       .json({ ok: false, error: "Error interno del servidor" });

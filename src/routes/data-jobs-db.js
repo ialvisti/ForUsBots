@@ -2,6 +2,7 @@
 const express = require("express");
 const { Pool } = require("pg");
 const { resolveRole } = require("../middleware/auth");
+const logger = require("../engine/logger");
 
 const router = express.Router();
 
@@ -195,7 +196,7 @@ router.get("/jobs-db", dataGate, async (req, res) => {
       client.release();
     }
   } catch (e) {
-    console.error("[data/jobs-db] list error", e);
+    logger.error({ type: "route.data_jobs_db.data_jobs_db_list_error", error: e });
     return res.status(500).json({ ok: false, error: "db_error" });
   }
 });
@@ -245,7 +246,7 @@ router.get("/jobs-db/:id", dataGate, async (req, res) => {
       client.release();
     }
   } catch (e) {
-    console.error("[data/jobs-db] get error", e);
+    logger.error({ type: "route.data_jobs_db.data_jobs_db_get_error", error: e });
     return res.status(500).json({ ok: false, error: "db_error" });
   }
 });

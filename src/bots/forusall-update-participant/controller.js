@@ -1,5 +1,6 @@
 const queue = require("../../engine/queue");
 const { FIXED } = require("../../providers/forusall/config"); // loginUrl + selectors
+const logger = require("../../engine/logger");
 
 // Etiquetas EXACTAS del módulo Census (web) -> clave interna
 const LABEL_TO_KEY = new Map([
@@ -171,7 +172,7 @@ module.exports = async function controller(req, res) {
       executedBy: createdBy,
     });
   } catch (e) {
-    console.error("[forusall-update-participant controller]", e);
+    logger.error({ type: "bot.update_participant.forusall_update_participant_controller_error", error: e });
     return res
       .status(500)
       .json({ ok: false, error: e?.message || "Internal Error" });

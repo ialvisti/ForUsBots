@@ -1,5 +1,6 @@
 const queue = require("../../engine/queue");
 const { FIXED } = require("../../providers/forusall/config");
+const logger = require("../../engine/logger");
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -136,7 +137,7 @@ module.exports = async function controller(req, res) {
       executedBy: createdBy,
     });
   } catch (e) {
-    console.error("[forusall-update-plan controller]", e);
+    logger.error({ type: "bot.update_plan.forusall_update_plan_controller_error", error: e });
     return res
       .status(500)
       .json({ ok: false, error: e?.message || "Internal Error" });

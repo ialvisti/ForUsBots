@@ -3,6 +3,7 @@ const router = require("express").Router();
 const path = require("path");
 const fs = require("fs");
 const express = require("express");
+const logger = require("../engine/logger");
 
 const mfaResetRoutes = require("../bots/forusall-mfa-reset/routes");
 const forusUploadRoutes = require("../bots/forusall-upload/routes");
@@ -152,7 +153,7 @@ router.get("/status", ...maybeProtectStatus(), (_req, res) => {
       totpStepSeconds: locks.stepSeconds,
     });
   } catch (e) {
-    console.error("[status error]", e);
+    logger.error({ type: "route.index.status_error_error", error: e });
     return res
       .status(500)
       .json({ ok: false, error: "No se pudo obtener el estado" });
@@ -184,7 +185,7 @@ router.get("/jobs", auth, (req, res) => {
       jobs: mapped,
     });
   } catch (e) {
-    console.error("[jobs list] error", e);
+    logger.error({ type: "route.index.jobs_list_error", error: e });
     return res.status(500).json({ ok: false, error: "No se pudo listar jobs" });
   }
 });
@@ -214,7 +215,7 @@ router.delete("/jobs/:id", auth, (req, res) => {
       reason: r.reason || null,
     });
   } catch (e) {
-    console.error("[jobs delete] error", e);
+    logger.error({ type: "route.index.jobs_delete_error", error: e });
     return res.status(500).json({ ok: false, error: "Could not cancel job" });
   }
 });
@@ -225,7 +226,7 @@ router.get("/locks", requireAdmin, (_req, res) => {
     const locks = getLoginLocksStatus();
     return res.json(locks);
   } catch (e) {
-    console.error("[locks] error", e);
+    logger.error({ type: "route.index.locks_error", error: e });
     return res.status(500).json({ ok: false, error: "Could not obtain locks" });
   }
 });
@@ -240,7 +241,7 @@ router.get("/settings", requireAdmin, (_req, res) => {
       capacity: queue.getStatus().capacity,
     });
   } catch (e) {
-    console.error("[settings get] error", e);
+    logger.error({ type: "route.index.settings_get_error", error: e });
     return res
       .status(500)
       .json({ ok: false, error: "Could not obtain settings" });
@@ -260,7 +261,7 @@ router.patch("/settings", requireAdmin, (req, res) => {
       capacity: queue.getStatus().capacity,
     });
   } catch (e) {
-    console.error("[settings patch] error", e);
+    logger.error({ type: "route.index.settings_patch_error", error: e });
     return res
       .status(400)
       .json({ ok: false, error: e && e.message ? e.message : "Invalid patch" });
@@ -278,7 +279,7 @@ router.get("/whoami", auth, (req, res) => {
       user: a.user || null,
     });
   } catch (e) {
-    console.error("[whoami] error", e);
+    logger.error({ type: "route.index.whoami_error", error: e });
     return res.status(500).json({ ok: false, error: "whoami error" });
   }
 });
@@ -289,7 +290,7 @@ router.get("/metrics", requireAdmin, (_req, res) => {
     const m = queue.getMetrics();
     return res.json(m);
   } catch (e) {
-    console.error("[metrics] error", e);
+    logger.error({ type: "route.index.metrics_error", error: e });
     return res.status(500).json({ ok: false, error: "Could not get metrics" });
   }
 });
@@ -300,7 +301,7 @@ router.get("/version", requireAdmin, (_req, res) => {
     const pkg = require("../../package.json");
     return res.json({ ok: true, name: pkg.name, version: pkg.version });
   } catch (e) {
-    console.error("[version] error", e);
+    logger.error({ type: "route.index.version_error", error: e });
     return res
       .status(500)
       .json({ ok: false, error: "Could not obtain package.json" });
@@ -325,7 +326,7 @@ router.get("/openapi", requireAdmin, (_req, res) => {
     res.type("text/yaml");
     return res.send(fs.readFileSync(openapiPath, "utf8"));
   } catch (e) {
-    console.error("[openapi] error", e);
+    logger.error({ type: "route.index.openapi_error", error: e });
     return res
       .status(500)
       .json({ ok: false, error: "Could not serve OpenAPI" });
@@ -346,7 +347,7 @@ router.post("/_close", requireAdmin, async (_req, res) => {
       note: "Shared Playwright context closed. New requests will recreate it on demand.",
     });
   } catch (e) {
-    console.error("[_close] error", e);
+    logger.error({ type: "route.index.close_error", error: e });
     return res
       .status(500)
       .json({ ok: false, error: "Could not close shared context" });
@@ -475,7 +476,7 @@ router.post(
         warnings,
       });
     } catch (e) {
-      console.error("[sandbox dry-run] error", e);
+      logger.error({ type: "route.index.sandbox_dry_run_error", error: e });
       return res
         .status(500)
         .json({ ok: false, error: "Could not process dry-run" });
@@ -615,7 +616,7 @@ router.post(
         warnings,
       });
     } catch (e) {
-      console.error("[sandbox update-plan] error", e);
+      logger.error({ type: "route.index.sandbox_update_plan_error", error: e });
       return res
         .status(500)
         .json({ ok: false, error: e?.message || "Internal Error" });

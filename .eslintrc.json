@@ -1,0 +1,29 @@
+{
+  "env": { "node": true, "es2022": true },
+  "extends": ["eslint:recommended"],
+  "parserOptions": { "ecmaVersion": 2022 },
+  "rules": {
+    "no-console": "error",
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-inner-declarations": "warn",
+    "no-useless-escape": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["src/engine/logger.js"],
+      "rules": { "no-console": "off" }
+    },
+    {
+      "files": [
+        "src/extractors/**/*.js",
+        "src/bots/**/runFlow.js",
+        "src/bots/**/flows/*.js",
+        "src/engine/sharedContext.js",
+        "src/engine/utils/*.js",
+        "src/engine/auth/**/*.js"
+      ],
+      "env": { "browser": true, "node": true }
+    }
+  ]
+}

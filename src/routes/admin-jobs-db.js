@@ -2,6 +2,7 @@
 const express = require("express");
 const { Pool } = require("pg");
 const { resolveRole } = require("../middleware/auth");
+const logger = require("../engine/logger");
 
 const router = express.Router();
 
@@ -180,7 +181,7 @@ router.get("/jobs-db", adminGate, async (req, res) => {
       client.release();
     }
   } catch (e) {
-    console.error("[admin/jobs-db] list error", e);
+    logger.error({ type: "route.admin_jobs_db.admin_jobs_db_list_error", error: e });
     return res.status(500).json({ ok: false, error: "db_error" });
   }
 });
@@ -230,7 +231,7 @@ router.get("/jobs-db/:id", adminGate, async (req, res) => {
       client.release();
     }
   } catch (e) {
-    console.error("[admin/jobs-db] get error", e);
+    logger.error({ type: "route.admin_jobs_db.admin_jobs_db_get_error", error: e });
     return res.status(500).json({ ok: false, error: "db_error" });
   }
 });
@@ -287,13 +288,13 @@ router.delete("/jobs-db/_purge", adminGate, async (_req, res) => {
       });
     } catch (e) {
       await p.query?.("ROLLBACK").catch(() => {});
-      console.error("[admin/jobs-db] purge error", e);
+      logger.error({ type: "route.admin_jobs_db.admin_jobs_db_purge_error", error: e });
       return res.status(500).json({ ok: false, error: "db_error" });
     } finally {
       client.release();
     }
   } catch (e) {
-    console.error("[admin/jobs-db] purge connect error", e);
+    logger.error({ type: "route.admin_jobs_db.admin_jobs_db_purge_connect_error", error: e });
     return res.status(500).json({ ok: false, error: "db_error" });
   }
 });

@@ -5,6 +5,7 @@ const { FIXED } = require("../../providers/forusall/config");
 const runFlow = require("./runFlow");
 const { setPdfTitle } = require("../../engine/utils/pdf"); // PDF internal title
 const queue = require("../../engine/queue"); // queue and status
+const logger = require("../../engine/logger");
 
 // 422 quick check if they send "Document Missing" with an attached file
 function prevalidate(metaIn, hasBinary) {
@@ -303,7 +304,7 @@ module.exports = async function controller(req, res) {
     if (err.http === 422 && err.payload) {
       return res.status(422).json({ ...err.payload, warnings });
     }
-    console.error(err);
+    logger.error({ type: "bot.upload.error", error: err });
     return res.status(500).json({ ok: false, error: err.message, warnings });
   }
 };

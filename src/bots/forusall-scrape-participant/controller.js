@@ -2,6 +2,7 @@
 const queue = require("../../engine/queue");
 const { FIXED } = require("../../providers/forusall/config");
 const { allowedKeys } = require("../../providers/forusall/participantMap");
+const logger = require("../../engine/logger");
 const {
   validateFieldsForModule,
 } = require("../../extractors/forusall-participant/registry");
@@ -207,7 +208,7 @@ module.exports = async function controller(req, res) {
       },
     });
   } catch (e) {
-    console.error("[scrape-participant controller]", e);
+    logger.error({ type: "bot.scrape_participant.scrape_participant_controller_error", error: e });
     return res
       .status(500)
       .json({
