@@ -1682,26 +1682,26 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
       </details>
 
       <details class="schema">
-        <summary><strong>Job (GET /jobs/:id)</strong></summary>
-        <pre><code class="json">{
-  "ok": true,
-  "jobId": "uuid",
-  "botId": "string",
-  "meta": {},
-  "state": "queued|running|succeeded|failed|canceled",
-  "acceptedAt": "date-time",
-  "startedAt": "date-time|null",
-  "finishedAt": "date-time|null",
-  "result": "object|null",
-  "error": "string|null",
-  "waitingSeconds"?: 0,
-  "position"?: 1,
-  "elapsedSeconds"?: 0,
-  "stage"?: "string",
-  "stageSince"?: "date-time",
-  "stageSeconds"?: 0,
-  "totalSeconds"?: 0
-}</code></pre>
+        <summary><strong>Job (GET /jobs/:id) — shape público</strong></summary>
+        <pre><code class="json">// queued / running / canceled
+{ "state": "queued" }
+
+// failed
+{
+  "state": "failed",
+  "error": { "code": "ERROR", "message": "Login failed" }
+}
+
+// succeeded — el shape de `data` depende de cada bot
+{
+  "state": "succeeded",
+  "data": { /* shape específico por bot */ },
+  "warnings": [],
+  "errors": []
+}
+
+// Para detalle verbose con stages, meta echo, timestamps y métricas,
+// usa GET /forusbot/admin/jobs-db/:id (solo admin token).</code></pre>
       </details>
 
       <footer class="foot muted small">

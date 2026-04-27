@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ForUsBots API
-  version: 2.3.0
+  version: 2.4.0
 servers:
   - url: http://localhost:10000
 paths:
@@ -27,7 +27,11 @@ paths:
 
   /forusbot/jobs:
     get:
-      summary: List jobs (queued/running/finished)
+      summary: List jobs (queued/running/finished) — public shape
+      description: |
+        Devuelve el shape **público** minimalista por bot. Para detalle verbose con
+        stages, métricas, meta interna y createdBy, ver `/forusbot/admin/jobs-db/:id`
+        (requiere admin token).
       parameters:
         - in: header
           name: x-auth-token
@@ -61,12 +65,16 @@ paths:
                   jobs:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Job'
+                      $ref: '#/components/schemas/JobPublicResponse'
         '401': { description: Unauthorized }
 
   /forusbot/jobs/{id}:
     get:
-      summary: Get job by id
+      summary: Get job by id — public shape
+      description: |
+        Devuelve el shape **público** minimalista por bot. Para detalle verbose con
+        stages, métricas, meta interna y createdBy, ver `/forusbot/admin/jobs-db/:id`
+        (requiere admin token).
       parameters:
         - in: header
           name: x-auth-token
@@ -82,7 +90,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Job'
+                $ref: '#/components/schemas/JobPublicResponse'
         '401': { description: Unauthorized }
         '404': { description: Not Found }
     delete:
@@ -999,14 +1007,53 @@ components:
             message: { type: string }
             stack: { type: string }
 
-    Job:
+    JobPublicResponse:
+      type: object
+      required: [state]
+      description: |
+        Shape público minimalista expuesto por GET /forusbot/jobs y /forusbot/jobs/:id.
+        Incluye solo los campos que un consumidor externo necesita; oculta toda la
+        metadata interna (stages, meta echo, createdBy, métricas, evidencePath, etc.).
+        Para forensics y debug interno, usar /forusbot/admin/jobs-db/:id (admin only).
+      properties:
+        state:
+          type: string
+          enum: [queued, running, succeeded, failed, canceled]
+        data:
+          type: object
+          nullable: true
+          description: |
+            Solo presente cuando state=succeeded. El shape es específico por bot
+            (ej. scrape-participant: `{participantId, census?, savings_rate?, ...}`;
+            update-plan: `{planId, applied, skipped}`; mfa-reset: `{participantId, reset}`).
+        error:
+          type: object
+          nullable: true
+          description: Solo presente cuando state=failed.
+          properties:
+            code: { type: string }
+            message: { type: string }
+        warnings:
+          type: array
+          description: Solo presente cuando state=succeeded.
+          items: { type: object }
+        errors:
+          type: array
+          description: Solo presente cuando state=succeeded.
+          items: { type: object }
+
+    JobAdminResponse:
       type: object
       required:
         [ ok, jobId, botId, state, acceptedAt, result, meta, stages ]
+      description: |
+        Shape verbose con TODA la metadata interna (stages, meta echo, createdBy,
+        timestamps, métricas, stagesSummaryMsByName, etc.). Solo accesible vía
+        endpoints /forusbot/admin/jobs-db/* con admin token.
       properties:
         ok:
           type: boolean
-          description: Siempre true para el wrapper de GET /jobs/:id; útil si se reutiliza en otras respuestas
+          description: Siempre true para el wrapper; útil si se reutiliza en otras respuestas
           example: true
         jobId: { type: string, format: uuid }
         botId: { type: string }

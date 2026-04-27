@@ -20,109 +20,13 @@ const auth = require("../middleware/auth"); // default = requireUser (compat)
 const { requireAdmin, requireUser } = require("../middleware/auth");
 const { getSettings, patchSettings } = require("../engine/settings");
 const { _closeContextNow, getPoolStats } = require("../engine/sharedContext");
-const { normalizeResultEnvelope } = require("../engine/normalizer");
+const { toPublicJob } = require("../middleware/public-response");
 
 const dataMetrics = require("./data-metrics-db");
 const dataJobs = require("./data-jobs-db");
 
 // 🆕 Rutas de artículos (FS)
 const articlesRoutes = require("./articles-files");
-
-/**
- * Determina si un `result` ya está en envelope canónico.
- */
-function isCanonicalResult(r) {
-  return (
-    r &&
-    typeof r === "object" &&
-    typeof r.ok === "boolean" &&
-    typeof r.code === "string" &&
-    Object.prototype.hasOwnProperty.call(r, "data")
-  );
-}
-
-/**
- * Sanitizador / normalizador de payloads de Job expuestos por la API:
- * - Estructura *uniforme* en `result` (envelope canónico).
- * - Incluye `stages` (persistidos por queue).
- * - Sanitiza `meta` (no exposición de selectors).
- * - No expone `rawResult`.
- */
-function toPublicJob(job) {
-  if (!job || typeof job !== "object") return job;
-
-  // Clonar superficialmente
-  const clean = { ...job };
-
-  // --- Meta sanitization según bot ---
-  const meta = clean.meta || {};
-
-  if (clean.botId === "forusall-mfa-reset") {
-    const pid = meta.participantId || null;
-    const purl =
-      meta.participantUrl ||
-      (pid
-        ? `https://employer.forusall.com/participants/${encodeURIComponent(
-            pid
-          )}`
-        : null);
-    clean.meta = { participantId: pid, participantUrl: purl };
-  } else {
-    // Default: quitar selectors (si existiera)
-    const { selectors, ...metaSafe } = meta;
-    clean.meta = metaSafe;
-  }
-
-  // Normalizar result (canónico)
-  if (!isCanonicalResult(clean.result)) {
-    const ok =
-      typeof clean.ok === "boolean"
-        ? clean.ok
-        : String(clean.state).toLowerCase() === "succeeded";
-    try {
-      clean.result = normalizeResultEnvelope(
-        clean.botId,
-        ok,
-        clean.result ?? job.result ?? null,
-        clean.error ? { error: clean.error } : null
-      );
-    } catch {
-      clean.result = {
-        ok: ok === true,
-        code: ok ? "OK" : "ERROR",
-        message: clean.error || null,
-        data:
-          (clean.result &&
-            typeof clean.result === "object" &&
-            clean.result.data) ||
-          null,
-        warnings: [],
-        errors: [],
-      };
-    }
-  }
-
-  // Normalizar evidencePath (si algún bot dejó objeto)
-  if (clean.result && clean.result.data && clean.result.data.evidencePath) {
-    const ev = clean.result.data.evidencePath;
-    if (ev && typeof ev === "object" && typeof ev.path === "string") {
-      clean.result = {
-        ...clean.result,
-        data: { ...clean.result.data, evidencePath: ev.path },
-      };
-    }
-  }
-
-  // Asegurar stages como arreglo (si no existen aún)
-  if (!Array.isArray(clean.stages)) clean.stages = [];
-
-  // Nunca exponer rawResult
-  if (Object.prototype.hasOwnProperty.call(clean, "rawResult")) {
-    delete clean.rawResult;
-  }
-
-  return clean;
-}
 
 // Decide si /status es público o requiere rol según flags
 function maybeProtectStatus() {

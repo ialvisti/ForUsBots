@@ -64,8 +64,8 @@ router.use('/data', dataJobs);
 ```
 
 **Features**:
-- **Job Sanitization**: `toPublicJob()` function normalizes responses, removes sensitive fields (selectors, rawResult).
-- **Result Normalization**: Ensures canonical envelope format `{ ok, code, message, data, warnings, errors }`.
+- **Public Job Shape**: `toPublicJob()` (in `src/middleware/public-response.js`) maps the internal job record to the minimal public shape per bot. Hides `jobId`, `botId`, `meta`, `stages`, `createdBy`, timestamps, and metrics. Verbose detail is exposed only at `/forusbot/admin/jobs-db/:id` (admin token).
+- **Per-bot Formatters**: each bot has a `formatPublic.js` registered in `src/middleware/public-formatters.js` to flatten `result.data` to the public `data` field.
 - **Configurable Status Auth**: `/status` endpoint can be public, user-only, or admin-only based on flags.
 
 ---
@@ -242,13 +242,12 @@ All job results normalized to:
 }
 ```
 
-### Job Sanitization
-`toPublicJob()` function:
-- Removes `selectors` from meta
-- Removes `rawResult`
-- Normalizes `result` to canonical envelope
-- Ensures `stages` is array
-- Converts nested evidence paths to strings
+### Public Job Shape
+`toPublicJob()` (defined in `src/middleware/public-response.js`):
+- Returns `{ state }` for `queued | running | canceled`.
+- Returns `{ state, error: { code, message } }` for `failed`.
+- Returns `{ state, data, warnings, errors }` for `succeeded`, where `data` is produced by the per-bot formatter registered in `src/middleware/public-formatters.js`.
+- Never exposes `jobId`, `botId`, `meta`, `stages`, `createdBy`, `rawResult`, or runtime metrics. For verbose forensics use `GET /forusbot/admin/jobs-db/:id` (admin only).
 
 ---
 

@@ -777,22 +777,23 @@ x-auth-token: ...
       </section>
 
       <section id="jobs">
-        <h2>Jobs API — states & fields</h2>
+        <h2>Jobs API — public shape</h2>
         <ul class="list">
           <li>
             <strong>States</strong>: <code>queued</code>, <code>running</code>,
             <code>succeeded</code>, <code>failed</code>, <code>canceled</code>.
           </li>
           <li>
-            <strong>Fields</strong>: <code>jobId</code>, <code>botId</code>,
-            <code>meta</code>, <code>acceptedAt</code>, <code>startedAt</code>,
-            <code>finishedAt</code>, <code>result</code>, <code>error</code>.
+            <strong>Fields</strong>: only <code>state</code> for queued/running/canceled;
+            <code>state + error</code> on failed; <code>state + data + warnings + errors</code>
+            on succeeded. No <code>jobId</code>, <code>botId</code>, <code>meta</code>,
+            <code>stages</code>, <code>createdBy</code>, or runtime metrics are exposed.
           </li>
           <li>
-            <strong>Runtime metrics</strong>: when queued →
-            <code>waitingSeconds</code> & <code>position</code>; when running →
-            <code>elapsedSeconds</code> & stage info; when finished →
-            <code>totalSeconds</code>.
+            <code>data</code> is bot-specific (e.g. scrape-participant returns
+            <code>{participantId, census?, savings_rate?, ...}</code>). For verbose
+            forensics with stages, meta echo, timestamps, and metrics, use
+            <code>GET /forusbot/admin/jobs-db/:id</code> (admin only).
           </li>
         </ul>
       </section>
@@ -837,20 +838,25 @@ x-auth-token: ...
   "capacitySnapshot": { ... }
 }</code></pre>
 
-        <h3>Job (GET /jobs/:id)</h3>
-        <pre><code>{
-  "ok": true,
-  "jobId": "...",
-  "state": "running|...|failed",
-  "error": null | "message",
-  "result": null | {...},
-  "waitingSeconds"?: 4,
-  "position"?: 1,
-  "elapsedSeconds"?: 8,
-  "stage"?: "login|otp|...|done",
-  "stageSeconds"?: 2,
-  "totalSeconds"?: 117
-}</code></pre>
+        <h3>Job (GET /jobs/:id) — public shape</h3>
+        <pre><code>// queued / running / canceled
+{ "state": "queued" }
+
+// failed
+{
+  "state": "failed",
+  "error": { "code": "ERROR", "message": "Login failed" }
+}
+
+// succeeded — `data` shape is bot-specific
+{
+  "state": "succeeded",
+  "data": { "participantId": "158948", "census": { ... } },
+  "warnings": [],
+  "errors": []
+}
+
+// For verbose: GET /forusbot/admin/jobs-db/:id (admin token only)</code></pre>
       </section>
 
       <section id="examples">
