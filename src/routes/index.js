@@ -22,9 +22,6 @@ const { getSettings, patchSettings } = require("../engine/settings");
 const { _closeContextNow, getPoolStats } = require("../engine/sharedContext");
 const { toPublicJob } = require("../middleware/public-response");
 
-const dataMetrics = require("./data-metrics-db");
-const dataJobs = require("./data-jobs-db");
-
 // 🆕 Rutas de artículos (FS)
 const articlesRoutes = require("./articles-files");
 
@@ -535,8 +532,5 @@ router.use("/articles", articlesRoutes);
 router.use('/articles-draft', require('./articles-draft'));
 
 
-
-router.use("/data", dataMetrics);
-router.use("/data", dataJobs);
 
 module.exports = router;

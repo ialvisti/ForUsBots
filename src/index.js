@@ -1,6 +1,7 @@
 // src/index.js
 require('dotenv').config();
-const app = require('./server');
+
+const { loadSecrets } = require('./secrets');
 const logger = require('./engine/logger');
 
 const PORT = Number(process.env.PORT) || 10000;
@@ -44,37 +45,52 @@ process.on('uncaughtException', (err) => {
   logger.error({ type: 'infra.uncaught_exception', error: err });
 });
 
-const server = app.listen(PORT, HOST, () => {
-  const shownHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
-  logger.info({ type: 'infra.startup', port: PORT, host: shownHost });
-});
+(async () => {
+  try {
+    await loadSecrets();
+  } catch (e) {
+    logger.error({ type: 'infra.secrets_load_error', error: e });
+    _realExit(1);
+    return;
+  }
 
-server.on('error', (err) => {
-  logger.error({ type: 'infra.server_error', error: err });
-});
+  // Cargar el server DESPUÉS de que secretos estén en process.env, para que
+  // los módulos que leen SITE_USER/SITE_PASS/TOTP_SECRET/SHARED_TOKEN al
+  // require-time vean los valores ya resueltos.
+  const app = require('./server');
 
-let shuttingDown = false;
-function shutdown(signal, code = 0) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  logger.info({ type: 'infra.shutdown', signal });
-  server.close((err) => {
-    if (err) {
-      logger.error({ type: 'infra.server_close_error', error: err });
-      return _realExit(1);
-    }
-    _realExit(code);
+  const server = app.listen(PORT, HOST, () => {
+    const shownHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+    logger.info({ type: 'infra.startup', port: PORT, host: shownHost });
   });
-}
 
-process.on('SIGINT', () => shutdown('SIGINT', 0));
-process.on('SIGTERM', () => shutdown('SIGTERM', 0));
-process.once('SIGUSR2', function () {
-  logger.info({ type: 'infra.shutdown', signal: 'SIGUSR2' });
-  server.close(() => {
-    process.kill(process.pid, 'SIGUSR2');
+  server.on('error', (err) => {
+    logger.error({ type: 'infra.server_error', error: err });
   });
-});
 
-// Guardia: timer largo para mantener el loop vivo si alguien cierra el server.
-setInterval(() => {}, 1 << 30);
+  let shuttingDown = false;
+  function shutdown(signal, code = 0) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ type: 'infra.shutdown', signal });
+    server.close((err) => {
+      if (err) {
+        logger.error({ type: 'infra.server_close_error', error: err });
+        return _realExit(1);
+      }
+      _realExit(code);
+    });
+  }
+
+  process.on('SIGINT', () => shutdown('SIGINT', 0));
+  process.on('SIGTERM', () => shutdown('SIGTERM', 0));
+  process.once('SIGUSR2', function () {
+    logger.info({ type: 'infra.shutdown', signal: 'SIGUSR2' });
+    server.close(() => {
+      process.kill(process.pid, 'SIGUSR2');
+    });
+  });
+
+  // Guardia: timer largo para mantener el loop vivo si alguien cierra el server.
+  setInterval(() => {}, 1 << 30);
+})();

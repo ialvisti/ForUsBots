@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "forusbots"
+  },
+  "targets": {},
+  "etags": {
+    "forusbots": {
+      "extensionInstances": {
+        "firestore-bigquery-export": "2977bb80c9d8dd4f1cb830e0d9b8859aa827509255d874f08d07cf7c458cbb56",
+        "firestore-bigquery-export-events": "8c090c347244b4c0fe7833002377d5fba2222def026dc8ae95704201d3461978",
+        "firestore-bigquery-export-stages": "1b2a3ee29cec31007f9b244a6ba38f0a3f04c64ef7b80c96ca39e2f5fd01d6c5"
+      }
+    }
+  }
+}

@@ -72,15 +72,35 @@ function base(lvl) {
   };
 }
 
-// ======== Auditoría (stub) ========
-// TODO(fase-04): conectar a Firestore. Por ahora es no-op para no acoplar
-// el logger a Postgres ni a un backend opcional.
-function forwardToAudit(_rec) {
-  // intencionalmente vacío hasta fase 04
+// ======== Auditoría (Firestore vía src/engine/audit.js) ========
+// Lazy require para evitar ciclos en require-time (audit no debería re-llamar al logger).
+const AUDIT_ENABLED = String(process.env.AUDIT_DB || "").trim() === "1";
+let _audit = null;
+function getAudit() {
+  if (_audit) return _audit;
+  try {
+    _audit = require("./audit");
+  } catch {
+    _audit = null;
+  }
+  return _audit;
+}
+
+function forwardToAudit(rec) {
+  if (!AUDIT_ENABLED) return;
+  const a = getAudit();
+  if (!a || typeof a.trackEvent !== "function") return;
+  // fire-and-forget: no esperamos. audit.trackEvent ya captura sus errores.
+  Promise.resolve()
+    .then(() => a.trackEvent(rec))
+    .catch(() => {
+      // ya logueado dentro de audit; nada que hacer aquí.
+    });
 }
 
 async function flushAudit() {
-  // no-op stub: la fase 04 reemplaza esto por un flush real a Firestore
+  // Firestore SDK no requiere flush explícito; las escrituras pendientes
+  // se cierran al terminar el proceso. Conservamos la firma para compat.
 }
 
 // safeTruncateObj: SIEMPRE devuelve un objeto (truncando valores internos)

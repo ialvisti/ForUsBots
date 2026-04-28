@@ -1,0 +1,7 @@
+{
+  "extensions": {
+    "firestore-bigquery-export": "firebase/firestore-bigquery-export@0.3.1",
+    "firestore-bigquery-export-events": "firebase/firestore-bigquery-export@0.3.1",
+    "firestore-bigquery-export-stages": "firebase/firestore-bigquery-export@0.3.1"
+  }
+}

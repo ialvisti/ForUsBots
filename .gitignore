@@ -8,3 +8,4 @@ tokens.json
 .sessions
 .user-data
 .env.production
+.gcp-config.local

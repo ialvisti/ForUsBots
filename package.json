@@ -7,18 +7,22 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "emulator": "firebase emulators:start --only firestore",
+    "dev:emulator": "FIRESTORE_EMULATOR_HOST=localhost:8080 GCP_PROJECT=demo-forusbots AUDIT_DB=1 LOG_FORMAT=pretty node src/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google-cloud/bigquery": "^8.3.0",
+    "@google-cloud/firestore": "^8.5.0",
+    "@google-cloud/secret-manager": "^6.1.1",
     "body-parser": "^2.2.0",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "pdf-lib": "^1.17.1",
-    "pg": "^8.16.3",
     "playwright": "^1.54.2",
     "serve-index": "^1.9.1",
     "speakeasy": "^2.0.0"
