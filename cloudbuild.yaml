@@ -1,0 +1,52 @@
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - $_IMAGE:$SHORT_SHA
+      - -t
+      - $_IMAGE:latest
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, --all-tags, $_IMAGE]
+
+  - id: rolling-update
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -e
+        if ! gcloud compute instance-templates describe forusbots-template-$SHORT_SHA >/dev/null 2>&1; then
+          gcloud compute instance-templates create-with-container forusbots-template-$SHORT_SHA \
+            --machine-type=e2-small \
+            --container-image=$_IMAGE:$SHORT_SHA \
+            --service-account=$_SA_EMAIL \
+            --scopes=cloud-platform \
+            --tags=http-server \
+            --address=$_STATIC_IP \
+            --container-env=NODE_ENV=production,GCP_PROJECT=$PROJECT_ID,LOG_FORMAT=json,LOG_LEVEL=info,PORT=10000,AUDIT_DB=1 \
+            --container-mount-disk=mount-path=/var/lib/forusbots,name=forusbots-state \
+            --disk=name=forusbots-state,device-name=forusbots-state,mode=rw,boot=no
+        fi
+        gcloud compute instance-groups managed set-instance-template forusbots-mig \
+          --zone=$_ZONE \
+          --template=forusbots-template-$SHORT_SHA
+        gcloud compute instance-groups managed rolling-action start-update forusbots-mig \
+          --zone=$_ZONE \
+          --version=template=forusbots-template-$SHORT_SHA \
+          --max-surge=0 --max-unavailable=1
+
+substitutions:
+  _IMAGE: us-central1-docker.pkg.dev/${PROJECT_ID}/forusbots/forusbots
+  _SA_EMAIL: forusbots-vm@${PROJECT_ID}.iam.gserviceaccount.com
+  _ZONE: us-central1-a
+  _STATIC_IP: 35.224.156.104
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+  dynamic_substitutions: true

@@ -6,6 +6,7 @@ function db() {
   if (_db) return _db;
   _db = new Firestore({
     projectId: process.env.GCP_PROJECT || undefined,
+    ignoreUndefinedProperties: true,
     // Si FIRESTORE_EMULATOR_HOST está en env, el client lo detecta automáticamente
   });
   return _db;
