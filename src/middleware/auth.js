@@ -4,6 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 const { resolveScope } = require("../auth/scopes");
+const { resolveAccount } = require("../auth/account");
 
 function safeParseJson(s, fallback) {
   try {
@@ -132,6 +133,7 @@ function requireUser(req, res, next) {
     isAdmin: id.role === "admin",
     user: id.user || null,
     scope: resolveScope(id.tokenMeta),
+    account: resolveAccount(id.tokenMeta),
     tokenMeta: id.tokenMeta,
   };
   next();
@@ -153,6 +155,7 @@ function requireAdmin(req, res, next) {
     isAdmin: true,
     user: id.user || null,
     scope: resolveScope(id.tokenMeta),
+    account: resolveAccount(id.tokenMeta),
     tokenMeta: id.tokenMeta,
   };
   next();

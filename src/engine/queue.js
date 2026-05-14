@@ -394,6 +394,7 @@ function maybeStartNext() {
 
     const jobCtx = {
       jobId: job.jobId,
+      account: job.account,
       setStage: (name, meta) => tracker.start(name, meta),
     };
 
@@ -571,9 +572,19 @@ function enqueue({ botId, meta = {}, run }) {
 }
 
 // ===== Nueva API 202: submit =====
-function submit({ botId, meta = {}, run }) {
+function submit({ botId, meta = {}, run, account }) {
   if (typeof run !== "function")
     throw new Error("submit requiere un run() function");
+  if (
+    !account ||
+    !account.siteUser ||
+    !account.sitePass ||
+    !account.totpSecret
+  ) {
+    throw new Error(
+      "submit: account requerido (siteUser, sitePass, totpSecret). Token sin credenciales y .env legacy vacío."
+    );
+  }
 
   // Separar createdBy y limpiar meta para persistencia
   const { metaSansCreator, createdBySan } = splitMeta(meta);
@@ -586,6 +597,7 @@ function submit({ botId, meta = {}, run }) {
     meta: metaSansCreator, // <- ya sin createdBy
     enqueuedAt: acceptedAt,
     run,
+    account, // viaja con el job al runFlow; NO entra a jobsById ni a meta
     _resolve: () => {},
     _reject: () => {},
   };
@@ -601,6 +613,7 @@ function submit({ botId, meta = {}, run }) {
     result: null,
     error: null,
     createdBy: createdBySan || null, // top-level, solo {name, role, at}
+    accountAlias: account.alias || null, // top-level; nunca persistir siteUser/sitePass/totpSecret
     stages: [],
   });
 
@@ -622,6 +635,7 @@ function submit({ botId, meta = {}, run }) {
       bot: job.botId,
       meta: job.meta || null,
       executedBy: createdBySan || null,
+      accountAlias: account.alias || null,
       estimate,
       capacitySnapshot: cap2,
       mode: "submit",

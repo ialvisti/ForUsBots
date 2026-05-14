@@ -1,18 +1,26 @@
 // src/engine/auth/loginOtp.js
 const speakeasy = require("speakeasy");
 const { gotoFast } = require("../sharedContext");
-const {
-  SITE_USER,
-  SITE_PASS,
-  TOTP_SECRET,
-  TOTP_STEP_SECONDS,
-} = require("../../config");
+const { TOTP_STEP_SECONDS } = require("../../config");
+const { maskEmail } = require("../../auth/account");
+const log = require("../logger");
 const {
   acquireLogin,
   waitNewTotpWindowIfNeeded,
   markTotpUsed,
 } = require("../loginLock");
 const { saveContextStorageState } = require("../sessions");
+
+function assertAccount(account, who) {
+  if (
+    !account ||
+    !account.siteUser ||
+    !account.sitePass ||
+    !account.totpSecret
+  ) {
+    throw new Error(`${who}: account requerido (siteUser, sitePass, totpSecret)`);
+  }
+}
 
 const PW_DEFAULT_TIMEOUT = Math.max(
   2000,
@@ -117,11 +125,12 @@ async function waitForShellOrOtp(
 /** Realiza login y, si aparece, OTP. Devuelve { usedOtp } */
 async function doLoginAndMaybeOtp(
   page,
-  { loginUrl, selectors, shellSelectors, jobCtx }
+  { loginUrl, selectors, shellSelectors, jobCtx, account }
 ) {
   if (!selectors?.user || !selectors?.pass || !selectors?.loginButton) {
     throw new Error("login selectors missing (user/pass/loginButton)");
   }
+  assertAccount(account, "doLoginAndMaybeOtp");
 
   jobCtx?.setStage?.("login");
 
@@ -131,8 +140,8 @@ async function doLoginAndMaybeOtp(
     await gotoFast(page, loginUrl, Math.max(20000, PW_DEFAULT_TIMEOUT + 2000));
   }
 
-  await page.fill(selectors.user, SITE_USER, { timeout: 20000 });
-  await page.fill(selectors.pass, SITE_PASS, { timeout: 20000 });
+  await page.fill(selectors.user, account.siteUser, { timeout: 20000 });
+  await page.fill(selectors.pass, account.sitePass, { timeout: 20000 });
   await page.click(selectors.loginButton, { timeout: 20000 });
 
   const otpInputCandidates = [
@@ -173,12 +182,20 @@ async function doLoginAndMaybeOtp(
 
   const otpSel = first.otpSel;
 
-  // Mutex y ventana TOTP
+  // Mutex y ventana TOTP (keyado por siteUser para serializar TOTP de la misma cuenta del portal)
   jobCtx?.setStage?.("otp", { otpLock: "waiting" });
-  const release = await acquireLogin(SITE_USER);
+  const release = await acquireLogin(account.siteUser);
   try {
     jobCtx?.setStage?.("otp", { otpLock: "holder" });
-    await waitNewTotpWindowIfNeeded(SITE_USER);
+    await waitNewTotpWindowIfNeeded(account.siteUser);
+
+    // Log estructurado mínimo. NUNCA loguear sitePass/totpSecret.
+    log.info({
+      type: "login.attempt",
+      accountAlias: account.alias,
+      siteUser: maskEmail(account.siteUser),
+      jobId: jobCtx?.jobId || null,
+    });
 
     // Reconfirma que el OTP siga presente justo antes de escribir
     const stillThere = await page
@@ -206,13 +223,13 @@ async function doLoginAndMaybeOtp(
     const step = Number(TOTP_STEP_SECONDS || 30);
     const codes = [
       speakeasy.totp({
-        secret: TOTP_SECRET,
+        secret: account.totpSecret,
         encoding: "base32",
         step,
         window: 0,
       }),
       speakeasy.totp({
-        secret: TOTP_SECRET,
+        secret: account.totpSecret,
         encoding: "base32",
         step,
         window: 1,
@@ -238,7 +255,7 @@ async function doLoginAndMaybeOtp(
           timeoutMs: 1200,
         });
         if (shellNow) {
-          markTotpUsed(SITE_USER);
+          markTotpUsed(account.siteUser);
           return { usedOtp: true };
         }
         // si no, reubica el otpSel (posibles re-render)
@@ -248,7 +265,7 @@ async function doLoginAndMaybeOtp(
           { timeoutMs: 3000 }
         );
         if (re.kind === "shell") {
-          markTotpUsed(SITE_USER);
+          markTotpUsed(account.siteUser);
           return { usedOtp: true };
         }
         if (re.kind === "otp" && re.otpSel) {
@@ -283,7 +300,7 @@ async function doLoginAndMaybeOtp(
       await page.waitForTimeout(350);
     }
 
-    markTotpUsed(SITE_USER);
+    markTotpUsed(account.siteUser);
 
     const ok =
       (await waitForShell(page, shellSelectors, { timeoutMs: 4000 })) ||
@@ -308,8 +325,17 @@ async function doLoginAndMaybeOtp(
 /** Asegura autenticación y shell en targetUrl (login/OTP en la página actual si hubo redirect a /sign_in) */
 async function ensureAuthForTarget(
   page,
-  { loginUrl, targetUrl, selectors, shellSelectors, jobCtx, saveSession = true }
+  {
+    loginUrl,
+    targetUrl,
+    selectors,
+    shellSelectors,
+    jobCtx,
+    account,
+    saveSession = true,
+  }
 ) {
+  assertAccount(account, "ensureAuthForTarget");
   await gotoFast(page, targetUrl, Math.max(20000, PW_DEFAULT_TIMEOUT + 2000));
 
   let didLogin = false;
@@ -321,12 +347,13 @@ async function ensureAuthForTarget(
       selectors,
       shellSelectors,
       jobCtx,
+      account,
     });
     didLogin = true;
     usedOtp = !!r.usedOtp;
     if (saveSession) {
       try {
-        await saveContextStorageState(page.context(), SITE_USER);
+        await saveContextStorageState(page.context(), account.siteUser);
       } catch {}
     }
   } else {
@@ -346,12 +373,13 @@ async function ensureAuthForTarget(
       selectors,
       shellSelectors,
       jobCtx,
+      account,
     });
     didLogin = true;
     usedOtp = !!r.usedOtp;
     if (saveSession) {
       try {
-        await saveContextStorageState(page.context(), SITE_USER);
+        await saveContextStorageState(page.context(), account.siteUser);
       } catch {}
     }
   }

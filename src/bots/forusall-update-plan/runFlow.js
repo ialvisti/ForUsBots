@@ -17,11 +17,6 @@ const {
   releasePage,
   gotoFast,
 } = require("../../engine/sharedContext");
-const {
-  SITE_USER,
-  SITE_PASS,
-  TOTP_SECRET,
-} = require("../../config");
 const { saveEvidence } = require("../../engine/evidence");
 const { ensureAuthForTarget } = require("../../engine/auth/loginOtp");
 const { setEffectiveDate } = require("../../engine/utils/date");
@@ -260,9 +255,10 @@ async function applyUpdates(page, updates) {
 }
 
 module.exports = async function runFlow({ meta, jobCtx }) {
-  if (!SITE_USER || !SITE_PASS || !TOTP_SECRET) {
+  const account = jobCtx && jobCtx.account;
+  if (!account || !account.siteUser || !account.sitePass || !account.totpSecret) {
     throw new Error(
-      "Faltan SITE_USER, SITE_PASS o TOTP_SECRET en variables de entorno"
+      "runFlow: jobCtx.account ausente o incompleto (siteUser/sitePass/totpSecret requeridos)"
     );
   }
 
@@ -282,7 +278,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
 
   let page = null;
   try {
-    page = await getPageFromPool({ siteUserEmail: SITE_USER });
+    page = await getPageFromPool({ siteUserEmail: account.siteUser });
     page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
     page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
 
@@ -325,6 +321,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
         selectors,
         shellSelectors: SHELL_PLAN,
         jobCtx,
+        account,
         saveSession: true,
       });
 

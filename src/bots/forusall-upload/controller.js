@@ -272,6 +272,7 @@ module.exports = async function controller(req, res) {
     const accepted = queue.submit({
       botId: "vault-file-upload",
       meta: jobMeta,
+      account: req.auth && req.auth.account,
       run: async (jobCtx) => {
         try {
           // Prefer filePayload to preserve the original file name in the upload

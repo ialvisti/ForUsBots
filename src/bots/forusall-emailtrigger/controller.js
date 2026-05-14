@@ -207,6 +207,7 @@ module.exports = async function controller(req, res) {
     const accepted = queue.submit({
       botId: "forusall-emailtrigger",
       meta: { planId, emailType, createdBy }, // lo que se expone
+      account: req.auth && req.auth.account,
       run: async (jobCtx) => runFlow({ meta, jobCtx }),
     });
 

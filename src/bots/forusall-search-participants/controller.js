@@ -108,6 +108,7 @@ module.exports = async function controller(req, res) {
         options,
         createdBy,
       },
+      account: req.auth && req.auth.account,
       run: async (jobCtx) => {
         const runFlow = require("./runFlow");
         return runFlow({ meta, jobCtx });

@@ -1,6 +1,5 @@
 // src/bots/forusall-emailtrigger/runFlow.js
 const { getPageFromPool, releasePage } = require("../../engine/sharedContext");
-const { SITE_USER, SITE_PASS, TOTP_SECRET } = require("../../config");
 const { ensureAuthForTarget } = require("../../engine/auth/loginOtp");
 const { FIXED } = require("../../providers/forusall/config");
 const {
@@ -16,10 +15,11 @@ const PW_DEFAULT_TIMEOUT = Math.max(
 );
 
 module.exports = async function runFlow({ meta, jobCtx }) {
-  if (!SITE_USER || !SITE_PASS || !TOTP_SECRET) {
+  const account = jobCtx && jobCtx.account;
+  if (!account || !account.siteUser || !account.sitePass || !account.totpSecret) {
     return {
       result: "Failed",
-      reason: "Missing env: SITE_USER/SITE_PASS/TOTP_SECRET",
+      reason: "runFlow: jobCtx.account ausente o incompleto",
     };
   }
 
@@ -40,7 +40,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
 
   let page = null;
   try {
-    page = await getPageFromPool({ siteUserEmail: SITE_USER });
+    page = await getPageFromPool({ siteUserEmail: account.siteUser });
     page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
     page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
 
@@ -51,6 +51,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       selectors,
       shellSelectors: [s.form, s.planSelect, s.emailTypeSelect].filter(Boolean),
       jobCtx,
+      account,
       saveSession: true,
     });
 

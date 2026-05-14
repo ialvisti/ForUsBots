@@ -30,6 +30,7 @@ module.exports = async function controller(req, res) {
     const job = queue.submit({
       botId: "forusall-mfa-reset",
       meta,
+      account: req.auth && req.auth.account,
       run: async (jobCtx) => runFlow({ meta, jobCtx }),
     });
 

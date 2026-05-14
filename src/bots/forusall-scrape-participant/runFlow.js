@@ -5,12 +5,7 @@ const {
   releasePage,
   gotoFast,
 } = require("../../engine/sharedContext");
-const {
-  SITE_USER,
-  SITE_PASS,
-  TOTP_SECRET,
-  TOTP_STEP_SECONDS,
-} = require("../../config");
+const { TOTP_STEP_SECONDS } = require("../../config");
 const { saveEvidence } = require("../../engine/evidence");
 const { getSpec } = require("../../providers/forusall/participantMap");
 const {
@@ -91,30 +86,30 @@ async function waitForShellFast(
   return false;
 }
 
-async function doLoginWithOtp(page, selectors, loginUrl, jobCtx) {
+async function doLoginWithOtp(page, selectors, loginUrl, jobCtx, account) {
   jobCtx?.setStage?.("login");
   await gotoFast(page, loginUrl, Math.max(20000, PW_DEFAULT_TIMEOUT + 2000));
-  await page.fill(selectors.user, SITE_USER);
-  await page.fill(selectors.pass, SITE_PASS);
+  await page.fill(selectors.user, account.siteUser);
+  await page.fill(selectors.pass, account.sitePass);
   await page.click(selectors.loginButton);
 
   jobCtx?.setStage?.("otp", { otpLock: "waiting" });
-  const release = await acquireLogin(SITE_USER);
+  const release = await acquireLogin(account.siteUser);
   try {
     jobCtx?.setStage?.("otp", { otpLock: "holder" });
-    await waitNewTotpWindowIfNeeded(SITE_USER);
+    await waitNewTotpWindowIfNeeded(account.siteUser);
     await page.waitForSelector(selectors.otpInput, { timeout: 30000 });
 
     const step = Number(TOTP_STEP_SECONDS || 30);
     const candidates = [
       speakeasy.totp({
-        secret: TOTP_SECRET,
+        secret: account.totpSecret,
         encoding: "base32",
         step,
         window: 0,
       }),
       speakeasy.totp({
-        secret: TOTP_SECRET,
+        secret: account.totpSecret,
         encoding: "base32",
         step,
         window: 1,
@@ -128,7 +123,7 @@ async function doLoginWithOtp(page, selectors, loginUrl, jobCtx) {
         break;
       } catch {}
     }
-    markTotpUsed(SITE_USER);
+    markTotpUsed(account.siteUser);
   } finally {
     release();
   }
@@ -223,9 +218,10 @@ async function getPanelSnapshot(page, panelSelector, returnMode) {
 }
 
 module.exports = async function runFlow({ meta, jobCtx }) {
-  if (!SITE_USER || !SITE_PASS || !TOTP_SECRET) {
+  const account = jobCtx && jobCtx.account;
+  if (!account || !account.siteUser || !account.sitePass || !account.totpSecret) {
     throw new Error(
-      "Faltan SITE_USER, SITE_PASS o TOTP_SECRET en variables de entorno"
+      "runFlow: jobCtx.account ausente o incompleto (siteUser/sitePass/totpSecret requeridos)"
     );
   }
 
@@ -261,7 +257,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
   let page = null;
   try {
     // 1) Página del pool compartido (contexto persistente + cache + keep-alive)
-    page = await getPageFromPool({ siteUserEmail: SITE_USER });
+    page = await getPageFromPool({ siteUserEmail: account.siteUser });
     page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
     page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
 
@@ -290,11 +286,11 @@ module.exports = async function runFlow({ meta, jobCtx }) {
 
     // 4) Login + OTP si hace falta
     if (needLogin) {
-      await doLoginWithOtp(page, selectors, loginUrl, jobCtx);
+      await doLoginWithOtp(page, selectors, loginUrl, jobCtx, account);
       if (includeScreens) {
         await saveEvidence(page, `scrape-login-${participantId}`);
       }
-      await saveContextStorageState(page.context(), SITE_USER); // guarda storageState.json si REUSE=1
+      await saveContextStorageState(page.context(), account.siteUser); // guarda storageState.json si REUSE=1
       await gotoFast(page, out.url, Math.max(20000, timeoutMs));
       hasShell = await waitForShellFast(page, { timeoutMs: SHELL_WAIT_MS });
       if (!hasShell) {

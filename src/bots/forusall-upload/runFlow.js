@@ -1,6 +1,5 @@
 // src/bots/forusall-upload/runFlow.js
 const { getPageFromPool, releasePage } = require("../../engine/sharedContext");
-const { SITE_USER, SITE_PASS, TOTP_SECRET } = require("../../config");
 const { buildUploadUrl } = require("../../engine/utils/url");
 const { saveEvidence } = require("../../engine/evidence");
 const {
@@ -126,16 +125,17 @@ module.exports = async function runFlow({
   const { loginUrl, uploadUrlTemplate, planId, selectors, formData, options } =
     meta;
 
-  if (!SITE_USER || !SITE_PASS || !TOTP_SECRET) {
+  const account = jobCtx && jobCtx.account;
+  if (!account || !account.siteUser || !account.sitePass || !account.totpSecret) {
     throw new Error(
-      "Missing SITE_USER, SITE_PASS or TOTP_SECRET in environment variables"
+      "runFlow: jobCtx.account ausente o incompleto (siteUser/sitePass/totpSecret requeridos)"
     );
   }
 
   let page = null;
   try {
     // 1) Página del pool (contexto persistente + keep-alive)
-    page = await getPageFromPool({ siteUserEmail: SITE_USER });
+    page = await getPageFromPool({ siteUserEmail: account.siteUser });
     page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
     page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
 
@@ -156,6 +156,7 @@ module.exports = async function runFlow({
       selectors,
       shellSelectors: SHELL_UPLOAD,
       jobCtx,
+      account,
       saveSession: true,
     });
 

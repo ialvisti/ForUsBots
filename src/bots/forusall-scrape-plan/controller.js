@@ -184,6 +184,7 @@ module.exports = async function controller(req, res) {
         timeoutMs,
         createdBy,
       },
+      account: req.auth && req.auth.account,
       run: async (jobCtx) => runFlow({ meta, jobCtx }),
     });
 

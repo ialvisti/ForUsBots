@@ -1,6 +1,5 @@
 // src/bots/forusall-mfa-reset/runFlow.js
 const { getPageFromPool, releasePage } = require("../../engine/sharedContext");
-const { SITE_USER, TOTP_SECRET } = require("../../config");
 const { saveEvidence } = require("../../engine/evidence");
 const { getSpec } = require("../../providers/forusall/participantMap");
 const { FIXED } = require("../../providers/forusall/config");
@@ -89,8 +88,11 @@ function nextDialogOfType(page, expectedType, timeoutMs) {
 module.exports = async function runFlow({ meta, jobCtx }) {
   let { participantId, participantUrl, selectors, mfaReset, loginUrl } = meta;
 
-  if (!SITE_USER || !TOTP_SECRET) {
-    throw new Error("Faltan SITE_USER o TOTP_SECRET en variables de entorno");
+  const account = jobCtx && jobCtx.account;
+  if (!account || !account.siteUser || !account.sitePass || !account.totpSecret) {
+    throw new Error(
+      "runFlow: jobCtx.account ausente o incompleto (siteUser/sitePass/totpSecret requeridos)"
+    );
   }
 
   // Fallbacks robustos (por si algún caller olvida pasarlos)
@@ -139,7 +141,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
 
   try {
     jobCtx?.setStage?.("init");
-    page = await getPageFromPool({ siteUserEmail: SITE_USER });
+    page = await getPageFromPool({ siteUserEmail: account.siteUser });
     page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
     page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
 
@@ -153,6 +155,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       selectors,
       shellSelectors: SHELL,
       jobCtx,
+      account,
       saveSession: true,
     });
 

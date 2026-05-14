@@ -1,8 +1,13 @@
 // src/engine/sharedContext.js
 const { launchContext } = require("./browser");
 const { loadStorageStatePath, saveContextStorageState } = require("./sessions");
-const { SITE_USER } = require("../config");
 const fs = require("fs/promises");
+
+// Cuenta "ancla" del pool compartido del navegador. Sale del .env legacy.
+// El pool sigue siendo singleton (limitación pre-existente); los login per-token
+// ocurren en cada runFlow, no acá. Si SITE_USER no está seteado, el pool arranca
+// sin storageState — cada job va a hacer su login fresh vía ensureAuthForTarget.
+const SITE_USER = process.env.SITE_USER || null;
 
 function envBool(v, def = false) {
   if (v == null) return def;

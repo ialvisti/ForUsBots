@@ -50,6 +50,7 @@ router.post("/", requireUser, requireScope("mfa-reset"), (req, res) => {
     const submitResp = queue.submit({
       botId: "forusall-mfa-reset",
       meta,
+      account: req.auth && req.auth.account,
       run: async (jobCtx) => {
         return runFlow({ meta, jobCtx });
       },
