@@ -2,6 +2,7 @@
 const router = require('express').Router();
 const bodyParser = require('body-parser');
 const auth = require('../../middleware/auth');
+const requireScope = require('../../middleware/requireScope');
 const controller = require('./controller');
 
 // Middleware: adjunta createdBy (desde req.auth) dentro de x-meta (JSON)
@@ -38,7 +39,8 @@ function attachCreatorToMetaHeader(req, _res, next) {
 // Endpoint único: POST /forusbot/vault-file-upload
 router.post(
   '/',
-  auth, // resuelve req.auth { role, isAdmin, user }
+  auth, // resuelve req.auth { role, isAdmin, user, scope, tokenMeta }
+  requireScope('vault-upload'),
   attachCreatorToMetaHeader, // inserta createdBy en x-meta
   bodyParser.raw({ type: ['application/pdf', 'application/octet-stream', 'application/zip'], limit: '50mb' }),
   controller

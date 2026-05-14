@@ -1,6 +1,7 @@
 // src/bots/forusall-mfa-reset/routes.js
 const router = require("express").Router();
 const requireUser = require("../../middleware/auth"); // auth por token
+const requireScope = require("../../middleware/requireScope");
 const queue = require("../../engine/queue");
 const runFlow = require("./runFlow");
 const { FIXED } = require("../../providers/forusall/config");
@@ -13,7 +14,7 @@ const logger = require("../../engine/logger");
  * - Construye meta interno (participantUrl, loginUrl, selectors, mfaReset).
  * - Encola el job (202) con queue.submit.
  */
-router.post("/", requireUser, (req, res) => {
+router.post("/", requireUser, requireScope("mfa-reset"), (req, res) => {
   try {
     const raw = req.body || {};
     const participantId = String(raw.participantId || "").trim();

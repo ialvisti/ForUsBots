@@ -3,6 +3,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { resolveScope } = require("../auth/scopes");
 
 function safeParseJson(s, fallback) {
   try {
@@ -26,6 +27,10 @@ function normRegistry(data) {
         name: it.name || null,
         email: it.email || null,
         id: it.id || null,
+        account: it.account || null,
+        deniedFeatures: Array.isArray(it.deniedFeatures) ? it.deniedFeatures : [],
+        deniedEndpoints: Array.isArray(it.deniedEndpoints) ? it.deniedEndpoints : [],
+        allowedEndpoints: Array.isArray(it.allowedEndpoints) ? it.allowedEndpoints : [],
       });
     }
   } else if (typeof data === "object") {
@@ -38,6 +43,10 @@ function normRegistry(data) {
         name: meta.name || null,
         email: meta.email || null,
         id: meta.id || null,
+        account: meta.account || null,
+        deniedFeatures: Array.isArray(meta.deniedFeatures) ? meta.deniedFeatures : [],
+        deniedEndpoints: Array.isArray(meta.deniedEndpoints) ? meta.deniedEndpoints : [],
+        allowedEndpoints: Array.isArray(meta.allowedEndpoints) ? meta.allowedEndpoints : [],
       });
     }
   }
@@ -98,7 +107,11 @@ function getIdentity(token) {
   if (!meta) return null;
   const role = (meta.role || "").toLowerCase();
   if (!role) return null;
-  return { role, user: { name: meta.name, email: meta.email, id: meta.id } };
+  return {
+    role,
+    user: { name: meta.name, email: meta.email, id: meta.id },
+    tokenMeta: meta,
+  };
 }
 
 // ===== API expuesta =====
@@ -118,6 +131,8 @@ function requireUser(req, res, next) {
     role: id.role,
     isAdmin: id.role === "admin",
     user: id.user || null,
+    scope: resolveScope(id.tokenMeta),
+    tokenMeta: id.tokenMeta,
   };
   next();
 }
@@ -133,7 +148,13 @@ function requireAdmin(req, res, next) {
     return res
       .status(403)
       .json({ ok: false, error: "forbidden", warnings: [] });
-  req.auth = { role: "admin", isAdmin: true, user: id.user || null };
+  req.auth = {
+    role: "admin",
+    isAdmin: true,
+    user: id.user || null,
+    scope: resolveScope(id.tokenMeta),
+    tokenMeta: id.tokenMeta,
+  };
   next();
 }
 

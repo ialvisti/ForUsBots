@@ -18,6 +18,8 @@ const queue = require("../engine/queue");
 const { getLoginLocksStatus } = require("../engine/loginLock");
 const auth = require("../middleware/auth"); // default = requireUser (compat)
 const { requireAdmin, requireUser } = require("../middleware/auth");
+const requireScope = require("../middleware/requireScope");
+const { scopeToJSON } = require("../auth/scopes");
 const { getSettings, patchSettings } = require("../engine/settings");
 const { _closeContextNow, getPoolStats } = require("../engine/sharedContext");
 const { toPublicJob } = require("../middleware/public-response");
@@ -64,7 +66,7 @@ router.get("/status", ...maybeProtectStatus(), (_req, res) => {
 // ===== Jobs =====
 
 // Listar jobs (running, queued, finished) con filtros
-router.get("/jobs", auth, (req, res) => {
+router.get("/jobs", auth, requireScope("jobs-read"), (req, res) => {
   try {
     const { state, botId, limit, offset } = req.query || {};
     const out = queue.listJobs({ state, botId, limit, offset });
@@ -92,14 +94,14 @@ router.get("/jobs", auth, (req, res) => {
 });
 
 // Obtener estado de un job por id
-router.get("/jobs/:id", auth, (req, res) => {
+router.get("/jobs/:id", auth, requireScope("jobs-read"), (req, res) => {
   const job = queue.getJob(req.params.id);
   if (!job) return res.status(404).json({ ok: false, error: "Job not found" });
   return res.json(toPublicJob(job));
 });
 
 // Cancelar un job en cola
-router.delete("/jobs/:id", auth, (req, res) => {
+router.delete("/jobs/:id", auth, requireScope("jobs-write"), (req, res) => {
   try {
     const r = queue.cancel(req.params.id);
     if (!r.ok && r.reason === "not_found") {
@@ -122,7 +124,7 @@ router.delete("/jobs/:id", auth, (req, res) => {
 });
 
 // ===== Locks (ADMIN) =====
-router.get("/locks", requireAdmin, (_req, res) => {
+router.get("/locks", requireAdmin, requireScope("admin-locks"), (_req, res) => {
   try {
     const locks = getLoginLocksStatus();
     return res.json(locks);
@@ -133,7 +135,7 @@ router.get("/locks", requireAdmin, (_req, res) => {
 });
 
 // ===== Settings (ADMIN) =====
-router.get("/settings", requireAdmin, (_req, res) => {
+router.get("/settings", requireAdmin, requireScope("admin-settings"), (_req, res) => {
   try {
     const s = getSettings();
     return res.json({
@@ -149,7 +151,7 @@ router.get("/settings", requireAdmin, (_req, res) => {
   }
 });
 
-router.patch("/settings", requireAdmin, (req, res) => {
+router.patch("/settings", requireAdmin, requireScope("admin-settings"), (req, res) => {
   try {
     const partial = req.body && typeof req.body === "object" ? req.body : {};
     const result = patchSettings(partial);
@@ -178,6 +180,8 @@ router.get("/whoami", auth, (req, res) => {
       role: a.role || null,
       isAdmin: !!a.isAdmin,
       user: a.user || null,
+      accountAlias: a.tokenMeta?.account?.alias || null,
+      scope: a.scope ? scopeToJSON(a.scope) : null,
     });
   } catch (e) {
     logger.error({ type: "route.index.whoami_error", error: e });
@@ -186,7 +190,7 @@ router.get("/whoami", auth, (req, res) => {
 });
 
 // ===== Métricas (ADMIN) =====
-router.get("/metrics", requireAdmin, (_req, res) => {
+router.get("/metrics", requireAdmin, requireScope("admin-metrics"), (_req, res) => {
   try {
     const m = queue.getMetrics();
     return res.json(m);
@@ -197,7 +201,7 @@ router.get("/metrics", requireAdmin, (_req, res) => {
 });
 
 // ===== Versión (ADMIN) =====
-router.get("/version", requireAdmin, (_req, res) => {
+router.get("/version", requireAdmin, requireScope("admin-version"), (_req, res) => {
   try {
     const pkg = require("../../package.json");
     return res.json({ ok: true, name: pkg.name, version: pkg.version });
@@ -210,7 +214,7 @@ router.get("/version", requireAdmin, (_req, res) => {
 });
 
 // ===== OpenAPI (YAML) (ADMIN) =====
-router.get("/openapi", requireAdmin, (_req, res) => {
+router.get("/openapi", requireAdmin, requireScope("admin-openapi"), (_req, res) => {
   try {
     const openapiPath = path.join(
       __dirname,
@@ -235,7 +239,7 @@ router.get("/openapi", requireAdmin, (_req, res) => {
 });
 
 // ===== Admin: cerrar el contexto/Chromium compartido =====
-router.post("/_close", requireAdmin, async (_req, res) => {
+router.post("/_close", requireAdmin, requireScope("admin-close"), async (_req, res) => {
   try {
     const before = getPoolStats();
     await _closeContextNow();

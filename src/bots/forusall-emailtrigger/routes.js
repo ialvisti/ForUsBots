@@ -2,6 +2,7 @@
 const router = require('express').Router();
 const bodyParser = require('body-parser');
 const auth = require('../../middleware/auth');
+const requireScope = require('../../middleware/requireScope');
 const controller = require('./controller');
 
 // Middleware: adjunta createdBy (desde req.auth) dentro del body (JSON)
@@ -30,7 +31,8 @@ function attachCreatorToBody(req, _res, next) {
 // Endpoint único: POST /forusbot/email-trigger
 router.post(
   '/',
-  auth, // req.auth { role, isAdmin, user }
+  auth, // req.auth { role, isAdmin, user, scope, tokenMeta }
+  requireScope('email-trigger'),
   bodyParser.json({ limit: '1mb' }),
   attachCreatorToBody,
   controller

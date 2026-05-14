@@ -2,12 +2,14 @@
 const router = require("express").Router();
 const bodyParser = require("body-parser");
 const auth = require("../../middleware/auth");
+const requireScope = require("../../middleware/requireScope");
 const controller = require("./controller");
 
 // POST /forusbot/search-participants
 router.post(
   "/",
   auth, // requiere x-auth-token
+  requireScope("search-participants"),
   bodyParser.json({ limit: "1mb" }),
   controller
 );
