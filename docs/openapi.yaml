@@ -16,6 +16,7 @@ paths:
       summary: Global status snapshot
       description: |
         Si flags.statusPublic = false, requiere header x-auth-token.
+        Endpoint público: no pasa por requireScope.
       parameters:
         - in: header
           name: x-auth-token
@@ -67,6 +68,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/JobPublicResponse'
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /forusbot/jobs/{id}:
     get:
@@ -92,6 +94,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobPublicResponse'
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: Not Found }
     delete:
       summary: Cancel queued job
@@ -107,6 +110,7 @@ paths:
       responses:
         '200': { description: Cancelled / Not Cancelled }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: Not Found }
         '409': { description: Conflict (running) }
 
@@ -121,6 +125,7 @@ paths:
       responses:
         '200': { description: OK }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /forusbot/settings:
     get:
@@ -133,6 +138,7 @@ paths:
       responses:
         '200': { description: OK }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
     patch:
       summary: Patch runtime settings
       parameters:
@@ -156,6 +162,7 @@ paths:
         '200': { description: OK }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /forusbot/metrics:
     get:
@@ -168,6 +175,7 @@ paths:
       responses:
         '200': { description: OK }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /forusbot/version:
     get:
@@ -180,6 +188,7 @@ paths:
       responses:
         '200': { description: OK }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
   
   /forusbot/search-participants:
     post:
@@ -217,6 +226,7 @@ paths:
         '202': { description: Accepted (returns jobId) }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '500': { description: Internal Server Error }
 
   /health:
@@ -228,14 +238,24 @@ paths:
   /forusbot/whoami:
     get:
       summary: Identity of current token
+      description: |
+        Returns the role, user metadata, ForUsAll account alias and the
+        effective scope of the authenticated token. Consumed by the sandbox UI
+        to decide which endpoints to enable.
       parameters:
         - in: header
           name: x-auth-token
           schema: { type: string }
           required: true
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhoAmI'
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /forusbot/sandbox/vault-file-upload:
     post:
@@ -310,6 +330,7 @@ paths:
         '202': { description: Accepted (returns jobId) }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { description: Validation failed }
         '500': { description: Internal Server Error }
 
@@ -489,6 +510,7 @@ paths:
                 properties:
                   ok: { type: boolean, example: false }
                   error: { type: string, example: "unauthorized" }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422':
           description: Validation failed
           content:
@@ -539,6 +561,7 @@ paths:
         '202': { description: Accepted (returns jobId) }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '500': { description: Internal Server Error }
 
   /forusbot/openapi:
@@ -555,6 +578,7 @@ paths:
           content:
             text/yaml: {}
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /forusbot/vault-file-upload:
     post:
@@ -592,6 +616,7 @@ paths:
         '202': { description: Accepted (returns jobId and estimate) }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { description: Unprocessable Entity }
         '500': { description: Internal Server Error }
     
@@ -665,7 +690,7 @@ paths:
         '202': { description: Accepted (returns jobId) }
         '400': { description: Bad Request (validation) }
         '401': { description: Unauthorized }
-        '403': { description: Forbidden (token no autorizado para este endpoint) }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { description: Unprocessable Entity (validation) }
         '500': { description: Internal Server Error }
 
@@ -726,7 +751,7 @@ paths:
                       updates: { type: object, additionalProperties: true }
         '400': { description: Bad Request (validation) }
         '401': { description: Unauthorized }
-        '403': { description: Forbidden }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '500': { description: Internal Server Error }
 
   /forusbot/update-participant:
@@ -789,6 +814,7 @@ paths:
         '202': { description: Accepted (returns jobId) }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '500': { description: Internal Server Error }
 
   /forusbot/email-trigger:
@@ -965,6 +991,7 @@ paths:
                   missing: { type: array, items: { type: string } }
         '401':
           description: Missing or invalid authentication token
+        '403': { $ref: '#/components/responses/Forbidden' }
         '500':
           description: Internal server error
 
@@ -1093,3 +1120,94 @@ components:
         stageSeconds: { type: integer, nullable: true }
         stageMeta: { type: object, nullable: true }
         totalSeconds: { type: integer, nullable: true }
+
+    WhoAmI:
+      type: object
+      required: [ok]
+      description: |
+        Identity payload for the authenticated token. Returned by GET /forusbot/whoami.
+        Includes the effective scope (role default ∪ token overrides) so clients
+        like the sandbox UI can deduce which endpoints they may invoke without
+        having to probe each one.
+      properties:
+        ok: { type: boolean, example: true }
+        role:
+          type: string
+          nullable: true
+          enum: [admin, user, pa_lead, rm_lead, ops_lead, imp_lead]
+        isAdmin: { type: boolean }
+        user:
+          type: object
+          nullable: true
+          properties:
+            name:  { type: string }
+            email: { type: string }
+            id:    { type: string }
+        accountAlias:
+          type: string
+          nullable: true
+          description: |
+            Alias of the ForUsAll portal account this token uses when running
+            bots. Does NOT include credentials. Null if the token has no
+            account attached (legacy or admin-only tokens).
+        scope:
+          type: object
+          nullable: true
+          description: |
+            Effective token scope (role-default denied features merged with
+            per-token overrides). Null only during the legacy grace period
+            (token has no role recorded).
+          properties:
+            role: { type: string }
+            deniedFeatures:
+              type: array
+              items: { type: string }
+              description: Feature keys this token cannot invoke (e.g. "update-plan").
+            deniedEndpoints:
+              type: array
+              items:
+                type: string
+                description: 'Method + space + path pattern, e.g. "POST /forusbot/update-plan"'
+            allowedEndpoints:
+              type: array
+              items: { type: string }
+              description: Per-endpoint overrides that bypass deniedFeatures/deniedEndpoints.
+
+    ForbiddenResponse:
+      type: object
+      required: [ok, error]
+      description: |
+        Returned with HTTP 403 when authorization fails. Two layers can emit it:
+          1. `requireScope` (src/middleware/requireScope.js) — when the token's
+             effective scope denies the requested feature/endpoint. Includes
+             `feature`, `endpoint`, `reason` for diagnostics.
+          2. `requireAdmin` (src/middleware/auth.js) — when a non-admin token
+             hits an admin-only endpoint. Includes only `warnings: []` and the
+             core `ok/error` fields. On endpoints layered with both, requireAdmin
+             runs first, so admin-only routes produce the simpler shape.
+      properties:
+        ok: { type: boolean, example: false }
+        error: { type: string, example: "forbidden" }
+        feature:
+          type: string
+          description: The feature key resolved for this endpoint (requireScope only).
+        endpoint:
+          type: string
+          description: 'Method + space + path pattern, e.g. "POST /forusbot/update-plan" (requireScope only).'
+        reason:
+          type: string
+          description: |
+            Machine-readable reason. Examples: "denied-feature:update-plan",
+            "denied-endpoint:POST /forusbot/update-plan" (requireScope only).
+        warnings:
+          type: array
+          items: {}
+          description: Empty array emitted by requireAdmin's 403 path.
+
+  responses:
+    Forbidden:
+      description: Forbidden by token scope (feature or endpoint denied)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ForbiddenResponse'

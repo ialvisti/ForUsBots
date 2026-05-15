@@ -295,6 +295,39 @@ header h1 {
     }
 }
 
+/* ===== ME BANNER (scope) ===== */
+#me-banner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+#me-banner #me-name {
+    font-weight: 600;
+    color: var(--text);
+}
+
+#me-banner .me-label {
+    color: var(--muted);
+}
+
+.role-badge,
+.account-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--input-bg);
+    border: 1px solid var(--card-border);
+    font-size: 12px;
+}
+
+option.scope-override {
+    outline: 2px dashed #f5a623;
+}
+
 /* ===== CARDS ===== */
 .card {
     background: var(--card-bg);

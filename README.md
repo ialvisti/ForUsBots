@@ -43,6 +43,20 @@ Namespace base: `/forusbot`
 
 ---
 
+## Tokens & Scopes
+
+Each token in `TOKENS_JSON` carries three pieces of information:
+
+- **role** — one of `admin`, `user`, `pa_lead`, `rm_lead`, `ops_lead`, `imp_lead`. Each role has a default set of denied features (see `src/auth/roles.js`).
+- **account** — `{alias, siteUser, sitePass, totpSecret}`. The bot uses these credentials to drive the ForUsAll portal when this token invokes a bot. Different tokens can map to different accounts.
+- **scope overrides** — `deniedFeatures`, `deniedEndpoints`, `allowedEndpoints`. Per-token overrides that add to (or punch holes in) the role default.
+
+A request is authorized when the resolved feature for the endpoint is NOT in `deniedFeatures`, the `method+path` is NOT in `deniedEndpoints`, OR `method+path` is in `allowedEndpoints` (which trumps the denies). The endpoint→feature mapping lives in `src/auth/featureMap.js`; the resolution algorithm in `src/auth/scopes.js`; the enforcement in `src/middleware/requireScope.js`. A 403 carries `{ok:false, error:"forbidden", feature, endpoint, reason}`.
+
+Inspect the effective scope of a token with `GET /forusbot/whoami` (returns `WhoAmI` from the OpenAPI schema). The sandbox UI consumes this endpoint to grey out denied options.
+
+---
+
 ## Quickstart
 
 - Submit an upload (202): see `/docs/api#submit` for full schema.

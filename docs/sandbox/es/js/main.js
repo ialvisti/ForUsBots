@@ -41,6 +41,12 @@ import {
   buildEmailBodyStr as buildEmailBodyStrET,
 } from "./core/email-ui.js";
 
+import {
+  fetchWhoami,
+  renderMeBanner,
+  applyScopeToEndpointSelect,
+} from "./core/scope.js";
+
 // ==== Theme ====
 const themeSwitch = $("#themeSwitch");
 const themeLabel = $("#themeLabel");
@@ -543,3 +549,15 @@ if (!section.value) section.value = "CONTRACTS & AGREEMENTS";
 populateCaptionsFromSection(section, caption, otherWrap);
 updateFileNameUI(pdfFile, fileNameEl);
 refreshAllOutputs();
+
+// ==== Scope wiring ====
+let scopeReqId = 0;
+async function refreshScopeFromToken() {
+  const id = ++scopeReqId;
+  const me = await fetchWhoami(baseUrl.value, token.value);
+  if (id !== scopeReqId) return; // descartar respuesta vieja
+  renderMeBanner(me);
+  applyScopeToEndpointSelect(endpointSel, me, ENDPOINTS);
+}
+token.addEventListener("change", refreshScopeFromToken);
+refreshScopeFromToken();

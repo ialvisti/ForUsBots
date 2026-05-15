@@ -63,3 +63,25 @@ All runtime configuration is sourced from environment variables (see `.cursor/ru
 - `.env` (never commit, must be in .gitignore)
 - `.sessions/` (never commit, runtime session storage)
 
+## Tokens & Scopes
+
+Each entry in `TOKENS_JSON` (loaded from `tokens.json` locally; from Google Secret Manager `TOKENS_JSON` in GCP) carries:
+
+- `role` — `admin`, `user`, `pa_lead`, `rm_lead`, `ops_lead`, or `imp_lead`. Role defaults live in `src/auth/roles.js`.
+- `account: { alias, siteUser, sitePass, totpSecret }` — ForUsAll portal credentials this token will use when invoking a bot. Different tokens can map to different accounts.
+- `deniedFeatures`, `deniedEndpoints`, `allowedEndpoints` — fine-grained overrides on top of the role default.
+
+Authorization logic: `src/auth/scopes.js`. Endpoint→feature catalog: `src/auth/featureMap.js`. Middleware enforcement: `src/middleware/requireScope.js`. To inspect a token's effective scope at runtime: `GET /forusbot/whoami` (see `WhoAmI` schema in `docs/openapi.yaml`).
+
+To edit tokens in production (Secret Manager):
+
+```bash
+gcloud secrets versions access latest --secret=TOKENS_JSON --project=forusbots > /tmp/tokens.json
+# edit /tmp/tokens.json
+gcloud secrets versions add TOKENS_JSON --data-file=/tmp/tokens.json --project=forusbots
+# VM picks up the new version on next MIG restart, or force:
+gcloud compute instance-groups managed rolling-action restart forusbots-mig --zone=us-central1-a
+```
+
+End-to-end design (schema, roles, middleware, per-token credentials, rollout): `GCP Implementation/06-token-scopes/00-OVERVIEW.md`.
+

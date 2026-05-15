@@ -21,9 +21,10 @@ Cada archivo numerado es una **sesión independiente** de implementación. Pegal
 | 3 | [03-gcp-infra-provisioning.md](./03-gcp-infra-provisioning.md)| ~2h      | Sí           | Sí (`gcloud projects delete`) |
 | 4 | [04-firestore-data-layer.md](./04-firestore-data-layer.md)    | ~2 días  | Sí (emulator local + cloud) | Sí hasta el cutover |
 | 5 | [05-deploy-and-cutover.md](./05-deploy-and-cutover.md)        | ~3h      | Sí           | Sí (volver a Render mientras no apaguemos) |
-| 6 | [06-looker-studio-dashboards.md](./06-looker-studio-dashboards.md) | ~1 día | Sí           | Sí (los dashboards son separables) |
+| 6 | [06-token-scopes/00-OVERVIEW.md](./06-token-scopes/00-OVERVIEW.md) | ~19h | Sí (Secret Manager) | Sí (rollback de TOKENS_JSON) |
+| 7 | [07-looker-studio-dashboards.md](./07-looker-studio-dashboards.md) | ~1 día | Sí           | Sí (los dashboards son separables) |
 
-**Total estimado**: ~3-4 días de trabajo focused.
+**Total estimado**: ~3-4 días (fases 01–05) + ~19h (sub-fase 06, token-scopes) + ~1 día (fase 07, Looker).
 
 ## Arquitectura final
 

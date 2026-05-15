@@ -5,6 +5,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/update-participant",
     method: "POST",
     path: "/forusbot/update-participant",
+    feature: "update-participant",
     group: "update",
     needs: { token: true }, // JSON body
     pollJob: true,
@@ -14,6 +15,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/update-plan",
     method: "POST",
     path: "/forusbot/update-plan",
+    feature: "update-plan",
     group: "update-plan",
     needs: { token: true }, // JSON body — restringido a Ivan Alvis
     pollJob: true,
@@ -22,6 +24,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/sandbox/update-plan (dry-run)",
     method: "POST",
     path: "/forusbot/sandbox/update-plan",
+    feature: "sandbox-update-plan",
     group: "update-plan",
     needs: { token: true }, // restringido a Ivan Alvis (dry-run, sin browser)
     pollJob: false,
@@ -31,6 +34,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/vault-file-upload",
     method: "POST",
     path: "/forusbot/vault-file-upload",
+    feature: "vault-upload",
     group: "upload",
     needs: { token: true, pdf: true, xfilename: true, meta: true },
     pollJob: true,
@@ -39,6 +43,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/sandbox/vault-file-upload (dry-run)",
     method: "POST",
     path: "/forusbot/sandbox/vault-file-upload",
+    feature: "sandbox-vault-upload",
     group: "upload",
     needs: { token: false, pdf: false, xfilename: true, meta: true },
     pollJob: false,
@@ -47,6 +52,7 @@ export const ENDPOINTS = {
     label: "GET /forusbot/jobs/:id",
     method: "GET",
     path: "/forusbot/jobs/:id",
+    feature: "jobs-read",
     group: "jobs",
     needs: { token: true, jobId: true },
     pollJob: false,
@@ -55,6 +61,7 @@ export const ENDPOINTS = {
     label: "DELETE /forusbot/jobs/:id",
     method: "DELETE",
     path: "/forusbot/jobs/:id",
+    feature: "jobs-write",
     group: "jobs",
     needs: { token: true, jobId: true },
     pollJob: false,
@@ -63,6 +70,7 @@ export const ENDPOINTS = {
     label: "GET /forusbot/status",
     method: "GET",
     path: "/forusbot/status",
+    feature: null, // public/open endpoint — no scope check
     group: "misc",
     needs: { token: true },
     pollJob: false,
@@ -72,6 +80,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/scrape-participant",
     method: "POST",
     path: "/forusbot/scrape-participant",
+    feature: "scrape-participant",
     group: "scrape",
     needs: { token: true }, // JSON body, no x-meta/x-filename
     pollJob: true, // returns 202 + jobId
@@ -81,6 +90,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/scrape-plan",
     method: "POST",
     path: "/forusbot/scrape-plan",
+    feature: "scrape-plan",
     group: "scrape-plan",
     needs: { token: true }, // JSON body with planId, modules, etc.
     pollJob: true, // returns 202 + jobId
@@ -90,6 +100,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/mfa-reset",
     method: "POST",
     path: "/forusbot/mfa-reset",
+    feature: "mfa-reset",
     group: "mfa", // mostrará .ep-mfa en la UI
     needs: { token: true }, // JSON body con { participantId }
     pollJob: true, // returns 202 + jobId
@@ -99,6 +110,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/search-participants",
     method: "POST",
     path: "/forusbot/search-participants",
+    feature: "search-participants",
     group: "search",
     needs: { token: true }, // JSON body
     pollJob: true,
@@ -108,6 +120,7 @@ export const ENDPOINTS = {
     label: "POST /forusbot/email-trigger",
     method: "POST",
     path: "/forusbot/email-trigger",
+    feature: "email-trigger",
     group: "email",
     needs: { token: true }, // JSON body
     pollJob: true,
