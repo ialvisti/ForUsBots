@@ -142,6 +142,10 @@ async function trackEvent(rec) {
       bot_id: rec.bot || rec.botId || null,
       payload: safeJsonClone(rec),
       inserted_at: FieldValue.serverTimestamp(),
+      // TTL 30d. La policy en Firestore (gcloud firestore fields ttls
+      // update expires_at --collection-group=events) borra docs cuyo
+      // expires_at este en el pasado. Date absoluto, no serverTimestamp.
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     });
   } catch (err) {
     // No tirar; sólo log local. NO usar el logger para evitar recursividad
