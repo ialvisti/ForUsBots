@@ -6,7 +6,7 @@
 
 ---
 
-## Validación inicial (la fase 05 quedó bien hecha)
+## Validación inicial (la fase 06 quedó bien hecha)
 
 ```bash
 cd "/Users/ivanalvis/Desktop/ForUsBots copy"
@@ -14,7 +14,7 @@ source .gcp-config.local
 
 # 1. Working tree limpio post-cutover
 git status
-git log -1 --oneline | grep -i "deploy\|cutover\|gcp" && echo "Commit fase 05: OK"
+git log -1 --oneline | grep -i "deploy\|cutover\|gcp" && echo "Commit fase 06: OK"
 
 # 2. VM viva
 IP=$(gcloud compute addresses describe forusbots-ip --region=$REGION --format="value(address)")
