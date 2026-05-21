@@ -483,6 +483,21 @@ function finalize(job, err, val) {
     } catch {}
   }
 
+  // Métricas de tiempo (ms). Reusa msBetweenISO definido arriba.
+  const queueMs =
+    job.enqueuedAt && job.startedAt
+      ? msBetweenISO(job.enqueuedAt, job.startedAt)
+      : null;
+  const runMs =
+    job.startedAt && job.finishedAt
+      ? msBetweenISO(job.startedAt, job.finishedAt)
+      : null;
+  const totalMs =
+    job.enqueuedAt && job.finishedAt
+      ? msBetweenISO(job.enqueuedAt, job.finishedAt)
+      : null;
+  const totalSeconds = totalMs != null ? Math.round(totalMs / 1000) : null;
+
   // evento de cierre
   if (err) {
     log.event(
@@ -492,6 +507,10 @@ function finalize(job, err, val) {
         bot: job.botId,
         error: log.normalizeError(err),
         meta: job.meta || null,
+        runMs,
+        queueMs,
+        totalMs,
+        totalSeconds,
       },
       "error"
     );
@@ -503,6 +522,10 @@ function finalize(job, err, val) {
         bot: job.botId,
         meta: job.meta || null,
         result: (reg && reg.result) || null,
+        runMs,
+        queueMs,
+        totalMs,
+        totalSeconds,
       },
       "info"
     );
