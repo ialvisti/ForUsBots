@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ForUsBots API
-  version: 2.4.0
+  version: 2.5.0
 servers:
   - url: http://localhost:10000
 paths:
@@ -749,6 +749,307 @@ paths:
                       updateKeys: { type: array, items: { type: string } }
                       tiersCount: { type: integer }
                       updates: { type: object, additionalProperties: true }
+        '400': { description: Bad Request (validation) }
+        '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { description: Internal Server Error }
+
+  /forusbot/users-management/create:
+    post:
+      summary: Create portal user (RESTRICTED to ivan.alvis@forusall.com and sponsorservicesbot@forusall.com)
+      description: |
+        Navega a `https://employer.forusall.com/users/new`, completa el form
+        `#new_user` con los datos del usuario y hace click en **Create**. La
+        señal de **éxito** es la redirección a `/users` con el div
+        `#flash_notice` mostrando `"User created successfully."`. La señal de
+        **fallo** es la redirección a `/users` con `#error_explanation` listando
+        los errores (ej. `Email can't be blank`).
+
+        Los campos se llenan **siempre de arriba a abajo** siguiendo el orden
+        del DOM:
+        firstName → lastName → email → password/passwordConfirmation → role →
+        sponsorIds → userGroupIds → payrollSetupIds → active →
+        isNewDashboardUser → participantId → notAnEmployee → commSettings.
+
+        Para los multi-selects (`sponsorIds`, `userGroupIds`,
+        `payrollSetupIds`) se hace **reemplazo total**: el bot deselecciona
+        todas las opciones y selecciona el conjunto enviado por ID.
+
+        **Restricción de acceso:** este endpoint sólo acepta tokens de
+        `ivan.alvis@forusall.com` y `sponsorservicesbot@forusall.com`.
+        Cualquier otro usuario (incluso admins) recibe `403 forbidden`.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+          description: Token allowlistado (los demás reciben 403)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user, note]
+              properties:
+                user:
+                  type: object
+                  required: [email, password, passwordConfirmation]
+                  properties:
+                    firstName: { type: string }
+                    lastName:  { type: string }
+                    email:     { type: string, format: email }
+                    password:  { type: string }
+                    passwordConfirmation: { type: string, description: Debe coincidir con password }
+                    role:
+                      type: integer
+                      enum: [1, 2, 3, 4, 5, 6]
+                      description: |
+                        1=forus_admin, 2=sponsor_admin, 3=sponsor_rep,
+                        4=super_admin, 5=cs_admin, 6=auditor
+                    sponsorIds:
+                      type: array
+                      items: { type: integer, minimum: 1 }
+                      description: IDs (no nombres) del select Sponsor brand
+                    userGroupIds:
+                      type: array
+                      items: { type: integer, minimum: 1 }
+                    payrollSetupIds:
+                      type: array
+                      items: { type: integer, minimum: 1 }
+                    active:             { type: boolean, default: true }
+                    isNewDashboardUser: { type: boolean, default: true }
+                    participantId:      { type: string, nullable: true }
+                    notAnEmployee:
+                      type: boolean
+                      description: Checkbox "Not an employee" (true = NO es empleado)
+                    commSettings:
+                      type: object
+                      properties:
+                        payrollTransaction:          { type: boolean }
+                        monthlyEligibleParticipants: { type: boolean }
+                        sponsorQuarterlyEmail:       { type: boolean }
+                        simpleUploadReminder:        { type: boolean }
+                        payrollUpdatesEmail:         { type: boolean }
+                        loanUpdatesEmail:            { type: boolean }
+                note:
+                  type: string
+                  description: Nota obligatoria con el motivo del alta (auditoría)
+                includeScreens: { type: boolean, default: false }
+                timeoutMs:
+                  type: integer
+                  minimum: 5000
+                  maximum: 180000
+                  default: 30000
+            example:
+              user:
+                firstName: "Jane"
+                lastName: "Doe"
+                email: "jane.doe@example.com"
+                password: "S3cretPass!"
+                passwordConfirmation: "S3cretPass!"
+                role: 2
+                sponsorIds: [515, 221]
+                active: true
+                notAnEmployee: true
+              note: "New sponsor admin for acorns"
+      responses:
+        '202': { description: Accepted (returns jobId) }
+        '400': { description: Bad Request (missing fields) }
+        '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: Unprocessable Entity (validation) }
+        '500': { description: Internal Server Error }
+
+  /forusbot/users-management/edit:
+    post:
+      summary: Edit portal user with optional MFA reset (RESTRICTED)
+      description: |
+        Navega a `https://employer.forusall.com/users/{userId}/edit`, aplica
+        sólo los campos presentes en `updates` (semántica de patch), ejecuta
+        opcionalmente Reset MFA, y hace click en **Update**. La señal de
+        **éxito** es la redirección a `/users` con `#flash_notice` mostrando
+        `"User updated successfully."`.
+
+        El flag `resetMfa` controla qué botón(es) Reset MFA se ejecutan
+        **antes** del submit final. Cada Reset MFA dispara su `confirm()` JS
+        (lo aceptamos) y su `alert()` JS de éxito (lo aceptamos), y se valida
+        que `#mfa_status` quede en `"not enrolled"`. El Reset MFA usa AJAX y
+        NO submitea el form — los demás updates siguen aplicándose después
+        con el click final de Update.
+
+        **Restricción de acceso:** mismas allowlist que el endpoint de create.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, note]
+              properties:
+                userId:
+                  type: integer
+                  minimum: 1
+                  description: Portal user ID (ej. 1062)
+                updates:
+                  type: object
+                  description: |
+                    Campos a modificar (sólo los presentes se aplican). Acepta
+                    las mismas claves que `user` en /create excepto que
+                    `email`/`password` son opcionales. Multi-selects son
+                    reemplazo total.
+                  properties:
+                    firstName:            { type: string, nullable: true }
+                    lastName:             { type: string, nullable: true }
+                    email:                { type: string, format: email, nullable: true }
+                    password:             { type: string, nullable: true }
+                    passwordConfirmation: { type: string, nullable: true, description: Si uno presente, el otro también }
+                    role:                 { type: integer, enum: [1,2,3,4,5,6] }
+                    sponsorIds:           { type: array, items: { type: integer, minimum: 1 } }
+                    userGroupIds:         { type: array, items: { type: integer, minimum: 1 } }
+                    payrollSetupIds:      { type: array, items: { type: integer, minimum: 1 } }
+                    active:               { type: boolean }
+                    isNewDashboardUser:   { type: boolean }
+                    participantId:        { type: string, nullable: true }
+                    notAnEmployee:        { type: boolean }
+                    commSettings:
+                      type: object
+                      additionalProperties: { type: boolean }
+                resetMfa:
+                  type: string
+                  enum: [employer, admin, both, none]
+                  default: none
+                  description: Si != "none", ejecuta los Reset MFA correspondientes antes del submit
+                note:
+                  type: string
+                  description: Nota obligatoria con el motivo del cambio
+                includeScreens: { type: boolean, default: false }
+                timeoutMs:
+                  type: integer
+                  minimum: 5000
+                  maximum: 180000
+                  default: 30000
+            example:
+              userId: 1062
+              updates:
+                firstName: "Pension"
+                role: 3
+                active: true
+              resetMfa: "employer"
+              note: "Update role per request from sponsor"
+      responses:
+        '202': { description: Accepted (returns jobId) }
+        '400': { description: Bad Request }
+        '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { description: Unprocessable Entity (validation) }
+        '500': { description: Internal Server Error }
+
+  /forusbot/sandbox/users-management/create:
+    post:
+      summary: Dry-run validator for users-management/create (RESTRICTED)
+      description: |
+        Valida el payload de `users-management/create` sin levantar Playwright
+        ni tocar el portal. Aplica la misma restricción de acceso que el
+        endpoint real.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user, note]
+              properties:
+                user:           { type: object, additionalProperties: true }
+                note:           { type: string }
+                includeScreens: { type: boolean }
+                timeoutMs:      { type: integer }
+      responses:
+        '200':
+          description: OK (dry-run válido)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:   { type: boolean, example: true }
+                  mode: { type: string,  example: "dry-run" }
+                  wouldEnqueue:
+                    type: object
+                    properties:
+                      botId:    { type: string, example: "users-management" }
+                      endpoint: { type: string, example: "/forusbot/users-management/create" }
+                      targetUrl: { type: string }
+                  normalized:
+                    type: object
+                    properties:
+                      note:     { type: string }
+                      userKeys: { type: array, items: { type: string } }
+                      user:     { type: object, additionalProperties: true }
+        '400': { description: Bad Request (validation) }
+        '401': { description: Unauthorized }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { description: Internal Server Error }
+
+  /forusbot/sandbox/users-management/edit:
+    post:
+      summary: Dry-run validator for users-management/edit (RESTRICTED)
+      description: |
+        Valida el payload de `users-management/edit` sin levantar Playwright
+        ni tocar el portal. Misma restricción de acceso que el real.
+      parameters:
+        - in: header
+          name: x-auth-token
+          schema: { type: string }
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, note]
+              properties:
+                userId:         { type: integer, minimum: 1 }
+                updates:        { type: object, additionalProperties: true }
+                resetMfa:       { type: string, enum: [employer, admin, both, none] }
+                note:           { type: string }
+                includeScreens: { type: boolean }
+                timeoutMs:      { type: integer }
+      responses:
+        '200':
+          description: OK (dry-run válido)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:   { type: boolean, example: true }
+                  mode: { type: string,  example: "dry-run" }
+                  wouldEnqueue:
+                    type: object
+                    properties:
+                      botId:    { type: string, example: "users-management" }
+                      endpoint: { type: string, example: "/forusbot/users-management/edit" }
+                      targetUrl: { type: string }
+                  normalized:
+                    type: object
+                    properties:
+                      userId:     { type: integer }
+                      note:       { type: string }
+                      updateKeys: { type: array, items: { type: string } }
+                      resetMfa:   { type: string }
+                      updates:    { type: object, additionalProperties: true }
         '400': { description: Bad Request (validation) }
         '401': { description: Unauthorized }
         '403': { $ref: '#/components/responses/Forbidden' }

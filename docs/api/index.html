@@ -31,7 +31,7 @@
       <div class="wrap meta-row">
         <div class="meta">
           <a class="muted small" href="/docs/openapi.yaml">openapi.yaml</a>
-          <span class="badge">v2.3.0</span>
+          <span class="badge">v2.5.0</span>
           <span class="badge alt">OAS 3.0</span>
         </div>
       </div>
@@ -1022,6 +1022,307 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
             Related: <a href="#sandbox-update-plan">Sandbox update-plan</a>,
             <a href="#jobs-get">Get Job</a>
           </p>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/users-management/create -->
+      <details class="op post" id="users-management-create">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/users-management/create</span>
+          <span class="sum">Create portal user (queued, RESTRICTED)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Auth required (<code>x-auth-token</code>) and restricted to
+            <code>ivan.alvis@forusall.com</code> and
+            <code>sponsorservicesbot@forusall.com</code>. Other tokens (incl.
+            admins) receive <code>403 forbidden</code>. Opens
+            <code>https://employer.forusall.com/users/new</code>, fills the
+            <code>#new_user</code> form top-down, and clicks <strong>Create</strong>.
+            Success is detected by redirect to <code>/users</code> with
+            <code>#flash_notice</code> containing
+            <code>"User created successfully."</code>; failure is detected by
+            <code>#error_explanation li</code>.
+          </p>
+
+          <h4>Request Body</h4>
+          <pre><code class="json">{
+  "user": {
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "email": "jane.doe@example.com",
+    "password": "S3cretPass!",
+    "passwordConfirmation": "S3cretPass!",
+    "role": 2,
+    "sponsorIds": [515, 221],
+    "userGroupIds": [1],
+    "payrollSetupIds": [230],
+    "active": true,
+    "isNewDashboardUser": true,
+    "participantId": "12345",
+    "notAnEmployee": true,
+    "commSettings": {
+      "payrollTransaction": false,
+      "monthlyEligibleParticipants": false
+    }
+  },
+  "note": "New sponsor admin for acorns",
+  "includeScreens": false,
+  "timeoutMs": 30000
+}</code></pre>
+
+          <h4>Notes</h4>
+          <ul class="list">
+            <li><strong>role</strong>: integer 1..6 (1=forus_admin, 2=sponsor_admin, 3=sponsor_rep, 4=super_admin, 5=cs_admin, 6=auditor).</li>
+            <li><strong>sponsorIds / userGroupIds / payrollSetupIds</strong>: arrays of integer IDs from the form's <code>&lt;option value="..."&gt;</code>. Replacement is total — the bot deselects all and selects only the IDs you send.</li>
+            <li><strong>notAnEmployee</strong>: maps to the "Not an employee" checkbox (true = checked = not an employee).</li>
+            <li>Form is filled top-down following the DOM order; sponsor change triggers an AJAX that repopulates the payroll-setup select before the bot writes <code>payrollSetupIds</code>.</li>
+          </ul>
+
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "jobId": "uuid",
+  "acceptedAt": "2026-05-22T10:30:00Z",
+  "queuePosition": 1,
+  "estimate": { "startAt": "...", "finishAt": "..." },
+  "capacitySnapshot": { "maxConcurrency": 3, "running": 0, "queued": 0 },
+  "warnings": [],
+  "executedBy": { "name": "Ivan Alvis", "role": "user", "at": "2026-05-22T10:30:00Z" }
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{ "ok": false, "error": "note es obligatoria" }</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">422 <span class="muted">Unprocessable Entity</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "validation",
+  "details": ["email es obligatorio.", "password y passwordConfirmation no coinciden."],
+  "warnings": []
+}</code></pre>
+          </div>
+
+          <h4>cURL Example</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/users-management/create \
+  -H "x-auth-token: ALLOWED_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user": {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "email": "jane.doe@example.com",
+      "password": "S3cretPass!",
+      "passwordConfirmation": "S3cretPass!",
+      "role": 2,
+      "sponsorIds": [515],
+      "active": true,
+      "notAnEmployee": true
+    },
+    "note": "New sponsor admin"
+  }'</code></pre>
+
+          <p class="muted small">
+            Related: <a href="#sandbox-users-management-create">Sandbox users-management/create</a>,
+            <a href="#users-management-edit">Edit user</a>,
+            <a href="#jobs-get">Get Job</a>
+          </p>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/users-management/edit -->
+      <details class="op post" id="users-management-edit">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/users-management/edit</span>
+          <span class="sum">Edit portal user with optional Reset MFA (queued, RESTRICTED)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Auth required (<code>x-auth-token</code>) and restricted to the
+            same allowlist as <a href="#users-management-create">create</a>.
+            Opens <code>/users/{userId}/edit</code>, applies only the keys
+            present in <code>updates</code> (patch semantics), optionally
+            executes Reset MFA, and clicks <strong>Update</strong>. Success is
+            detected by redirect to <code>/users</code> with
+            <code>"User updated successfully."</code> in <code>#flash_notice</code>.
+          </p>
+
+          <h4>Request Body</h4>
+          <pre><code class="json">{
+  "userId": 1062,
+  "updates": {
+    "firstName": "Pension",
+    "role": 3,
+    "sponsorIds": [515, 221],
+    "active": true,
+    "notAnEmployee": false
+  },
+  "resetMfa": "employer",
+  "note": "Update role per sponsor request",
+  "includeScreens": false,
+  "timeoutMs": 30000
+}</code></pre>
+
+          <h4>Notes</h4>
+          <ul class="list">
+            <li><strong>updates</strong>: subset of the create-user fields. <code>password</code>/<code>passwordConfirmation</code> are optional; if one is present, the other must match.</li>
+            <li><strong>resetMfa</strong>: <code>"employer"</code>, <code>"admin"</code>, <code>"both"</code>, or <code>"none"</code> (default). When not <code>"none"</code>, the bot clicks the corresponding Reset MFA button(s) <em>before</em> the Update submit, accepting both the <code>confirm()</code> and the success <code>alert()</code> dialogs and verifying <code>#mfa_status</code> changes to <code>"not enrolled"</code>.</li>
+            <li>If <code>updates</code> is empty AND <code>resetMfa === "none"</code>, the request is rejected with 422 ("nothing to do").</li>
+          </ul>
+
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">202 <span class="muted">Accepted</span></div>
+            <pre><code class="json">{ "ok": true, "jobId": "uuid", "acceptedAt": "...", "queuePosition": 1 }</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{ "ok": false, "error": "userId es obligatorio y debe ser un entero positivo" }</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">422 <span class="muted">Unprocessable Entity</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "error": "validation",
+  "details": ["resetMfa debe ser uno de: employer, admin, both, none."],
+  "warnings": []
+}</code></pre>
+          </div>
+
+          <h4>cURL Example</h4>
+          <pre><code class="bash">curl -X POST http://localhost:10000/forusbot/users-management/edit \
+  -H "x-auth-token: ALLOWED_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": 1062,
+    "updates": { "firstName": "Pension", "active": true },
+    "resetMfa": "employer",
+    "note": "Role update"
+  }'</code></pre>
+
+          <p class="muted small">
+            Related: <a href="#sandbox-users-management-edit">Sandbox users-management/edit</a>,
+            <a href="#users-management-create">Create user</a>,
+            <a href="#jobs-get">Get Job</a>
+          </p>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/sandbox/users-management/create (dry-run) -->
+      <details class="op post" id="sandbox-users-management-create">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/sandbox/users-management/create</span>
+          <span class="sum">Validate users-management/create payload (dry-run, RESTRICTED)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Dry-run validator for <a href="#users-management-create">create user</a>. Auth required
+            and restricted to the same allowlist. Validates the payload without
+            launching Playwright or touching the portal. Returns <code>200</code>
+            with normalized data or <code>400</code> on validation errors.
+          </p>
+
+          <h4>Request Body</h4>
+          <pre><code class="json">{
+  "user": {
+    "firstName": "Jane",
+    "email": "jane@example.com",
+    "password": "x",
+    "passwordConfirmation": "x"
+  },
+  "note": "validate"
+}</code></pre>
+
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "mode": "dry-run",
+  "wouldEnqueue": {
+    "botId": "users-management",
+    "endpoint": "/forusbot/users-management/create",
+    "targetUrl": "https://employer.forusall.com/users/new"
+  },
+  "normalized": {
+    "note": "validate",
+    "userKeys": ["firstName", "email", "password", "passwordConfirmation"],
+    "user": { "firstName": "Jane", "email": "jane@example.com", "password": "x", "passwordConfirmation": "x" }
+  },
+  "warnings": []
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "mode": "dry-run",
+  "error": "validation",
+  "details": ["email es obligatorio.", "note es obligatoria"]
+}</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <!-- POST /forusbot/sandbox/users-management/edit (dry-run) -->
+      <details class="op post" id="sandbox-users-management-edit">
+        <summary>
+          <span class="method post">POST</span>
+          <span class="path">/forusbot/sandbox/users-management/edit</span>
+          <span class="sum">Validate users-management/edit payload (dry-run, RESTRICTED)</span>
+        </summary>
+        <div class="op-body">
+          <p class="muted">
+            Dry-run validator for <a href="#users-management-edit">edit user</a>. Same allowlist as the real
+            endpoint. Validates <code>userId</code>, <code>updates</code>,
+            <code>resetMfa</code>, and <code>note</code> without queuing a job.
+          </p>
+
+          <h4>Request Body</h4>
+          <pre><code class="json">{
+  "userId": 1062,
+  "updates": { "firstName": "Pension" },
+  "resetMfa": "none",
+  "note": "validate"
+}</code></pre>
+
+          <h4>Responses</h4>
+          <div class="resp">
+            <div class="code">200 <span class="muted">OK</span></div>
+            <pre><code class="json">{
+  "ok": true,
+  "mode": "dry-run",
+  "wouldEnqueue": {
+    "botId": "users-management",
+    "endpoint": "/forusbot/users-management/edit",
+    "targetUrl": "https://employer.forusall.com/users/1062/edit"
+  },
+  "normalized": {
+    "userId": 1062,
+    "note": "validate",
+    "updateKeys": ["firstName"],
+    "resetMfa": "none",
+    "updates": { "firstName": "Pension" }
+  },
+  "warnings": []
+}</code></pre>
+          </div>
+          <div class="resp">
+            <div class="code">400 <span class="muted">Bad Request</span></div>
+            <pre><code class="json">{
+  "ok": false,
+  "mode": "dry-run",
+  "error": "validation",
+  "details": ["userId es obligatorio y debe ser un entero positivo"]
+}</code></pre>
+          </div>
         </div>
       </details>
 

@@ -42,6 +42,11 @@ import {
 } from "./core/email-ui.js";
 
 import {
+  wireUsersManagementUI,
+  buildUsersManagementBodyStr,
+} from "./core/users-management-ui.js";
+
+import {
   fetchWhoami,
   renderMeBanner,
   applyScopeToEndpointSelect,
@@ -210,6 +215,21 @@ function refreshAllOutputs() {
     endpointSel.value === "sandbox-update-plan"
   ) {
     jsonBodyStr = buildUpdatePlanBodyStr(false);
+  } else if (
+    endpointSel.value === "users-management-create" ||
+    endpointSel.value === "users-management-edit" ||
+    endpointSel.value === "sandbox-users-management-create" ||
+    endpointSel.value === "sandbox-users-management-edit"
+  ) {
+    jsonBodyStr = buildUsersManagementBodyStr(endpointSel.value, false);
+    // Toggle sub-mode (create vs edit) inside the users-management builder
+    const isCreate = endpointSel.value.endsWith("create");
+    document
+      .querySelectorAll(".um-mode-create")
+      .forEach((el) => el.classList.toggle("hidden", !isCreate));
+    document
+      .querySelectorAll(".um-mode-edit")
+      .forEach((el) => el.classList.toggle("hidden", isCreate));
   }
 
   renderHeaders(metaStr, jsonBodyStr);
@@ -268,6 +288,9 @@ wireUpdateUI({ onChange: refreshAllOutputs });
 
 // Update Plan UI
 wireUpdatePlanUI({ onChange: refreshAllOutputs });
+
+// Users Management UI
+wireUsersManagementUI({ onChange: refreshAllOutputs });
 
 // Email Trigger UI
 wireEmailUI({ onChange: refreshAllOutputs });

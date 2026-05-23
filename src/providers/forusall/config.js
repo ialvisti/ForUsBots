@@ -102,6 +102,54 @@ module.exports.FIXED = {
     },
   },
 
+  // ==== Users Management (admin panel: /users/new, /users/{id}/edit) ====
+  usersManagement: {
+    newUrl: "https://employer.forusall.com/users/new",
+    editUrlTemplate: "https://employer.forusall.com/users/{userId}/edit",
+    listUrl: "https://employer.forusall.com/users",
+    selectors: {
+      formNew: "#new_user",
+      formEditPrefix: "form[id^='edit_user_']",
+      fields: {
+        firstName: "#user_first_name",
+        lastName: "#user_last_name",
+        email: "#user_email",
+        password: "#user_password",
+        passwordConfirmation: "#user_password_confirmation",
+        role: "#user_role_ids_",
+        sponsorIds: "#user_sponsor_ids",
+        userGroupIds: "#user_user_group_ids",
+        payrollSetupIds: "#user_payroll_setup_ids",
+        active: "#user_active",
+        isNewDashboardUser: "#user_is_new_dashboard_user",
+        participantId: "#user_participant_id",
+        notAnEmployee: "#user_is_employee",
+        comm: {
+          payrollTransaction: "#user_comm_setting_payroll_transaction_enabled",
+          monthlyEligibleParticipants: "#user_comm_setting_monthly_eligible_participants_enabled",
+          sponsorQuarterlyEmail: "#user_comm_setting_sponsor_quarterly_email_enabled",
+          simpleUploadReminder: "#user_comm_setting_simple_upload_reminder_enabled",
+          payrollUpdatesEmail: "#user_comm_setting_payroll_updates_email_enabled",
+          loanUpdatesEmail: "#user_comm_setting_loan_updates_email_enabled",
+        },
+      },
+      submitBtn: "#user-submit-btn",
+      mfaEmployer: { status: "#mfa_status", resetBtn: "#reset-mfa" },
+      mfaAdmin: { status: "#admin_mfa_status", resetBtn: "#reset-admin-mfa" },
+      listFlashSuccess: "#flash_notice",
+      listErrorBlock: "#error_explanation",
+      listErrorItems: "#error_explanation li",
+    },
+    timeouts: {
+      pageLoad: 15000,
+      submit: 20000,
+      confirmWait: 7000,
+      alertWait: 7000,
+      statusSettle: 8000,
+      payrollAjax: 3000,
+    },
+  },
+
   // Página Trigger Emails (selectores exactos por tu HTML)
   triggerEmails: {
     url: "https://employer.forusall.com/trigger_emails",

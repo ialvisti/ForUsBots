@@ -13,6 +13,7 @@ const searchParticipantsRoutes = require("../bots/forusall-search-participants/r
 const emailTriggerRoutes = require("../bots/forusall-emailtrigger/routes");
 const updateParticipantRoutes = require("../bots/forusall-update-participant/routes");
 const updatePlanRoutes = require("../bots/forusall-update-plan/routes");
+const usersManagementRoutes = require("../bots/forusall-usersmanagement/routes");
 const restrictToEmails = require("../middleware/restrictToEmails");
 const queue = require("../engine/queue");
 const { getLoginLocksStatus } = require("../engine/loginLock");
@@ -422,6 +423,9 @@ router.use("/update-participant", updateParticipantRoutes);
 // Monta el bot: /forusbot/update-plan
 router.use("/update-plan", updatePlanRoutes);
 
+// Monta el bot: /forusbot/users-management (create + edit + reset MFA)
+router.use("/users-management", usersManagementRoutes);
+
 // ===== Sandbox dry-run: /forusbot/sandbox/update-plan =====
 // Valida el payload de update-plan SIN ejecutar el browser. Restringido a la
 // misma allowlist que el endpoint real (Ivan Alvis).
@@ -522,6 +526,240 @@ router.post(
       });
     } catch (e) {
       logger.error({ type: "route.index.sandbox_update_plan_error", error: e });
+      return res
+        .status(500)
+        .json({ ok: false, error: e?.message || "Internal Error" });
+    }
+  }
+);
+
+// ===== Sandbox dry-run: /forusbot/sandbox/users-management/{create,edit} =====
+// Valida el payload de users-management SIN ejecutar el browser. Restringido a
+// la misma allowlist que los endpoints reales.
+const USERS_MGMT_VALID_ROLES = new Set([1, 2, 3, 4, 5, 6]);
+const USERS_MGMT_VALID_RESET_MFA = new Set(["employer", "admin", "both", "none"]);
+
+function _umCleanStr(s) {
+  if (s === null || s === undefined) return null;
+  const t = String(s).trim();
+  return t === "" ? null : t;
+}
+function _umIsPlainObject(v) {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+function _umToBool(v) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (["true", "1", "yes", "y"].includes(s)) return true;
+    if (["false", "0", "no", "n"].includes(s)) return false;
+  }
+  return null;
+}
+function _umValidateIdArray(name, v, errors) {
+  if (!Array.isArray(v)) {
+    errors.push(`${name} debe ser un array de IDs numéricos.`);
+    return null;
+  }
+  const ids = [];
+  for (let i = 0; i < v.length; i++) {
+    const n = Number(v[i]);
+    if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+      errors.push(`${name}[${i}] debe ser un entero positivo.`);
+      return null;
+    }
+    ids.push(n);
+  }
+  return ids;
+}
+function _umNormalizeFields(input, errors, warnings) {
+  if (!_umIsPlainObject(input)) return null;
+  const out = {};
+  const COMM_KEYS = new Set([
+    "payrollTransaction",
+    "monthlyEligibleParticipants",
+    "sponsorQuarterlyEmail",
+    "simpleUploadReminder",
+    "payrollUpdatesEmail",
+    "loanUpdatesEmail",
+  ]);
+  for (const k of Object.keys(input)) {
+    const v = input[k];
+    switch (k) {
+      case "firstName":
+      case "lastName":
+      case "email":
+      case "password":
+      case "passwordConfirmation":
+      case "participantId":
+        if (v === null) out[k] = "";
+        else if (typeof v === "string") out[k] = v;
+        else errors.push(`${k} debe ser string.`);
+        break;
+      case "role": {
+        const n = Number(v);
+        if (!Number.isFinite(n) || !USERS_MGMT_VALID_ROLES.has(n)) {
+          errors.push("role debe ser uno de 1..6.");
+        } else out.role = n;
+        break;
+      }
+      case "sponsorIds":
+      case "userGroupIds":
+      case "payrollSetupIds": {
+        const ids = _umValidateIdArray(k, v, errors);
+        if (ids !== null) out[k] = ids;
+        break;
+      }
+      case "active":
+      case "isNewDashboardUser":
+      case "notAnEmployee": {
+        const b = _umToBool(v);
+        if (b === null) errors.push(`${k} debe ser booleano.`);
+        else out[k] = b;
+        break;
+      }
+      case "commSettings": {
+        if (!_umIsPlainObject(v)) {
+          errors.push("commSettings debe ser un objeto.");
+          break;
+        }
+        const comm = {};
+        for (const ck of Object.keys(v)) {
+          if (!COMM_KEYS.has(ck)) {
+            warnings.push(`commSettings.${ck} desconocido — ignorado.`);
+            continue;
+          }
+          const b = _umToBool(v[ck]);
+          if (b === null) errors.push(`commSettings.${ck} debe ser booleano.`);
+          else comm[ck] = b;
+        }
+        if (Object.keys(comm).length) out.commSettings = comm;
+        break;
+      }
+      default:
+        warnings.push(`Campo desconocido ignorado: ${k}`);
+    }
+  }
+  if (out.email != null && out.email !== "") {
+    const e = String(out.email).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) {
+      errors.push("email no tiene formato válido.");
+    }
+  }
+  const hasPwd = out.password != null && out.password !== "";
+  const hasConf = out.passwordConfirmation != null && out.passwordConfirmation !== "";
+  if (hasPwd !== hasConf) errors.push("password y passwordConfirmation deben ir juntos.");
+  else if (hasPwd && out.password !== out.passwordConfirmation) {
+    errors.push("password y passwordConfirmation no coinciden.");
+  }
+  return out;
+}
+
+router.post(
+  "/sandbox/users-management/create",
+  requireUser,
+  restrictToEmails(usersManagementRoutes.ALLOWED_EMAILS),
+  (req, res) => {
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const note = _umCleanStr(body.note);
+      const errors = [];
+      const warnings = [];
+      if (!note) errors.push("note es obligatoria");
+      if (!_umIsPlainObject(body.user)) errors.push("user es obligatorio (objeto)");
+      const user = _umNormalizeFields(body.user || {}, errors, warnings) || {};
+      if (body.user && _umIsPlainObject(body.user)) {
+        if (!_umCleanStr(user.email)) errors.push("email es obligatorio.");
+        if (!_umCleanStr(user.password)) errors.push("password es obligatorio.");
+        if (!_umCleanStr(user.passwordConfirmation)) errors.push("passwordConfirmation es obligatorio.");
+      }
+      if (errors.length) {
+        return res.status(400).json({
+          ok: false,
+          mode: "dry-run",
+          error: "validation",
+          details: errors,
+          warnings,
+        });
+      }
+      return res.json({
+        ok: true,
+        mode: "dry-run",
+        wouldEnqueue: {
+          botId: "users-management",
+          endpoint: "/forusbot/users-management/create",
+          targetUrl: "https://employer.forusall.com/users/new",
+        },
+        normalized: {
+          note,
+          userKeys: Object.keys(user),
+          user,
+        },
+        warnings,
+      });
+    } catch (e) {
+      logger.error({ type: "route.index.sandbox_users_management_create_error", error: e });
+      return res
+        .status(500)
+        .json({ ok: false, error: e?.message || "Internal Error" });
+    }
+  }
+);
+
+router.post(
+  "/sandbox/users-management/edit",
+  requireUser,
+  restrictToEmails(usersManagementRoutes.ALLOWED_EMAILS),
+  (req, res) => {
+    try {
+      const body = req.body && typeof req.body === "object" ? req.body : {};
+      const userIdRaw = body.userId ?? body.userID ?? body.id ?? null;
+      const userIdNum = Number(userIdRaw);
+      const note = _umCleanStr(body.note);
+      const errors = [];
+      const warnings = [];
+      if (!Number.isFinite(userIdNum) || !Number.isInteger(userIdNum) || userIdNum <= 0) {
+        errors.push("userId es obligatorio y debe ser un entero positivo");
+      }
+      if (!note) errors.push("note es obligatoria");
+      if (!_umIsPlainObject(body.updates)) errors.push("updates es obligatorio (objeto)");
+      const updates = _umNormalizeFields(body.updates || {}, errors, warnings) || {};
+      const resetMfa = body.resetMfa == null ? "none" : String(body.resetMfa).trim().toLowerCase();
+      if (!USERS_MGMT_VALID_RESET_MFA.has(resetMfa)) {
+        errors.push(`resetMfa debe ser uno de: ${[...USERS_MGMT_VALID_RESET_MFA].join(", ")}.`);
+      }
+      if (Object.keys(updates).length === 0 && resetMfa === "none") {
+        errors.push("updates está vacío y resetMfa='none' — nada que hacer.");
+      }
+      if (errors.length) {
+        return res.status(400).json({
+          ok: false,
+          mode: "dry-run",
+          error: "validation",
+          details: errors,
+          warnings,
+        });
+      }
+      return res.json({
+        ok: true,
+        mode: "dry-run",
+        wouldEnqueue: {
+          botId: "users-management",
+          endpoint: "/forusbot/users-management/edit",
+          targetUrl: `https://employer.forusall.com/users/${encodeURIComponent(String(userIdNum))}/edit`,
+        },
+        normalized: {
+          userId: userIdNum,
+          note,
+          updateKeys: Object.keys(updates),
+          resetMfa,
+          updates,
+        },
+        warnings,
+      });
+    } catch (e) {
+      logger.error({ type: "route.index.sandbox_users_management_edit_error", error: e });
       return res
         .status(500)
         .json({ ok: false, error: e?.message || "Internal Error" });

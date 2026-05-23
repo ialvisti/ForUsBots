@@ -95,6 +95,19 @@
                 POST /forusbot/email-trigger
               </option>
 
+              <option value="users-management-create">
+                POST /forusbot/users-management/create ⚠️ PRECAUCIÓN: Petición Real ⚠️ (restringido)
+              </option>
+              <option value="sandbox-users-management-create">
+                POST /forusbot/sandbox/users-management/create (dry-run, restringido)
+              </option>
+              <option value="users-management-edit">
+                POST /forusbot/users-management/edit ⚠️ PRECAUCIÓN: Petición Real ⚠️ (restringido)
+              </option>
+              <option value="sandbox-users-management-edit">
+                POST /forusbot/sandbox/users-management/edit (dry-run, restringido)
+              </option>
+
               <option value="mfa-reset">POST /forusbot/mfa-reset</option>
               <option value="jobs-get">GET /forusbot/jobs/:id</option>
               <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
@@ -303,6 +316,56 @@
                 usan el formato <code>yyyy-mm-dd</code>; dejar vacío envía
                 <code>""</code> para limpiar. Para match tiers, pega un array
                 JSON de objetos <code>{match_value, percent_pay}</code>.
+              </div>
+            </div>
+          </div>
+
+          <!-- Users Management builder (create + edit, restringido) -->
+          <div class="ep ep-users-management hidden">
+            <div class="field">
+              <div class="help">
+                Endpoint restringido a <code>ivan.alvis@forusall.com</code> y
+                <code>sponsorservicesbot@forusall.com</code>. Tanto el modo
+                real como dry-run requieren un token de la allowlist.
+              </div>
+            </div>
+
+            <div class="field um-mode-create">
+              <label>Cuerpo de la petición (JSON) — <code>users-management/create</code></label>
+              <textarea
+                id="umCreateBody"
+                rows="22"
+                spellcheck="false"
+                style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"
+              ></textarea>
+              <div class="help">
+                Edita el JSON arriba. <code>user.email</code>, <code>user.password</code>,
+                <code>user.passwordConfirmation</code> y <code>note</code> son
+                obligatorios. Los multi-select IDs (<code>sponsorIds</code>,
+                <code>userGroupIds</code>, <code>payrollSetupIds</code>) son
+                arrays de enteros con los <code>value</code> del
+                <code>&lt;option&gt;</code> del portal. Si seleccionas el
+                endpoint <i>real</i>, hará la petición al portal; elige la
+                variante dry-run para validar el payload sin levantar
+                Playwright.
+              </div>
+            </div>
+
+            <div class="field um-mode-edit">
+              <label>Cuerpo de la petición (JSON) — <code>users-management/edit</code></label>
+              <textarea
+                id="umEditBody"
+                rows="18"
+                spellcheck="false"
+                style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"
+              ></textarea>
+              <div class="help">
+                Edita el JSON arriba. <code>userId</code> (entero) y
+                <code>note</code> son obligatorios; <code>updates</code>
+                aplica sólo las claves presentes (patch). <code>resetMfa</code>
+                ∈ <code>"employer" | "admin" | "both" | "none"</code> (default
+                <code>"none"</code>). Si <code>updates</code> está vacío Y
+                <code>resetMfa === "none"</code>, la petición se rechaza.
               </div>
             </div>
           </div>

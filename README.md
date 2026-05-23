@@ -1,10 +1,10 @@
-# ForUsBots – API (v2.3.0)
+# ForUsBots – API (v2.5.0)
 
 Service that automates ForUsAll employer portal actions using Playwright (login with TOTP when needed), processes uploads, and exposes a small HTTP API. Docs are available in English and Spanish; OpenAPI is the source of truth.
 
 - English API docs: `/docs/api`
 - Spanish API docs: `/docs/api/es`
-- OpenAPI: `docs/openapi.yaml` (version 2.3.0)
+- OpenAPI: `docs/openapi.yaml` (version 2.5.0)
 - Sandbox UI: `/docs/sandbox` (EN), `/docs/sandbox/es` (ES)
 
 ---
@@ -28,6 +28,10 @@ Namespace base: `/forusbot`
 |   POST | /forusbot/update-participant        |  Yes  | Update participant census; returns 202 with jobId     |
 |   POST | /forusbot/update-plan               | Yes\*\* | Update plan edit form; returns 202. Restricted to ivan.alvis@forusall.com |
 |   POST | /forusbot/sandbox/update-plan       | Yes\*\* | Dry-run validator for update-plan. Same restriction.  |
+|   POST | /forusbot/users-management/create   | Yes\*\* | Create portal user; returns 202. Restricted to ivan.alvis@forusall.com and sponsorservicesbot@forusall.com |
+|   POST | /forusbot/users-management/edit     | Yes\*\* | Edit portal user (incl. optional Reset MFA); returns 202. Same restriction. |
+|   POST | /forusbot/sandbox/users-management/create | Yes\*\* | Dry-run validator for users-management/create. Same restriction. |
+|   POST | /forusbot/sandbox/users-management/edit   | Yes\*\* | Dry-run validator for users-management/edit. Same restriction. |
 |   POST | /forusbot/email-trigger             |  Yes  | Trigger email communications; returns 202 with jobId  |
 |    GET | /forusbot/jobs                      |  Yes  | List jobs; filters: state, botId, limit, offset       |
 |    GET | /forusbot/jobs/:id                  |  Yes  | Get job                                               |
@@ -71,7 +75,7 @@ Full examples and schemas: see `/docs/api` (EN) or `/docs/api/es` (ES).
 
 ---
 
-## New Endpoints (v2.3.0) — compact cURL
+## New Endpoints (v2.5.0) — compact cURL
 
 ```bash
 # 1) Dry-run validator (no auth)
@@ -149,17 +153,70 @@ curl -sS -X POST "$BASE/forusbot/sandbox/update-plan" \
 # Other tokens (incl. admins) → 403 forbidden.
 ```
 
+```bash
+# 9) Create portal user (RESTRICTED)
+curl -sS -X POST "$BASE/forusbot/users-management/create" \
+  -H 'x-auth-token: ALLOWED_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "user": {
+      "firstName": "Jane",
+      "lastName": "Doe",
+      "email": "jane.doe@example.com",
+      "password": "S3cretPass!",
+      "passwordConfirmation": "S3cretPass!",
+      "role": 2,
+      "sponsorIds": [515, 221],
+      "active": true,
+      "notAnEmployee": true
+    },
+    "note": "New sponsor admin for acorns"
+  }'
+# Dry-run (no browser; same access restriction):
+curl -sS -X POST "$BASE/forusbot/sandbox/users-management/create" \
+  -H 'x-auth-token: ALLOWED_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"user":{"email":"jane@x.com","password":"a","passwordConfirmation":"a"},"note":"validate"}'
+# Docs: /docs/api#users-management-create
+```
+
+```bash
+# 10) Edit portal user (RESTRICTED) — optional resetMfa: "employer"|"admin"|"both"|"none"
+curl -sS -X POST "$BASE/forusbot/users-management/edit" \
+  -H 'x-auth-token: ALLOWED_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "userId": 1062,
+    "updates": { "firstName": "Pension", "role": 3, "active": true },
+    "resetMfa": "employer",
+    "note": "Update role per sponsor request"
+  }'
+# Dry-run (no browser; same access restriction):
+curl -sS -X POST "$BASE/forusbot/sandbox/users-management/edit" \
+  -H 'x-auth-token: ALLOWED_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":1062,"updates":{"firstName":"Pension"},"note":"validate"}'
+# Other tokens (incl. admins) → 403 forbidden.
+# Docs: /docs/api#users-management-edit
+```
+
 ---
 
 ## OpenAPI & Docs
 
-- OpenAPI: `docs/openapi.yaml` (version 2.3.0)
+- OpenAPI: `docs/openapi.yaml` (version 2.5.0)
 - English docs: `/docs/api` — Spanish docs: `/docs/api/es`
 - Sandbox: `/docs/sandbox` (EN), `/docs/sandbox/es` (ES)
 
 ---
 
 ## Changelog
+
+- 2.5.0
+  - Added `POST /forusbot/users-management/create` and `POST /forusbot/users-management/edit` for portal user administration (create/edit users, multi-select sponsor/group/payroll IDs, optional Reset MFA admin/employer/both).
+  - Added matching sandbox dry-runs: `POST /forusbot/sandbox/users-management/{create,edit}`.
+  - Both real and sandbox endpoints are restricted to `ivan.alvis@forusall.com` and `sponsorservicesbot@forusall.com`.
+  - Registered `users-management` and `sandbox-users-management` features in the scope map (`src/auth/featureMap.js`, `src/auth/roles.js`) — denied by default for `user`, `pa_lead`, `rm_lead`, `imp_lead`.
 
 - 2.3.0
   - Added `POST /forusbot/email-trigger` for triggering email communications to participants (10 email types supported).

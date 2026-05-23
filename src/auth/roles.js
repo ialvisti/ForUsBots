@@ -13,6 +13,8 @@ const ROLES = Object.freeze({
     defaultDeniedFeatures: Object.freeze([
       "update-plan",
       "mfa-reset",
+      "users-management",
+      "sandbox-users-management",
       "admin-jobs-db",
       "admin-metrics-db",
       "admin-settings",
@@ -28,6 +30,8 @@ const ROLES = Object.freeze({
     label: "PA Lead",
     defaultDeniedFeatures: Object.freeze([
       "update-plan",
+      "users-management",
+      "sandbox-users-management",
       "admin-jobs-db",
       "admin-metrics-db",
       "admin-settings",
@@ -39,6 +43,8 @@ const ROLES = Object.freeze({
     defaultDeniedFeatures: Object.freeze([
       "update-plan",
       "mfa-reset",
+      "users-management",
+      "sandbox-users-management",
       "admin-jobs-db",
       "admin-metrics-db",
       "admin-settings",
@@ -57,6 +63,8 @@ const ROLES = Object.freeze({
     defaultDeniedFeatures: Object.freeze([
       "update-plan",
       "mfa-reset",
+      "users-management",
+      "sandbox-users-management",
       "admin-jobs-db",
       "admin-metrics-db",
       "admin-settings",

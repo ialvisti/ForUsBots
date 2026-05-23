@@ -95,6 +95,19 @@
                 POST /forusbot/email-trigger
               </option>
 
+              <option value="users-management-create">
+                POST /forusbot/users-management/create ⚠️ CAUTION: Real Request ⚠️ (restricted)
+              </option>
+              <option value="sandbox-users-management-create">
+                POST /forusbot/sandbox/users-management/create (dry-run, restricted)
+              </option>
+              <option value="users-management-edit">
+                POST /forusbot/users-management/edit ⚠️ CAUTION: Real Request ⚠️ (restricted)
+              </option>
+              <option value="sandbox-users-management-edit">
+                POST /forusbot/sandbox/users-management/edit (dry-run, restricted)
+              </option>
+
               <option value="mfa-reset">POST /forusbot/mfa-reset</option>
               <option value="jobs-get">GET /forusbot/jobs/:id</option>
               <option value="jobs-delete">DELETE /forusbot/jobs/:id</option>
@@ -300,6 +313,54 @@
                 use <code>yyyy-mm-dd</code> format; leaving blank sends
                 <code>""</code> to clear. For match tiers, paste a JSON array of
                 <code>{match_value, percent_pay}</code> objects.
+              </div>
+            </div>
+          </div>
+
+          <!-- Users Management builder (create + edit, restricted) -->
+          <div class="ep ep-users-management hidden">
+            <div class="field">
+              <div class="help">
+                Endpoint restricted to <code>ivan.alvis@forusall.com</code> and
+                <code>sponsorservicesbot@forusall.com</code>. Both real and
+                dry-run modes require an allowlisted token.
+              </div>
+            </div>
+
+            <div class="field um-mode-create">
+              <label>Request body (JSON) — <code>users-management/create</code></label>
+              <textarea
+                id="umCreateBody"
+                rows="22"
+                spellcheck="false"
+                style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"
+              ></textarea>
+              <div class="help">
+                Edit the JSON above. <code>user.email</code>, <code>user.password</code>,
+                <code>user.passwordConfirmation</code> and <code>note</code> are required.
+                Multi-select IDs (<code>sponsorIds</code>, <code>userGroupIds</code>,
+                <code>payrollSetupIds</code>) are arrays of integers from the
+                portal's <code>&lt;option value="..."&gt;</code>. Selecting the
+                <i>real</i> endpoint will hit the portal; pick the dry-run sibling
+                to validate the payload without launching Playwright.
+              </div>
+            </div>
+
+            <div class="field um-mode-edit">
+              <label>Request body (JSON) — <code>users-management/edit</code></label>
+              <textarea
+                id="umEditBody"
+                rows="18"
+                spellcheck="false"
+                style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"
+              ></textarea>
+              <div class="help">
+                Edit the JSON above. <code>userId</code> (integer) and
+                <code>note</code> are required; <code>updates</code> applies
+                only present keys (patch). <code>resetMfa</code> ∈
+                <code>"employer" | "admin" | "both" | "none"</code> (default
+                <code>"none"</code>). If <code>updates</code> is empty AND
+                <code>resetMfa === "none"</code>, the request is rejected.
               </div>
             </div>
           </div>

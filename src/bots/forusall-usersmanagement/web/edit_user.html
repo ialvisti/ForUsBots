@@ -1,0 +1,1670 @@
+<body>
+    <header>
+      <nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Home</a>
+    </div>
+    <div class="collapse navbar-collapse">
+      <ul class="nav navbar-nav navbar-right">
+            <li><a data-method="get" href="/admin_panel">Admin</a></li>
+  <li><a data-method="get" href="/edit">Edit account</a></li>
+  <li><a rel="nofollow" data-method="delete" href="/sign_out">Sign out</a></li>
+
+      </ul>
+        <!--<p class="navbar-text navbar-right">
+          Signed in as <a href="#" class="navbar-link">ivan.alvis@forusall.com</a>
+        </p> -->
+    </div>
+  </div>
+</nav>
+
+      <style>
+  :root {
+    --color-env-label--black: #333333;
+    --color-env-label--white: #f2f2f2;
+    --color-env-label--blue: #1d76db;
+    --color-env-label--yellow: #fbca04;
+    --color-env-label--gray: #777777;
+    --color-env-label--red: #FF0000;
+  }
+
+  .env_info {
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    top: 12px;
+    left: 0;
+    right: 0;
+    z-index: 1500; /* bootstrap uses z-index from 1000~1100.. */
+    pointer-events: none;
+  }
+
+  .env_info__label {
+    display: none;
+    padding: 5px 10px;
+    color: transparent;
+    background-color: transparent;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .env_info__label--development {
+    display: inline-block;
+    color: var(--color-env-label--white);
+    background-color: var(--color-env-label--blue);
+  }
+
+  div[class*='env_info__label--sp'] {
+    display: inline-block;
+    color: var(--color-env-label--white);
+    background-color: var(--color-env-label--red);
+  }
+</style>
+
+<div class="env_info">
+  <div class="env_info__label env_info__label--production">    Production
+</div></div>
+
+    </header>
+    <main role="main">
+       <div data-alerts="alerts" data-ids="notify-me" data-fade="10000"></div>
+       <div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-6 col-md-6 col-md-offset-3 col-sm-offset-3 pad-top">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4>Edit User</h4>
+        </div>
+        <div class="panel-body">
+          <form class="edit_user" id="edit_user_1062" action="/users/1062" accept-charset="UTF-8" method="post"><input name="utf8" type="hidden" value="✓"><input type="hidden" name="_method" value="patch"><input type="hidden" name="authenticity_token" value="PoNUnOc6muLLK8YigkkMXXoXMt99AT041TCrtdNA+2hs0IlfDJ/6TKgkgvAOh3YXAACrmIPd/O2QHhouiduPaQ==">
+            <div class="field form-group">
+  <label for="user_first_name">First name</label><br>
+  <input class="form-control" type="text" value="Pension" name="user[first_name]" id="user_first_name">
+</div>
+<div class="field form-group">
+  <label for="user_last_name">Last name</label><br>
+  <input class="form-control" type="text" value="Assurance" name="user[last_name]" id="user_last_name">
+</div>
+<div class="field form-group">
+  <label for="user_Email">Email</label><br>
+  <input class="form-control" type="text" value="aaguirre@pensionassurance.com" name="user[email]" id="user_email">
+</div>
+<div class="field form-group">
+  <label for="user_role">Role</label><br>
+  <select name="user[role_ids][]" id="user_role_ids_" class="form-control"><option value="1">forus_admin</option>
+<option value="2">sponsor_admin</option>
+<option value="3">sponsor_rep</option>
+<option value="4">super_admin</option>
+<option value="5">cs_admin</option>
+<option selected="selected" value="6">auditor</option></select>
+</div>
+<div class="field form-group" id="sponsor">
+  <label for="user_sponsor_brand">Sponsor brand</label>
+  <input value="1062" type="hidden" name="user[user_id]" id="user_user_id">
+  <select name="user[sponsor_ids][]" id="user_sponsor_ids" multiple="multiple" class="form-control" style="height: 200px;"><option value="200">1000heads</option>
+<option value="505">1091media</option>
+<option selected="selected" value="515">10pearls</option>
+<option value="246">137ventures</option>
+<option value="737">17live</option>
+<option value="1033">1tprservices</option>
+<option value="1054">21CoTech</option>
+<option value="551">24hourtek</option>
+<option value="727">25capital</option>
+<option value="313">8minute</option>
+<option value="696">9yardscapital</option>
+<option value="1102">ADREM</option>
+<option value="1128">AISERV</option>
+<option value="1056">Abe Marketing</option>
+<option value="9">Acme Demo LT</option>
+<option value="476">Boldbrix</option>
+<option value="1119">DELETE</option>
+<option value="1126">Dialect Labs</option>
+<option value="452">EighteenB</option>
+<option value="411">FBMM</option>
+<option value="908">FORT</option>
+<option value="543">GarnerINC</option>
+<option value="612">Intellifreight</option>
+<option value="338">Mckee Voorhees</option>
+<option value="1129">NAVERA</option>
+<option value="1060">NVN - Eaglewood</option>
+<option value="24">Prestige Impex</option>
+<option value="1030">Seolta</option>
+<option value="6">Severn</option>
+<option value="872">WPA</option>
+<option value="455">WestWave</option>
+<option value="593">XMTP</option>
+<option value="907">YUMA</option>
+<option value="600">abacuscapitaladvisors</option>
+<option value="634">abapartners</option>
+<option value="1115">abelaguilar</option>
+<option value="531">abilishealth</option>
+<option value="165">abra</option>
+<option value="1094">abraAFH</option>
+<option value="219">academia</option>
+<option value="693">accessinstitute</option>
+<option value="870">acelyrin</option>
+<option value="3">acme</option>
+<option value="461">acmetest</option>
+<option selected="selected" value="221">acorns</option>
+<option value="728">acs</option>
+<option value="78">actionfhf</option>
+<option value="1072">adamschimneyspecialist</option>
+<option value="146">adbeat</option>
+<option value="167">advanceddentistry</option>
+<option selected="selected" value="729">aescape</option>
+<option value="668">aestohealth</option>
+<option value="181">affirm</option>
+<option value="566">affordableplumbing</option>
+<option value="575">agility</option>
+<option value="767">airbitz</option>
+<option value="557">airinc</option>
+<option value="624">airkast</option>
+<option value="837">airtrafficmanagement</option>
+<option value="725">airtutors</option>
+<option value="10">akoonu</option>
+<option value="396">alaskanativeheritage</option>
+<option value="339">alation</option>
+<option value="661">aleada</option>
+<option value="472">alegretrucking</option>
+<option value="903">alexanderbraodds</option>
+<option value="685">alixircompany</option>
+<option value="427">allianceoccupational</option>
+<option value="874">allpointe</option>
+<option value="610">allspice</option>
+<option value="84">alta</option>
+<option value="750">altro</option>
+<option value="501">alvaradostreetbakery</option>
+<option value="110">amberlotus</option>
+<option value="639">amboss</option>
+<option value="493">americanvisalaw</option>
+<option value="719">ampedi</option>
+<option value="630">amun21shares</option>
+<option value="667">anfs</option>
+<option value="648">anglehealth</option>
+<option value="620">animalfarm</option>
+<option value="694">anthill</option>
+<option value="857">anza</option>
+<option value="98">apintego</option>
+<option value="749">apliiq</option>
+<option value="390">appliedsoftwaretech</option>
+<option value="35">apptentive</option>
+<option value="210">argoncredit</option>
+<option value="817">arguslabs</option>
+<option value="483">arielpremiumsupply</option>
+<option value="459">arieltest</option>
+<option value="517">arkpes</option>
+<option value="13">asinsurance</option>
+<option value="821">aspiritech</option>
+<option value="477">assessurhealth</option>
+<option value="913">ast-aasc</option>
+<option value="914">ast-sysnet</option>
+<option value="915">astir-tech</option>
+<option value="631">astirit</option>
+<option value="594">atlanticpinesos</option>
+<option value="1068">aushwarakumar</option>
+<option value="144">austin</option>
+<option value="281">autoscribe</option>
+<option value="687">avalawgroup</option>
+<option value="806">aventine</option>
+<option value="530">azfasteners</option>
+<option value="383">bae</option>
+<option selected="selected" value="482">bambee</option>
+<option value="784">bankerlaw</option>
+<option value="855">bankless</option>
+<option value="609">barreraandco</option>
+<option value="100">basecraft</option>
+<option value="868">basicPayrollTest</option>
+<option value="418">bavariannordic</option>
+<option value="14">bcp</option>
+<option value="681">beagle</option>
+<option value="45">bear</option>
+<option value="699">bearflagfishco</option>
+<option value="142">beauty</option>
+<option value="377">becdir</option>
+<option value="309">beechmont</option>
+<option value="1095">belazor</option>
+<option value="361">bellecci</option>
+<option value="465">bemyapp</option>
+<option value="1042">benbase</option>
+<option value="185">benchling</option>
+<option value="635">benefitbay</option>
+<option value="893">besolo</option>
+<option value="1070">bespokeapparel</option>
+<option value="227">bestmade</option>
+<option value="90">beyondbk</option>
+<option value="291">bhc</option>
+<option value="323">bicecole</option>
+<option value="1059">bigbayplastering</option>
+<option value="894">bigdatadimension</option>
+<option value="1104">bigenterprises</option>
+<option value="80">biggerhammer</option>
+<option value="295">bimcon</option>
+<option selected="selected" value="562">binmaster</option>
+<option value="709">bioassay</option>
+<option value="341">biocentric</option>
+<option value="93">biospark</option>
+<option selected="selected" value="317">blackdiamond</option>
+<option value="895">blade</option>
+<option value="158">blanklabel</option>
+<option value="796">blockchaincapital</option>
+<option value="731">blockwaresolutions</option>
+<option value="68">blue</option>
+<option selected="selected" value="30">bluebottle</option>
+<option value="523">bluegroupmedia</option>
+<option value="58">blueshift</option>
+<option value="748">bluesky</option>
+<option value="518">bohlke</option>
+<option selected="selected" value="88">boltthreads</option>
+<option value="701">bondcreative</option>
+<option value="1052">bonify</option>
+<option value="569">botkinrose</option>
+<option value="508">boutique</option>
+<option value="353">bowengineering</option>
+<option value="83">bowtruss</option>
+<option value="266">boyer</option>
+<option value="151">brandfolder</option>
+<option value="26">brandmark</option>
+<option value="848">bravo</option>
+<option value="503">breeze</option>
+<option value="532">brickbodies</option>
+<option value="63">bricklin</option>
+<option value="7">brightbox</option>
+<option value="272">brightsign</option>
+<option value="800">brightstarcareofcary</option>
+<option value="86">brightstep</option>
+<option value="645">brittcase</option>
+<option value="632">brodiecm</option>
+<option value="347">brooks</option>
+<option value="755">bsm</option>
+<option value="885">buildersma</option>
+<option value="178">buncee</option>
+<option value="354">buschgroup</option>
+<option value="388">calassociation</option>
+<option value="333">californiawaterfowl</option>
+<option value="792">calimaelectric</option>
+<option value="413">callaway</option>
+<option value="212">cardfree</option>
+<option selected="selected" value="511">caretina</option>
+<option value="496">cargolargo</option>
+<option value="586">carlosduran</option>
+<option value="367">carpenters</option>
+<option value="166">carrferrell</option>
+<option value="466">casTEST</option>
+<option value="623">cavegamers</option>
+<option value="889">centeredtherapy</option>
+<option value="168">centerpoint</option>
+<option selected="selected" value="544">cerebras</option>
+<option value="504">cfigroup</option>
+<option value="786">cgs</option>
+<option value="700">chainable</option>
+<option value="175">chakra</option>
+<option value="595">cheefholdings</option>
+<option value="1100">cheersinteractive</option>
+<option value="1106">cheme</option>
+<option value="684">chipsifrat</option>
+<option value="238">christianwheeler</option>
+<option value="1051">cimc</option>
+<option value="680">circlesalon</option>
+<option value="673">circuitsandsoftware</option>
+<option value="315">cirruslabs</option>
+<option value="710">cityglobal</option>
+<option value="810">civicedgeconsulting</option>
+<option value="1073">civilliberties</option>
+<option value="268">civiltech</option>
+<option value="776">clausematch</option>
+<option value="196">clearthought</option>
+<option value="307">clevelandeye</option>
+<option value="692">cleverly</option>
+<option value="789">clientbook</option>
+<option value="866">climateneutral</option>
+<option value="791">cloudburst</option>
+<option value="118">clubos</option>
+<option value="194">cmc</option>
+<option value="675">cmlegalsearch</option>
+<option value="189">coachart</option>
+<option value="1082">cognativ</option>
+<option value="763">coindesk</option>
+<option value="779">coindeskindices</option>
+<option value="568">coinlist</option>
+<option value="876">colonialhr</option>
+<option value="781">comc</option>
+<option value="222">comforttemp</option>
+<option value="226">comfy</option>
+<option selected="selected" value="607">commonthread</option>
+<option value="698">compassmining</option>
+<option value="149">completecase</option>
+<option value="437">compunnel</option>
+<option value="752">conceptarthouse</option>
+<option value="135">confluence</option>
+<option value="651">consiliencegroup</option>
+<option value="362">consultingservices</option>
+<option value="747">cooperlegal</option>
+<option value="15">coppermine</option>
+<option value="198">coppermineracquet</option>
+<option value="213">copyprod</option>
+<option value="637">costanoa</option>
+<option value="653">cottonbureau</option>
+<option value="584">coverage2care</option>
+<option value="302">coverwallet</option>
+<option value="415">cowib</option>
+<option value="871">cpehnpayrollonly</option>
+<option value="292">cpv</option>
+<option value="697">cranetechsolutions</option>
+<option value="446">creativelive</option>
+<option value="366">credible</option>
+<option value="324">creditbureau</option>
+<option value="808">crescendoconsultinggroup</option>
+<option value="155">crosschx</option>
+<option value="783">crowdz</option>
+<option value="217">crystalconstr</option>
+<option value="216">crystalpools</option>
+<option value="510">csdynamics</option>
+<option value="473">ctengineering</option>
+<option value="244">ctsi</option>
+<option value="548">cunningham</option>
+<option value="61">currant</option>
+<option value="744">cyberig</option>
+<option value="420">cygnet</option>
+<option value="902">daland</option>
+<option selected="selected" value="176">dastalent</option>
+<option value="296">dataanalytic</option>
+<option value="215">datanyze</option>
+<option selected="selected" value="279">davisfood</option>
+<option value="143">dbwealth</option>
+<option value="774">dcmhlandscape</option>
+<option value="708">deckanddrive</option>
+<option value="408">decorativeplumbing</option>
+<option value="1093">deeprootsmgmt</option>
+<option value="690">deftgroup</option>
+<option value="255">dei</option>
+<option value="843">delcontelandscaping</option>
+<option value="137">delicate</option>
+<option value="1087">delight-7B</option>
+<option value="1127">delight-AZ</option>
+<option value="919">delight-LI</option>
+<option value="917">delight-iamgmt</option>
+<option value="916">delight-mgmnt</option>
+<option value="918">delight-vabeach</option>
+<option selected="selected" value="556">delightrg</option>
+<option value="618">delreysolutions</option>
+<option value="186">deltadoor</option>
+<option value="580">deltatrainer</option>
+<option value="826">delv</option>
+<option value="310">denali</option>
+<option value="772">denverfamilies</option>
+<option value="12">devops</option>
+<option selected="selected" value="757">digitalcurrencygroup</option>
+<option value="721">digitalfusion</option>
+<option selected="selected" value="87">digitalmm</option>
+<option value="605">digitalpolygon</option>
+<option value="1069">dilloncreations</option>
+<option selected="selected" value="89">directiveconsulting</option>
+<option value="1063">diversificapital</option>
+<option value="54">docsend</option>
+<option value="81">doejo</option>
+<option value="475">dogcrew</option>
+<option value="596">dogtagart</option>
+<option value="920">dolan-DAG</option>
+<option value="927">dolan-doddo</option>
+<option value="924">dolan-driven</option>
+<option value="921">dolan-fern</option>
+<option value="926">dolan-ins</option>
+<option value="928">dolan-leebro</option>
+<option value="923">dolan-lex</option>
+<option value="925">dolan-mazda</option>
+<option value="922">dolan-murph</option>
+<option value="1097">dolan-newDAG</option>
+<option value="484">dolanautogroup</option>
+<option value="435">domeprinting</option>
+<option value="436">donsebastiani</option>
+<option value="99">doubledutch</option>
+<option value="563">downtownseattle</option>
+<option value="627">drakeintegrations</option>
+<option value="103">dropoff</option>
+<option value="576">dslocksmith</option>
+<option value="887">duration</option>
+<option value="1071">eagleharborcapital</option>
+<option value="481">eastbaynatgrocers</option>
+<option value="97">easton</option>
+<option value="384">echalk</option>
+<option value="845">ecoclean</option>
+<option value="616">ecomaster</option>
+<option value="825">ecs</option>
+<option value="714">edgeandnode</option>
+<option value="579">edgefocus</option>
+<option value="550">edgerock</option>
+<option value="888">edgewoodoncology</option>
+<option value="859">edsource</option>
+<option value="707">eighty2i</option>
+<option value="65">electronshop</option>
+<option selected="selected" value="499">elevationsolar</option>
+<option value="890">eliksa</option>
+<option value="807">elitelocallistings</option>
+<option selected="selected" value="28">ellevate</option>
+<option value="101">ello</option>
+<option value="69">elms</option>
+<option value="1050">emeraldcityinitiatives</option>
+<option value="726">emeraldgatect</option>
+<option value="878">employmentcommonsmep</option>
+<option value="766">encompass</option>
+<option value="179">engagio</option>
+<option value="321">engineereddesign</option>
+<option selected="selected" value="316">engineeredprofiles</option>
+<option value="326">enginova</option>
+<option value="754">enolink</option>
+<option value="492">enquire</option>
+<option value="880">enyalabs</option>
+<option value="240">epickayaks</option>
+<option value="331">esi</option>
+<option value="308">esns</option>
+<option value="169">ethis</option>
+<option value="861">ets</option>
+<option value="134">eubanks</option>
+<option value="860">eucalyptus</option>
+<option value="56">everseat</option>
+<option value="11">eversight</option>
+<option value="782">evolve</option>
+<option value="289">excello</option>
+<option value="372">excipio</option>
+<option value="839">expanso</option>
+<option value="329">explico</option>
+<option value="536">expodevco</option>
+<option value="712">ezrental</option>
+<option value="516">fabriquedelices</option>
+<option value="611">faireconomy</option>
+<option value="513">falconambulance</option>
+<option value="447">familywellness</option>
+<option value="896">famousframes</option>
+<option value="869">farharbor</option>
+<option value="1120">fcsfitzwater</option>
+<option value="145">fctry</option>
+<option value="867">fedcoseeds</option>
+<option value="736">feilabs</option>
+<option selected="selected" value="38">fictiv</option>
+<option value="571">fidefreight</option>
+<option value="1045">finch</option>
+<option value="858">finchinsights</option>
+<option value="738">firstresonance</option>
+<option value="108">fleetio</option>
+<option value="17">flg</option>
+<option value="793">flomac</option>
+<option value="364">foamdistributors</option>
+<option value="650">focus1</option>
+<option value="802">focusedenergy </option>
+<option value="297">fongandchan</option>
+<option value="945">font-mc</option>
+<option value="947">fontier-wissen</option>
+<option value="934">foo-daphne</option>
+<option value="935">foo-dauphin</option>
+<option value="940">foo-foley</option>
+<option value="1132">foo-gulf</option>
+<option value="931">foo-hil</option>
+<option value="944">foo-midtwn</option>
+<option value="936">foo-ninemi</option>
+<option value="929">foo-sar</option>
+<option value="930">foo-sem</option>
+<option value="933">foo-spnft</option>
+<option value="1131">foo-tiger</option>
+<option value="941">foo-tillmn</option>
+<option value="942">foo-tusca</option>
+<option value="943">foo-univ</option>
+<option value="939">foo-westmobile</option>
+<option value="932">foo-wpensa</option>
+<option value="938">foos-auburn</option>
+<option value="937">foos-cthill</option>
+<option value="628">foosacklys</option>
+<option value="174">forge</option>
+<option value="1080">fortiflaw</option>
+<option value="1110">fortiflaw_K1</option>
+<option value="1">forus</option>
+<option value="23">foruscb</option>
+<option value="393">forwardadvantage</option>
+<option value="375">foundationcap</option>
+<option value="761">foundry</option>
+<option value="818">franklinsystems</option>
+<option value="1118">frauncestavern</option>
+<option value="463">freebirds</option>
+<option value="724">friendsnfamily</option>
+<option value="355">frisbie</option>
+<option value="946">front-turner</option>
+<option value="948">frontier-fulcrum</option>
+<option value="949">frontier-verdan</option>
+<option value="572">frontierpediatrics</option>
+<option value="20">ftf</option>
+<option value="881">fulcra</option>
+<option value="197">fundedfoods</option>
+<option value="865">fuseinventory</option>
+<option value="565">fusionranch</option>
+<option value="676">g2paper</option>
+<option value="1112">gaeastar</option>
+<option value="847">gamerspeak</option>
+<option value="541">garyleos</option>
+<option value="351">gatewayfamilyhealthclinic</option>
+<option value="162">gbhs</option>
+<option value="439">gch</option>
+<option value="152">genderscf</option>
+<option value="410">generalaviation</option>
+<option value="662">generallyintelligent</option>
+<option value="760">genesis</option>
+<option value="311">geraghty</option>
+<option value="270">getaround</option>
+<option value="778">getittech</option>
+<option value="248">getmyboat</option>
+<option value="471">getthru</option>
+<option value="1091">gfinancialharbor</option>
+<option value="450">glenridgehealth</option>
+<option value="666">glmllc</option>
+<option value="743">gogalex</option>
+<option value="799">golferx</option>
+<option value="1039">goodlfe_PRO</option>
+<option value="633">graceplacenaples</option>
+<option value="105">gradle</option>
+<option value="539">graftedgrowth</option>
+<option value="626">graftondental</option>
+<option value="429">grandmas</option>
+<option value="170">granify</option>
+<option value="686">graypants</option>
+<option value="758">grayscale</option>
+<option value="124">greatergood</option>
+<option value="554">greencountryworkforce</option>
+<option selected="selected" value="529">greengroupholdings</option>
+<option value="644">greenmedia</option>
+<option value="235">grp</option>
+<option value="1090">gteagleharboradvisor</option>
+<option selected="selected" value="190">guild</option>
+<option value="82">gumball</option>
+<option value="286">haag</option>
+<option value="172">haaslaw</option>
+<option value="838">halotherapysolutions</option>
+<option value="280">hammer</option>
+<option value="514">hampeloil</option>
+<option value="1114">happyrobot</option>
+<option value="875">harbordental</option>
+<option value="231">harmsen</option>
+<option value="44">harpermo</option>
+<option value="312">harvey</option>
+<option value="1079">healinghearts</option>
+<option value="345">healthadvocates</option>
+<option value="525">healthcrowd</option>
+<option value="401">healthmed</option>
+<option value="271">heartlandwater</option>
+<option value="678">hedgehog</option>
+<option value="209">heigl</option>
+<option value="128">hellosign</option>
+<option value="1038">heraholistic_pro</option>
+<option value="1041">herapropertymanagement_pro</option>
+<option value="1035">herdstar</option>
+<option value="506">hermitagehotel</option>
+<option value="833">heydey</option>
+<option value="42">hh</option>
+<option value="425">hhi</option>
+<option value="140">highland</option>
+<option value="206">highpoint</option>
+<option value="397">hillwood</option>
+<option value="442">himmel</option>
+<option value="884">hivepe</option>
+<option value="336">holmes</option>
+<option value="277">homestart</option>
+<option value="716">homestyledirect</option>
+<option value="230">honeysplace</option>
+<option value="433">honor</option>
+<option value="702">hopoogames</option>
+<option value="840">horizonsnewyorkcity</option>
+<option value="898">hortonskids</option>
+<option value="456">hpkaty</option>
+<option value="764">hqdigital</option>
+<option value="564">htyfoods</option>
+<option value="133">hudsonalley</option>
+<option value="1096">huntrealty</option>
+<option value="705">hyspeciq</option>
+<option value="348">iDfour</option>
+<option value="723">ibt</option>
+<option value="862">idahofreedomfoundation</option>
+<option selected="selected" value="199">identiv</option>
+<option value="491">ifd</option>
+<option value="816">ignistechnologies </option>
+<option value="1125">imaginaryventure</option>
+<option value="214">infina</option>
+<option value="842">infinityequitygroup</option>
+<option value="251">infomatics</option>
+<option selected="selected" value="573">innodata</option>
+<option value="340">inqu</option>
+<option value="116">insight</option>
+<option value="1066">insightfinder</option>
+<option value="608">insulationlabs</option>
+<option value="405">insydesoftware</option>
+<option value="768">integralbiosystems</option>
+<option value="451">integris</option>
+<option value="739">integrityair</option>
+<option value="722">interventionalorthopedics</option>
+<option value="718">investifi</option>
+<option value="325">iowabeauty</option>
+<option value="555">isi</option>
+<option value="119">islandhealth</option>
+<option selected="selected" value="546">issa</option>
+<option value="46">issuu</option>
+<option value="239">iterate</option>
+<option value="234">jaf</option>
+<option value="577">jaxjox</option>
+<option value="424">jaypaulco</option>
+<option value="788">jazzwealth</option>
+<option value="814">jenkinsgalesmartinez</option>
+<option value="342">jfnola</option>
+<option value="62">jgarc</option>
+<option value="589">jjatechnical</option>
+<option value="64">jks</option>
+<option value="805">jlpro</option>
+<option value="148">jointhelegion</option>
+<option value="398">jonkmanconstruction</option>
+<option value="252">jonrenau</option>
+<option value="394">jordanvineyard</option>
+<option value="827">joshuamedicalgroup</option>
+<option value="293">joyride</option>
+<option value="1092">jphousehold</option>
+<option value="1065">judicata</option>
+<option value="443">jumpstartmd</option>
+<option selected="selected" value="201">juno</option>
+<option value="958">juno-1489</option>
+<option value="950">juno-ao</option>
+<option value="959">juno-blt-char</option>
+<option value="955">juno-blt-stk</option>
+<option value="951">juno-bltprime</option>
+<option value="953">juno-bltrgllc</option>
+<option value="952">juno-cyberext</option>
+<option value="956">juno-galion</option>
+<option value="960">juno-hitbook</option>
+<option value="954">juno-optim</option>
+<option value="961">juno-vegan</option>
+<option value="957">juno-wadams</option>
+<option value="138">juntos</option>
+<option value="853">kaizen</option>
+<option value="1130">kantor&amp;smith</option>
+<option value="267">kato</option>
+<option value="891">keepgrowingdetroit</option>
+<option value="683">kemahlidental</option>
+<option value="419">kemco</option>
+<option value="53">kennion</option>
+<option value="94">kerf</option>
+<option value="507">keswickgolf</option>
+<option value="900">keweenawresort</option>
+<option value="130">kik</option>
+<option value="337">kingfishgroup</option>
+<option value="1044">kippmichigan</option>
+<option value="790">kitbash3d</option>
+<option value="96">kitewire</option>
+<option value="797">klopf</option>
+<option value="777">koji</option>
+<option value="40">koru</option>
+<option value="519">kotisdesign</option>
+<option value="305">krausz</option>
+<option selected="selected" value="404">krugerpaper</option>
+<option value="232">kruze</option>
+<option value="276">kubient</option>
+<option value="490">kwikmetal</option>
+<option value="552">l5interiors</option>
+<option value="195">lafayette</option>
+<option value="882">lakesidedental</option>
+<option value="901">land&amp;seacrew</option>
+<option value="542">laphotoparty</option>
+<option value="36">lasuperlaw</option>
+<option value="117">launchpad</option>
+<option value="597">leadershipeastside</option>
+<option value="8">league</option>
+<option value="241">leandata</option>
+<option value="815">legacycapital</option>
+<option value="657">legiontechnologies</option>
+<option value="652">lenderfit</option>
+<option value="2">lever</option>
+<option value="588">leverage2lead</option>
+<option value="485">lifemoves</option>
+<option value="328">liftech</option>
+<option value="192">lightstep</option>
+<option value="111">lilyrobot</option>
+<option value="109">limelight</option>
+<option value="115">littlestar</option>
+<option value="112">littletart</option>
+<option value="553">lolebrandsusa</option>
+<option value="287">lolli</option>
+<option selected="selected" value="497">lookingglass</option>
+<option value="533">lookingpoint</option>
+<option value="734">loto</option>
+<option value="679">lucro</option>
+<option value="759">luno</option>
+<option selected="selected" value="391">m9solutions</option>
+<option value="444">macfarlane</option>
+<option value="732">madiks</option>
+<option value="1028">madikspcm3</option>
+<option value="654">madronetechnology</option>
+<option value="74">mailpix</option>
+<option value="629">makewake</option>
+<option value="467">marco</option>
+<option value="780">marketwake</option>
+<option value="804">markley</option>
+<option value="617">marquettefood</option>
+<option value="1107">marvstudio</option>
+<option value="423">masilva</option>
+<option value="440">masterworks</option>
+<option value="1049">mavenautobody</option>
+<option value="19">mcm</option>
+<option value="911">mcm-ALTA</option>
+<option value="910">mcm-MLS</option>
+<option value="912">mcm-TEMPLE</option>
+<option selected="selected" value="489">mdsi</option>
+<option value="1124">mechanize</option>
+<option value="335">medac</option>
+<option value="406">medi</option>
+<option value="836">medicareclinics</option>
+<option value="834">medicareclinicsfmntx</option>
+<option value="245">medinvestors</option>
+<option value="400">medivest</option>
+<option value="102">medivo</option>
+<option value="402">menlocircus</option>
+<option value="414">menlocountryclub</option>
+<option value="535">merrisontech</option>
+<option value="417">met</option>
+<option value="851">mgstover</option>
+<option value="259">micrometals</option>
+<option value="441">midwestmountaineering</option>
+<option value="70">mifos</option>
+<option value="229">millennium</option>
+<option value="453">millionairdallas</option>
+<option value="358">minnesotapower</option>
+<option value="407">minnesotapower</option>
+<option value="462">miraculex</option>
+<option value="161">mirador</option>
+<option value="285">mirus</option>
+<option value="642">mobisdetroit</option>
+<option value="643">mobisna</option>
+<option value="641">mobistoledo</option>
+<option value="498">mohantygargiulo</option>
+<option value="27">moloco</option>
+<option value="619">monotelo</option>
+<option value="742">morpheusspace</option>
+<option value="16">mpde</option>
+<option value="141">mpulse</option>
+<option value="164">msquared</option>
+<option value="1074">mtwsolutions</option>
+<option value="664">murj</option>
+<option value="126">murray</option>
+<option value="159">mvix</option>
+<option value="795">mycrun</option>
+<option value="1084">mylifefreedom</option>
+<option value="363">nacinsurance</option>
+<option value="395">nasmhpdresearchTEST</option>
+<option value="392">nasmhpdresearchinstitute</option>
+<option value="76">nasseo</option>
+<option value="1123">nationalpolicing-PRO</option>
+<option value="1103">nationalpolicinginstitute_PRO</option>
+<option value="720">navaventures</option>
+<option value="343">nebraska</option>
+<option value="1046">neiders</option>
+<option value="495">neighborlyventures</option>
+<option value="526">newresourcesconsulting</option>
+<option selected="selected" value="249">nexera</option>
+<option value="48">nexmo</option>
+<option value="173">nexosis</option>
+<option value="582">nexusitgroup</option>
+<option value="785">nft42</option>
+<option value="753">nftg</option>
+<option value="670">nickelbronx</option>
+<option value="193">ninjatune</option>
+<option value="91">nird</option>
+<option value="92">nirdtest</option>
+<option value="265">nirvana</option>
+<option value="590">njfe</option>
+<option value="37">noladr</option>
+<option value="682">noriinc</option>
+<option value="775">northernclicks</option>
+<option value="1109">northseattleswimschool</option>
+<option selected="selected" value="346">northstrat</option>
+<option value="262">northwall</option>
+<option value="368">nsfw</option>
+<option value="602">nuhiregroup</option>
+<option value="274">numerate</option>
+<option value="998">nvh-court-farm</option>
+<option selected="selected" value="139">nvn</option>
+<option value="987">nvn-ac-phx</option>
+<option value="964">nvn-alm</option>
+<option value="983">nvn-alm-cane</option>
+<option value="985">nvn-alm-canenj</option>
+<option value="1034">nvn-alm-champaign</option>
+<option value="1007">nvn-alm-glen</option>
+<option value="1006">nvn-alm-iowa</option>
+<option value="986">nvn-alm-nash</option>
+<option value="1064">nvn-alm-rosemont</option>
+<option value="1005">nvn-almtroy</option>
+<option value="988">nvn-aloft-bol</option>
+<option value="980">nvn-bhhi-moa</option>
+<option value="962">nvn-blt-acq</option>
+<option value="981">nvn-bshs-moa</option>
+<option value="966">nvn-can-iaair</option>
+<option value="968">nvn-can-lva</option>
+<option value="967">nvn-can-ne</option>
+<option value="984">nvn-cate-ct</option>
+<option value="974">nvn-cy-dm</option>
+<option value="975">nvn-cy-ianw</option>
+<option value="1077">nvn-franklin</option>
+<option value="976">nvn-ham-almhrn</option>
+<option value="990">nvn-hgi-aa</option>
+<option value="991">nvn-hgi-arc</option>
+<option value="992">nvn-hgi-bks</option>
+<option value="993">nvn-hgi-buma</option>
+<option value="1075">nvn-hgi-champ</option>
+<option value="994">nvn-hgi-fols</option>
+<option value="995">nvn-hgi-lf</option>
+<option value="996">nvn-hgi-ros</option>
+<option value="973">nvn-hgi-sl</option>
+<option value="977">nvn-hi-bos</option>
+<option value="989">nvn-hi-lf</option>
+<option value="1003">nvn-hi-nash</option>
+<option value="969">nvn-hi-nola</option>
+<option value="978">nvn-hi-sbgol</option>
+<option value="965">nvn-hotelphil</option>
+<option value="979">nvn-hp-arl</option>
+<option value="1001">nvn-hs-som</option>
+<option value="1076">nvn-hws-champ</option>
+<option value="999">nvn-hws-wal</option>
+<option value="963">nvn-picc</option>
+<option value="982">nvn-resinn-slc</option>
+<option value="1002">nvn-ri-mo</option>
+<option value="1000">nvn-ri-rh</option>
+<option value="970">nvn-sbs-may</option>
+<option value="997">nvn-shs-arc</option>
+<option value="1004">nvn-tps-aa</option>
+<option value="971">nvn-tps-ia-key</option>
+<option value="972">nvn-tps-ia-pk</option>
+<option value="745">o1labs</option>
+<option value="41">oaa</option>
+<option value="205">oakhurst</option>
+<option value="695">oaklandgardenschool</option>
+<option value="741">oaklandhd</option>
+<option value="55">octopus</option>
+<option value="831">oddmarket</option>
+<option value="798">officengine</option>
+<option value="538">ohanagrowth</option>
+<option value="1099">ohanagrowth-SanBruno</option>
+<option value="1098">ohanagrowth-lakeshore</option>
+<option value="236">oldsettlers</option>
+<option value="428">omniguide</option>
+<option value="399">oneaviation</option>
+<option value="813">oneofonestays</option>
+<option value="591">onesourceus</option>
+<option value="1111">onestopaesthetic</option>
+<option value="1010">open-expan</option>
+<option value="1009">open-inv</option>
+<option value="663">openview</option>
+<option value="1008">openvw-jrj</option>
+<option value="886">opolis</option>
+<option value="187">opswerks</option>
+<option value="892">opus12</option>
+<option value="704">opyn</option>
+<option value="829">orbaerospace</option>
+<option value="67">owens</option>
+<option value="474">paceomatic</option>
+<option value="820">paloaltodatagroup</option>
+<option value="715">parafin</option>
+<option value="545">paramount</option>
+<option value="751">parataxiscapital</option>
+<option value="613">parcellogistics</option>
+<option value="303">parksassociates</option>
+<option value="57">partmyride</option>
+<option value="253">partners</option>
+<option selected="selected" value="509">partyrental</option>
+<option value="587">partyround</option>
+<option value="458">patersonpaper</option>
+<option value="247">pathwaysoc</option>
+<option value="300">patients</option>
+<option value="592">paystand</option>
+<option value="733">pcm3</option>
+<option value="430">pcma</option>
+<option value="904">pediatricdentalmgoc</option>
+<option value="256">peerspace</option>
+<option value="350">peninsulacommunityhealth</option>
+<option value="225">petacat</option>
+<option value="263">phoenixpumps</option>
+<option value="1011">phx-vise</option>
+<option value="1012">phx-vise78</option>
+<option value="290">physicalrx</option>
+<option value="403">physiciansnetworkadvantage</option>
+<option value="897">pillarcompaniesmanagement</option>
+<option value="136">pillow</option>
+<option value="203">pilot</option>
+<option value="1048">pingalacafe</option>
+<option value="223">pipeline</option>
+<option value="1101">pitchpublic</option>
+<option value="909">pitcofflawgroup_PRO</option>
+<option value="824">pittsburghbotanicgarden</option>
+<option value="1108">planetaryscale</option>
+<option value="416">platinum</option>
+<option value="47">plenus</option>
+<option value="334">poindexture</option>
+<option value="104">policygenius</option>
+<option value="835">pompbeauty</option>
+<option value="204">power</option>
+<option value="318">powermaint</option>
+<option value="1117">practicenow</option>
+<option value="1081">precise home</option>
+<option value="658">premier</option>
+<option value="250">pri</option>
+<option value="370">primitivelogic</option>
+<option value="32">promptworks</option>
+<option value="147">propel</option>
+<option value="540">propertyradar</option>
+<option value="4">protenus</option>
+<option value="177">providence</option>
+<option value="389">pss</option>
+<option value="299">pulmonary</option>
+<option value="157">purchased</option>
+<option value="849">qbopgroup</option>
+<option value="211">queenbee</option>
+<option selected="selected" value="220">queenconsulting</option>
+<option value="51">queensboro</option>
+<option value="180">quizlet</option>
+<option value="71">quottly</option>
+<option value="156">qwinix</option>
+<option value="264">rachelullman</option>
+<option value="1040">rafaellasampaiodmd</option>
+<option value="873">ragamanservices</option>
+<option value="228">rainbowstation</option>
+<option value="374">rainierclub</option>
+<option value="421">rapidsportscenter</option>
+<option value="665">rationalacoustics</option>
+<option value="854">realestatealchemy</option>
+<option value="677">realogicsbrokerage</option>
+<option value="769">realogicsinc</option>
+<option value="899">recidiviz</option>
+<option value="537">reciprocity</option>
+<option value="106">rededge</option>
+<option value="852">redflagai</option>
+<option value="487">remingtonvernick</option>
+<option value="380">rescue</option>
+<option value="841">resistanceBio</option>
+<option value="674">retrobiosciences</option>
+<option value="43">revelry</option>
+<option value="534">revolutionfoods</option>
+<option value="828">rhbconsulting&amp;inspection</option>
+<option value="794">ridgelinefloors</option>
+<option value="689">riseandco</option>
+<option value="1053">riseworkseor</option>
+<option value="1031">riseworksinc</option>
+<option value="49">rivaliq</option>
+<option value="706">riverfinancial</option>
+<option value="332">rjpharmacy</option>
+<option value="387">robertjbarman</option>
+<option value="207">ronald</option>
+<option value="856">rootedcoffee</option>
+<option value="787">rubix</option>
+<option value="488">rudysbarbershop</option>
+<option value="454">runtitle</option>
+<option value="184">rustybrick</option>
+<option value="127">saf</option>
+<option value="322">salsburyassociates</option>
+<option value="614">salusriskmgmt</option>
+<option value="412">samsill</option>
+<option value="202">sandiegonks</option>
+<option value="660">sbs</option>
+<option value="703">sbtech</option>
+<option value="669">sbtechfed</option>
+<option value="132">scalyr</option>
+<option value="365">scanoptics</option>
+<option selected="selected" value="434">schoolapparel</option>
+<option value="521">schroedermoving</option>
+<option value="261">schutzco</option>
+<option value="301">scottsdale</option>
+<option value="114">scriptyx</option>
+<option value="560">sdhcapital</option>
+<option value="1058">seacloudsoftware</option>
+<option value="655">searchactions</option>
+<option value="18">searchforce</option>
+<option value="659">seazeus</option>
+<option value="512">seekthermal</option>
+<option value="468">semandex</option>
+<option value="585">sensoriai</option>
+<option value="905">seoltaholdings - do not use</option>
+<option value="906">seoltaholdings_PRO</option>
+<option value="1061">sequoiatax</option>
+<option value="811">serotonin</option>
+<option value="34">serps</option>
+<option value="373">serra</option>
+<option value="480">servpro</option>
+<option selected="selected" value="52">sgpr</option>
+<option value="122">shared</option>
+<option value="647">shawcommunity</option>
+<option value="382">sheffieldhomes</option>
+<option value="154">shipt</option>
+<option value="438">shopkick</option>
+<option value="638">shorecrypto</option>
+<option value="275">sidecars</option>
+<option selected="selected" value="77">skilljar</option>
+<option selected="selected" value="260">skydio</option>
+<option value="218">slimhaney</option>
+<option value="120">sllg</option>
+<option selected="selected" value="113">smartbiz</option>
+<option value="1062">smileoasispa</option>
+<option value="243">sockerbit</option>
+<option value="5">soireesalon</option>
+<option value="603">solana</option>
+<option value="691">solanafoundation</option>
+<option value="756">solawave</option>
+<option selected="selected" value="803">solsticesleep</option>
+<option value="85">song</option>
+<option value="1032">sonomabespoke</option>
+<option value="163">sourceress</option>
+<option value="376">southcentral</option>
+<option value="273">southwest</option>
+<option value="773">spacedventures</option>
+<option value="1105">sparkmanpharmacy</option>
+<option value="770">splice</option>
+<option value="646">splitsecond</option>
+<option value="479">sportsart</option>
+<option value="846">spotlightlabs (aka globalmilitaryexperts)</option>
+<option selected="selected" value="457">spreetail</option>
+<option value="649">springtide</option>
+<option value="863">springwoodschool</option>
+<option value="470">sprocket</option>
+<option value="809">sprucebuilders</option>
+<option value="107">sram</option>
+<option value="39">ssd</option>
+<option value="327">ssi</option>
+<option value="66">stabilityengineering</option>
+<option value="549">stacks</option>
+<option value="528">staffoflife</option>
+<option value="191">standish</option>
+<option value="735">staq</option>
+<option value="153">starbreeze</option>
+<option value="486">starwars</option>
+<option value="160">statement</option>
+<option selected="selected" value="883">steelcell</option>
+<option value="257">stetson</option>
+<option value="359">stimulus</option>
+<option value="622">storyhunter</option>
+<option value="25">stringify</option>
+<option value="314">stritmatter</option>
+<option value="371">stritmatter-false</option>
+<option value="282">structus</option>
+<option value="581">studentsunited</option>
+<option value="832">studiosourceyearbooks</option>
+<option value="29">success</option>
+<option value="31">successories</option>
+<option value="464">summerops</option>
+<option value="344">sunburst</option>
+<option value="1067">sunsetecologicalsolutions</option>
+<option value="615">superiortitle</option>
+<option value="283">swanlogistics</option>
+<option value="95">swatchroom</option>
+<option value="21">sync</option>
+<option value="574">synodex</option>
+<option value="621">sytrue</option>
+<option value="60">tangram</option>
+<option value="298">taraca</option>
+<option selected="selected" value="182">tatte</option>
+<option value="445">tavistock</option>
+<option value="527">tavistockcorp</option>
+<option value="524">tawani</option>
+<option value="713">taxbit</option>
+<option value="1085">teamstrategery</option>
+<option value="1113">techsquareventures</option>
+<option value="469">tecolote</option>
+<option value="1116">teleginlaw</option>
+<option value="1089">teloscapital</option>
+<option value="131">tempo</option>
+<option value="494">tenaxaero</option>
+<option value="711">terradex</option>
+<option value="1026">test123</option>
+<option value="237">testingmom</option>
+<option value="33">texhealth</option>
+<option value="598">textile</option>
+<option value="656">theartizenry</option>
+<option value="1122">thegroundtruth_PRO</option>
+<option value="1121">thelunchmaster</option>
+<option value="1037">themisinvestments_PRO</option>
+<option value="640">theowls</option>
+<option value="606">theraexstaffing</option>
+<option value="129">theranest</option>
+<option value="1078">thermalshop</option>
+<option value="171">thirteen05</option>
+<option value="50">thompsonlabs</option>
+<option value="567">threesummerscreative</option>
+<option value="558">tinybar</option>
+<option value="671">tiptopk9</option>
+<option value="75">tissue</option>
+<option value="1047">tokenmetrics</option>
+<option value="636">tokensoft</option>
+<option value="378">tooledesign</option>
+<option selected="selected" value="381">toolworks</option>
+<option selected="selected" value="448">toolworks403b</option>
+<option value="559">topco</option>
+<option value="123">toppot</option>
+<option value="879">touchstoneendodontics</option>
+<option value="604">towerrock</option>
+<option value="762">tradeblock</option>
+<option value="1083">tranfsinc</option>
+<option value="599">transparencylending</option>
+<option value="819">travelsyndicationtechnology</option>
+<option value="1055">treasureislandmedia</option>
+<option value="502">trianglerockclub</option>
+<option value="844">triptych</option>
+<option value="294">triumphproperties</option>
+<option selected="selected" value="288">troispetitcochons</option>
+<option value="561">truckrailhandling</option>
+<option value="224">truvaluelabs</option>
+<option value="269">turnerdesigns</option>
+<option value="771">twentyai</option>
+<option value="1088">twipa</option>
+<option value="306">ubemachinery</option>
+<option value="385">ucm</option>
+<option value="460">uimedical</option>
+<option value="601">unest</option>
+<option value="578">uniswap</option>
+<option value="850">unit410</option>
+<option value="72">upcounsel</option>
+<option value="304">upgrade</option>
+<option value="409">utahlegalservices</option>
+<option value="320">valuewest</option>
+<option value="822">vectorlytics</option>
+<option value="672">vectorone</option>
+<option value="877">verdecapitalpayrollonly</option>
+<option value="864">verterraenergy</option>
+<option value="520">vetoquinolusa</option>
+<option value="183">victory</option>
+<option selected="selected" value="1013">vil-long</option>
+<option selected="selected" value="1015">village-espo</option>
+<option selected="selected" value="1014">village-ucsaus</option>
+<option selected="selected" value="1027">villagegourmet</option>
+<option value="431">virtualinstruments</option>
+<option value="357">virtuenajjar</option>
+<option value="500">vivantehealth</option>
+<option value="570">vmiarchitecture</option>
+<option value="59">voxel</option>
+<option value="79">vtcla</option>
+<option value="319">walshengineering</option>
+<option value="1036">waltersgilbreath</option>
+<option value="233">wap</option>
+<option value="330">warshaw</option>
+<option value="730">wayback</option>
+<option value="717">weetech</option>
+<option value="740">welabsstack</option>
+<option value="356">westernpower</option>
+<option value="284">wework</option>
+<option value="688">wheatondental</option>
+<option value="625">whiteboard</option>
+<option value="583">whitefield</option>
+<option value="823">whitelabel</option>
+<option value="258">whitemountain</option>
+<option value="801">whrn</option>
+<option value="349">wilkiesanderson</option>
+<option value="360">willcockson</option>
+<option value="188">wiltonbain</option>
+<option value="478">winbond</option>
+<option value="73">wine</option>
+<option value="208">wisdom</option>
+<option value="242">wndrco</option>
+<option selected="selected" value="1043">woodhaven</option>
+<option value="121">wootric</option>
+<option value="386">worldchallenge</option>
+<option value="278">wpinvestments</option>
+<option value="369">wrightwelkerpauole</option>
+<option value="22">wwc</option>
+<option value="379">xara</option>
+<option value="254">xcell</option>
+<option value="765">xoexterior</option>
+<option value="812">xola</option>
+<option value="547">xtensible</option>
+<option value="422">yokesfoods</option>
+<option value="830">youngamericans</option>
+<option value="352">youthforunderstanding</option>
+<option value="449">zadfashion</option>
+<option value="1019">zah-hayward</option>
+<option value="1020">zah-kia</option>
+<option value="1018">zah-stevens</option>
+<option selected="selected" value="522">zaheri</option>
+<option value="1029">zaheri-Showcase</option>
+<option value="1025">zaheri-fremon</option>
+<option value="1023">zaheri-hayward</option>
+<option value="1016">zaheri-ser</option>
+<option value="1021">zaheri-serr</option>
+<option value="1022">zaheri-snyv</option>
+<option value="1024">zaheri-stevens</option>
+<option value="1017">zaheri-sto</option>
+<option value="125">zap</option>
+<option value="746">zapitmedical</option>
+<option value="426">zealandia</option>
+<option value="432">zenith</option>
+<option value="1086">zeonsystems</option>
+<option value="1057">zionpackaging</option>
+<option value="150">zype</option></select>
+</div>
+<div class="field form-group" id="user-groups">
+  <label for="user_user_groups">User groups</label>
+  <select name="user[user_group_ids][]" id="user_user_group_ids" multiple="multiple" class="form-control" style="height: 50px;"><option value="">N/A</option>
+<option value="1">ops_member</option>
+<option value="2">test</option></select>
+</div>
+<div class="field form-group" id="payroll_setup">
+  <label for="user_payroll_setup">Payroll setup</label>
+  <select name="user[payroll_setup_ids][]" id="user_payroll_setup_ids" multiple="multiple" class="form-control" style="height: 200px;"><option selected="selected" value="230">101 West 57th Restaurant LLC</option>
+<option selected="selected" value="777">10pearls</option>
+<option selected="selected" value="1376">10pearls-Bi-Weekly</option>
+<option selected="selected" value="339">3 Little Pigs (TROIS)</option>
+<option selected="selected" value="840">ALM Hoffman - Chicago Marriott NW</option>
+<option selected="selected" value="232">ALSW LLC</option>
+<option selected="selected" value="302">ALSW Mott LLC</option>
+<option selected="selected" value="641">BC Back Bay LLC</option>
+<option selected="selected" value="233">BC Commissary NJ LLC</option>
+<option selected="selected" value="241">BC Frozen Desserts LLC</option>
+<option selected="selected" value="237">BC Hospitality Group LLC</option>
+<option selected="selected" value="639">BC Providence LLC</option>
+<option selected="selected" value="247">BC Silver Lake LLC</option>
+<option selected="selected" value="314">BC Williamsburg LLC</option>
+<option selected="selected" value="638">BCRC LLC</option>
+<option selected="selected" value="234">BLT Burger NYC LLC</option>
+<option selected="selected" value="315">BLT Kitchen Miami Inc</option>
+<option selected="selected" value="288">BLT Main Street LLC</option>
+<option selected="selected" value="245">BLT Market Store Waikiki LLC</option>
+<option selected="selected" value="244">BLT Market Waikiki LLC</option>
+<option selected="selected" value="246">BLT Prime DC LLC</option>
+<option selected="selected" value="236">BLT Steak LLC</option>
+<option selected="selected" value="249">BLT Steak Waikiki</option>
+<option selected="selected" value="250">BLT Steak White Plains</option>
+<option selected="selected" value="323">Blue Hospitality Corporate AR</option>
+<option selected="selected" value="766">Broadway</option>
+<option selected="selected" value="316">CCSW Fenway LLC</option>
+<option selected="selected" value="642">CW SSS LLC</option>
+<option selected="selected" value="307">CZND</option>
+<option selected="selected" value="226">Casa Nonna NYC LLC</option>
+<option selected="selected" value="600">Cayson Designs LLC (CD1)</option>
+<option selected="selected" value="386">Chicago Marriott Schaumburg</option>
+<option selected="selected" value="112">DMM</option>
+<option selected="selected" value="873">Delight Raleigh Management LLC</option>
+<option selected="selected" value="640">Dez Mulberry LLC</option>
+<option selected="selected" value="238">E2 185 Bleecker LLC</option>
+<option selected="selected" value="239">E2 60 West 22nd Street LLC</option>
+<option selected="selected" value="240">E2 Lafayette LLC</option>
+<option selected="selected" value="637">E2 Seaport LLC</option>
+<option selected="selected" value="1228">EBS biweekly</option>
+<option selected="selected" value="781">Esposito's Sausage, LLC</option>
+<option selected="selected" value="1064">GUIDENESS</option>
+<option selected="selected" value="817">Green Group Holdings LLC</option>
+<option selected="selected" value="50">J42 Semi-monthly</option>
+<option selected="selected" value="283">Jamie Hopwood</option>
+<option selected="selected" value="243">Jill Haber Designs LLC</option>
+<option selected="selected" value="242">Juno Investments LLC</option>
+<option selected="selected" value="1381">Keipower - Weekly</option>
+<option selected="selected" value="1144">Knoss Apparel, Inc</option>
+<option selected="selected" value="767">Lexington</option>
+<option selected="selected" value="479">Longhini Sausage (LONG)</option>
+<option selected="selected" value="615">M9 Off Payroll</option>
+<option selected="selected" value="725">MDSI</option>
+<option selected="selected" value="601">MM Uniforms LLC (MM1)</option>
+<option selected="selected" value="279">Milwaukee Fairfield Inn &amp; Suites</option>
+<option value="903">N8997</option>
+<option selected="selected" value="1456">PEDALPOINT</option>
+<option selected="selected" value="664">Queen Consulting Group Staff</option>
+<option selected="selected" value="282">Radisson Hotel Charleston Airport</option>
+<option selected="selected" value="772">SURGCA</option>
+<option selected="selected" value="603">School Apparel, Inc. Arkansas (SC1)</option>
+<option selected="selected" value="602">School Apparel, Inc. Burlingame (BR1)</option>
+<option selected="selected" value="1060">Serramonte LLC</option>
+<option selected="selected" value="281">Singing River Inn Pascagoula</option>
+<option selected="selected" value="287">Southeastern Metal Products LLC</option>
+<option selected="selected" value="267">Suburban Extended Stay Clarksville</option>
+<option selected="selected" value="275">Suburban Extended Stay Indianapolis</option>
+<option selected="selected" value="752">TSG</option>
+<option selected="selected" value="251">Tavern 62 LLC</option>
+<option selected="selected" value="604">Told LLC (ST1)</option>
+<option selected="selected" value="926">Uncle Charley's Sausage Company, LLC	(CHAR)</option>
+<option selected="selected" value="605">Underwood Academy LLC</option>
+<option selected="selected" value="768">Union Square</option>
+<option selected="selected" value="308">WHH</option>
+<option selected="selected" value="278">Wells Street Capital VI</option>
+<option selected="selected" value="546">Your Boyfriend</option>
+<option selected="selected" value="206">acorns-GROW</option>
+<option selected="selected" value="262">acorns-SEC</option>
+<option value="1143">aescape</option>
+<option selected="selected" value="704">bambee</option>
+<option selected="selected" value="858">beehive</option>
+<option selected="selected" value="890">binmaster</option>
+<option selected="selected" value="371">blackdiamond</option>
+<option selected="selected" value="484">blackdiamond-RESCUE</option>
+<option selected="selected" value="12">bluebottle</option>
+<option selected="selected" value="29">boltthreads</option>
+<option selected="selected" value="770">caret</option>
+<option selected="selected" value="855">cerebras</option>
+<option selected="selected" value="948">commonthreadxpi</option>
+<option selected="selected" value="771">cramso</option>
+<option selected="selected" value="156">dastalent</option>
+<option value="329">davisfood</option>
+<option selected="selected" value="1190">dcg</option>
+<option selected="selected" value="1197">digitalcurrencygroup</option>
+<option selected="selected" value="33">directiveconsulting</option>
+<option selected="selected" value="746">elevationsolar</option>
+<option selected="selected" value="26">ellevate</option>
+<option selected="selected" value="368">engineeredprofiles</option>
+<option selected="selected" value="7">fictiv</option>
+<option selected="selected" value="134">guild</option>
+<option selected="selected" value="1417">herdstar</option>
+<option selected="selected" value="201">identiv</option>
+<option selected="selected" value="779">identiv - BW</option>
+<option value="1312">innodata</option>
+<option selected="selected" value="874">inquisic</option>
+<option selected="selected" value="856">issa</option>
+<option selected="selected" value="208">juno</option>
+<option selected="selected" value="519">keipower</option>
+<option selected="selected" value="977">krugerpack</option>
+<option selected="selected" value="501">krugerpaper</option>
+<option selected="selected" value="741">lookingglass</option>
+<option selected="selected" value="487">m9solutions</option>
+<option selected="selected" value="284">nexera</option>
+<option selected="selected" value="404">northstrat</option>
+<option selected="selected" value="84">nvn</option>
+<option selected="selected" value="89">nvn - inactive setup</option>
+<option selected="selected" value="764">partyrental</option>
+<option selected="selected" value="212">queenconsulting</option>
+<option selected="selected" value="17">sgpr</option>
+<option selected="selected" value="391">sgpr-hourly</option>
+<option selected="selected" value="304">skydio</option>
+<option selected="selected" value="75">smartbiz</option>
+<option selected="selected" value="1249">solsticesleep</option>
+<option selected="selected" value="661">spreetail</option>
+<option selected="selected" value="1371">steelcell</option>
+<option selected="selected" value="162">tatte</option>
+<option selected="selected" value="473">toolworks</option>
+<option selected="selected" value="646">toolworks403b</option>
+<option value="1443">woodhaven-HCE</option>
+<option value="1435">woodhaven-NHCE</option></select>
+</div>
+<div class="field form-group">
+  <label for="user_status">Status</label><br>
+  <select class="form-control custom-select-style" name="user[active]" id="user_active"><option selected="selected" value="true">active</option>
+<option value="false">inactive</option></select>
+</div>
+<div class="field form-group">
+  <label for="user_select_which_employer_website_customer_should_have_access_to">Select which employer website customer should have access to</label><br>
+  <select class="form-control custom-select-style" name="user[is_new_dashboard_user]" id="user_is_new_dashboard_user"><option selected="selected" value="true">new</option>
+<option value="false">old</option></select>
+</div>
+<div class="field form-group">
+  <label for="user_Participant ID">Participant id</label><br>
+  <input class="form-control" type="text" name="user[participant_id]" id="user_participant_id">
+</div>
+<div class="field form-group">
+  <input name="user[is_employee]" type="hidden" value="1"><input type="checkbox" value="0" checked="checked" name="user[is_employee]" id="user_is_employee">
+  <label for="is_employee">Not an employee</label>
+</div>
+
+<div class="field form-group" id="annual-questionnaire-primary-contact-field" style="display: none;">
+  <div style="display: inline-block; position: relative;">
+    <input name="user[is_annual_questionnaire_primary_contact]" type="hidden" value="0"><input id="user_is_annual_questionnaire_primary_contact" type="checkbox" value="1" name="user[is_annual_questionnaire_primary_contact]">
+    <label for="user_is_annual_questionnaire_primary_contact">Annual Questionnaire Primary Contact</label>
+    <span id="primary-contact-spinner" style="display: none; margin-left: 10px;">
+      <i class="fa fa-spinner fa-spin"></i> Processing...
+    </span>
+  </div>
+  <p class="help-block text-warning">
+    <small><strong>⚠️ Warning:</strong> Only one user per plan can be the primary contact. Checking this will automatically uncheck all other users for the same plan(s).</small>
+  </p>
+</div>
+
+  <br><h3><span class="label label-default">Admin portal MFA Settings</span></h3>
+  <div class="field form-group">
+    <div class="col-md-4">
+      <label for="user_MFA Status">Mfa status</label><br>
+    </div>
+    <div class="col-md-4 left-align" id="admin_mfa_status">
+      not enrolled
+    </div>
+    <div class="col-md-4">
+        <button id="reset-admin-mfa" type="button" class="btn btn-primary" onclick="javascript:void(0)" disabled="">
+          Reset MFA
+        </button>
+    </div>
+  </div>
+
+<br><h3><span class="label label-default">Employer portal MFA Settings</span></h3>
+<div class="field form-group">
+  <div class="col-md-4">
+    <label for="user_MFA Status">Mfa status</label><br>
+  </div>
+  <div class="col-md-4 left-align" id="mfa_status">
+    enrolled
+  </div>
+  <div class="col-md-4">
+      <button id="reset-mfa" type="button" class="btn btn-primary" onclick="resetMFA()">
+        Reset MFA
+      </button>
+  </div>
+</div>
+
+<br><h3><span class="label label-default">Comm Settings</span></h3>
+<div class="field form-group">
+  
+    <!-- Payroll Transaction Report COMM SETTING -->
+    <label for="user_comm_setting_Payroll Transaction Report">Payroll transaction report</label><br>
+    
+      Enabled: <select class="form-control size-large" name="user[comm_setting][payroll_transaction][enabled]" id="user_comm_setting_payroll_transaction_enabled"><option value="true">true</option>
+<option selected="selected" value="false">false</option></select>
+    <label for="user_comm_setting_Monthly Eligible Participants Email">Monthly eligible participants email</label><br>
+    
+      Enabled: <select class="form-control size-large" name="user[comm_setting][monthly_eligible_participants][enabled]" id="user_comm_setting_monthly_eligible_participants_enabled"><option value="true">true</option>
+<option selected="selected" value="false">false</option></select>
+    <label for="user_comm_setting_Sponsor Quarterly Email">Sponsor quarterly email</label><br>
+    
+      Enabled: <select class="form-control size-large" name="user[comm_setting][sponsor_quarterly_email][enabled]" id="user_comm_setting_sponsor_quarterly_email_enabled"><option value="true">true</option>
+<option selected="selected" value="false">false</option></select>
+      <!-- Payroll Reminder Report COMM SETTING -->
+      <label for="user_comm_setting_Simple Upload Reminder">Simple upload reminder</label><br>
+      
+        Enabled: <select class="form-control size-large" name="user[comm_setting][simple_upload_reminder][enabled]" id="user_comm_setting_simple_upload_reminder_enabled"><option value="true">true</option>
+<option selected="selected" value="false">false</option></select>
+    <label for="user_comm_setting_Payroll Updates Email">Payroll updates email</label><br>
+    
+      Enabled: <select class="form-control size-large" name="user[comm_setting][payroll_updates_email][enabled]" id="user_comm_setting_payroll_updates_email_enabled"><option value="true">true</option>
+<option selected="selected" value="false">false</option></select>
+    <label for="user_comm_setting_Loans Notification Email for Simple Upload ">Loans notification email for simple upload </label><br>
+    
+      Enabled: <select class="form-control size-large" name="user[comm_setting][loan_updates_email][enabled]" id="user_comm_setting_loan_updates_email_enabled"><option value="true">true</option>
+<option selected="selected" value="false">false</option></select>
+</div>
+
+<script type="text/javascript">
+  $('#user_sponsor_ids').change(function() {
+    $.ajax({
+      url: '/list_payroll_setups_for_user?sponsor_ids=' + $(this).val() + '&user_id' + $('#user_id').val(),
+      dataType: 'script'
+    });
+  });
+
+  // Show/hide annual questionnaire primary contact checkbox based on role
+  $('select[name="user[role_ids][]"]').change(function() {
+    var selectedRole = $(this).find('option:selected').text();
+    if (selectedRole === 'sponsor_admin' || selectedRole === 'sponsor_rep') {
+      $('#annual-questionnaire-primary-contact-field').show();
+    } else {
+      $('#annual-questionnaire-primary-contact-field').hide();
+      $('#user_is_annual_questionnaire_primary_contact').prop('checked', false);
+    }
+  });
+
+  // Warning when selecting/deselecting annual questionnaire primary contact
+  $('#user_is_annual_questionnaire_primary_contact').on('change', function() {
+    var checkbox = $(this);
+    var spinner = $('#primary-contact-spinner');
+
+    if (checkbox.is(':checked')) {
+      // Checking: Warn about deselecting others
+      var warningMessage = 'WARNING: By selecting this user as the Annual Questionnaire Primary Contact, ' +
+                          'all other users for the same plan will be automatically unchecked. ' +
+                          'Only one user per plan can be the primary contact.\n\n' +
+                          'Do you want to continue?';
+
+      var confirmed = confirm(warningMessage);
+
+      if (!confirmed) {
+        // User canceled, uncheck the checkbox
+        checkbox.prop('checked', false);
+      }
+    } else {
+      // Unchecking: Check if this is the only user for the sponsor(s)
+      var userId = 1062;
+      var sponsorIds = $('#user_sponsor_ids').val();
+
+      if (userId && sponsorIds && sponsorIds.length > 0) {
+        // Disable checkbox and show spinner
+        checkbox.prop('disabled', true);
+        spinner.show();
+
+        // Check if user is the only eligible user for these plans
+        $.ajax({
+          url: '/users/check_only_sponsor_user',
+          type: 'GET',
+          data: {
+            user_id: userId,
+            sponsor_ids: sponsorIds
+          },
+          success: function(response) {
+            if (response.is_only_user) {
+              alert('ERROR: This user is the only eligible sponsor user (sponsor_admin or sponsor_rep) for this plan. ' +
+                    'At least one user per plan must be designated as the Annual Questionnaire Primary Contact.\n\n' +
+                    'Please add another eligible user for the plan before deselecting this user.');
+              // Revert the checkbox back to checked
+              checkbox.prop('checked', true);
+            }
+            // Re-enable checkbox and hide spinner
+            checkbox.prop('disabled', false);
+            spinner.hide();
+          },
+          error: function() {
+            alert('Error checking user status. Please try again.');
+            // Revert on error
+            checkbox.prop('checked', true);
+            // Re-enable checkbox and hide spinner
+            checkbox.prop('disabled', false);
+            spinner.hide();
+          }
+        });
+      }
+    }
+  });
+
+  // Check when status is changed to inactive
+  var originalStatus = $('select[name="user[active]"]').val();
+
+  $('select[name="user[active]"]').on('change', function() {
+    var newStatus = $(this).val();
+    var statusSelect = $(this);
+    var userId = 1062;
+
+    // Check if changing from active (true) to inactive (false)
+    if (originalStatus === 'true' && newStatus === 'false' && userId) {
+      // Check if user can be marked inactive
+      $.ajax({
+        url: '/users/check_can_mark_inactive',
+        type: 'GET',
+        data: { user_id: userId },
+        async: false, // Make synchronous to prevent status change before validation
+        success: function(response) {
+          if (!response.can_mark_inactive && response.is_primary_contact) {
+            // Cannot mark inactive - show error and revert
+            alert('ERROR: ' + response.error_message + '\n\n' +
+                  'This user is currently the Annual Questionnaire Primary Contact. ' +
+                  'If you mark them inactive, another sponsor_admin or sponsor_rep will be automatically assigned as the primary contact.');
+            // Revert to original status
+            statusSelect.val(originalStatus);
+          } else if (response.is_primary_contact) {
+            // Can mark inactive but user is primary contact - show info message
+            var confirmMessage = 'This user is currently the Annual Questionnaire Primary Contact.\n\n' +
+                                'If you proceed, another sponsor_admin or sponsor_rep will be automatically assigned as the primary contact.\n\n' +
+                                'Do you want to continue?';
+
+            var confirmed = confirm(confirmMessage);
+
+            if (!confirmed) {
+              // User canceled, revert status
+              statusSelect.val(originalStatus);
+            } else {
+              // Update original status since user confirmed
+              originalStatus = newStatus;
+            }
+          } else {
+            // Update original status for next change detection
+            originalStatus = newStatus;
+          }
+        },
+        error: function() {
+          alert('Error checking if user can be marked inactive. Please try again.');
+          // Revert to original status on error
+          statusSelect.val(originalStatus);
+        }
+      });
+    } else {
+      // Update original status for next change detection
+      originalStatus = newStatus;
+    }
+  });
+
+  function resetMFA() {
+    const goAhead = confirm('Are you sure you want to reset MFA for user? This change cannot be reverted.');
+    if (!goAhead) {
+      return;
+    }
+    $.post('user/1062/revoke_mfa',
+      'script',
+    ).done(function(data) {
+      $('#mfa_status').html(data.mfa_status);
+      $('#reset-mfa').prop('disabled', true);
+      alert('MFA was successfully reset for the user. Please contact this person and ask them to set up MFA from the start.');
+    }).error(function(){
+      alert('There was an API error during attempt to reset MFA. Please create oncall ticket so that dev team can perform it manually.')
+    })
+  }
+
+  function resetAdminMFA() {
+    const goAhead = confirm('Are you sure you want to reset MFA for user? This change cannot be reverted.');
+    if (!goAhead) {
+      return;
+    }
+    $.post('user/1062/revoke_admin_mfa',
+      'script',
+    ).done(function(data) {
+      $('#admin_mfa_status').html(data.admin_mfa_status);
+      $('#reset-admin-mfa').prop('disabled', true);
+      alert('MFA was successfully reset for the user. Please contact this person and ask them to set up MFA from the start.');
+    }).error(function(){
+      alert('There was an API error during attempt to reset MFA. Please create oncall ticket so that dev team can perform it manually.')
+    })
+  }
+</script>
+
+            <div class="actions">
+              <input type="submit" name="commit" value="Update" class="btn btn-primary forus-btn-color" id="user-submit-btn">
+              <a class="btn btn-primary forus-btn-color" href="/users">Cancel</a>
+            </div>
+</form>
+          <script>
+            $(document).ready(function() {
+              // Handle submit button spinner
+              $('form').on('submit', function() {
+                var submitBtn = $('#user-submit-btn');
+                submitBtn.prop('disabled', true);
+                submitBtn.html('<i class="fa fa-spinner fa-spin"></i> Updating...');
+              });
+            });
+          </script>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    </main>
+  
+
+<input type="hidden" id="update-data-field"></body>

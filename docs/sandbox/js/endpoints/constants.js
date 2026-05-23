@@ -125,4 +125,42 @@ export const ENDPOINTS = {
     needs: { token: true }, // JSON body
     pollJob: true,
   },
+
+  // Users Management (restricted: ivan.alvis + sponsorservicesbot)
+  "users-management-create": {
+    label: "POST /forusbot/users-management/create",
+    method: "POST",
+    path: "/forusbot/users-management/create",
+    feature: "users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: true,
+  },
+  "users-management-edit": {
+    label: "POST /forusbot/users-management/edit",
+    method: "POST",
+    path: "/forusbot/users-management/edit",
+    feature: "users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: true,
+  },
+  "sandbox-users-management-create": {
+    label: "POST /forusbot/sandbox/users-management/create (dry-run)",
+    method: "POST",
+    path: "/forusbot/sandbox/users-management/create",
+    feature: "sandbox-users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: false,
+  },
+  "sandbox-users-management-edit": {
+    label: "POST /forusbot/sandbox/users-management/edit (dry-run)",
+    method: "POST",
+    path: "/forusbot/sandbox/users-management/edit",
+    feature: "sandbox-users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: false,
+  },
 };

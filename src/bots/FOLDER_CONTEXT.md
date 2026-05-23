@@ -64,6 +64,18 @@ bot-name/
 **When to use**: Email campaign automation, participant communication.
 **Subdirectory**: `/flows/` contains flow-specific logic (summary_annual_notice.js, etc.).
 
+### 9. `/forusall-usersmanagement/`
+**Purpose**: Creates and edits admin-portal users (`employer.forusall.com/users/new` and `/users/{userId}/edit`), with optional Reset MFA. Replaces the manual workflow of role/sponsor/payroll-setup assignment and MFA reset.
+**Endpoints**:
+  - `POST /forusbot/users-management/create` (real)
+  - `POST /forusbot/users-management/edit` (real)
+  - `POST /forusbot/sandbox/users-management/create` (dry-run validator)
+  - `POST /forusbot/sandbox/users-management/edit` (dry-run validator)
+**Features**: Top-down form fill, multi-select replacement by ID (`sponsorIds`, `userGroupIds`, `payrollSetupIds`), AJAX wait for sponsor→payroll-setup repopulation, reactive-dialog capture (`active=inactive` primary-contact warnings), selective Reset MFA via `resetMfa: "employer" | "admin" | "both" | "none"` with confirm+alert handling, success/failure detection by `/users` redirect + `#flash_notice` vs `#error_explanation`.
+**Access restriction**: All four endpoints are gated by `restrictToEmails(["ivan.alvis@forusall.com", "sponsorservicesbot@forusall.com"])`. Feature keys `users-management` and `sandbox-users-management` are denied by default for `user`, `pa_lead`, `rm_lead`, `imp_lead` in `src/auth/roles.js`. Any other token returns `403`.
+**When to use**: Portal user administration, account provisioning, role/sponsor reassignment, MFA recovery — restricted to specific operators.
+**Reference HTML snapshots**: `web/add_users.html`, `web/edit_user.html`.
+
 ## Standard Bot Pattern
 
 ### routes.js

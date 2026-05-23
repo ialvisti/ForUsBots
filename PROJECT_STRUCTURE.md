@@ -123,6 +123,17 @@ bot-name/
    - Purpose: Trigger portal emails
    - Has `/flows/` subdirectory for multi-flow logic
 
+9. **`forusall-usersmanagement/`** - Portal user administration (RESTRICTED)
+   - Endpoints: `POST /forusbot/users-management/create` (real)
+                `POST /forusbot/users-management/edit` (real, supports optional Reset MFA)
+                `POST /forusbot/sandbox/users-management/create` (dry-run)
+                `POST /forusbot/sandbox/users-management/edit` (dry-run)
+   - Purpose: Create and edit admin-portal users with role / sponsor / payroll setup
+     assignments, plus optional Reset MFA (admin / employer / both)
+   - Access: Restricted to `ivan.alvis@forusall.com` and
+     `sponsorservicesbot@forusall.com` via `src/middleware/restrictToEmails.js`;
+     feature `users-management` denied by default for non-admin roles.
+
 **When to Work Here**:
 - ✅ Creating new automation bots
 - ✅ Modifying existing bot logic
@@ -574,7 +585,7 @@ forusall-portal-html-data/
 
 - **Total Folders**: 14 major directories
 - **Context Files**: 14 comprehensive guides
-- **Bots**: 7 automation bots
+- **Bots**: 9 automation bots
 - **Extractors**: 12 data extraction modules (6 participant + 6 plan)
 - **Utilities**: 5 reusable helpers
 - **Documentation**: Multi-language (EN/ES)

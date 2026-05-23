@@ -14,9 +14,11 @@ const FEATURE_KEYS = Object.freeze([
   "mfa-reset",
   "email-trigger",
   "vault-upload",
+  "users-management",
   // Sandbox dry-run
   "sandbox-vault-upload",
   "sandbox-update-plan",
+  "sandbox-users-management",
   // Jobs
   "jobs-read",
   "jobs-write",
@@ -60,10 +62,14 @@ const ENDPOINT_TO_FEATURE = buildEndpointMap([
   ["POST",   "/forusbot/mfa-reset",                  "mfa-reset"],
   ["POST",   "/forusbot/email-trigger",              "email-trigger"],
   ["POST",   "/forusbot/vault-file-upload",          "vault-upload"],
+  ["POST",   "/forusbot/users-management/create",    "users-management"],
+  ["POST",   "/forusbot/users-management/edit",      "users-management"],
 
   // Sandbox dry-run
   ["POST",   "/forusbot/sandbox/vault-file-upload",  "sandbox-vault-upload"],
   ["POST",   "/forusbot/sandbox/update-plan",        "sandbox-update-plan"],
+  ["POST",   "/forusbot/sandbox/users-management/create", "sandbox-users-management"],
+  ["POST",   "/forusbot/sandbox/users-management/edit",   "sandbox-users-management"],
 
   // Jobs / queue
   ["GET",    "/forusbot/jobs",                       "jobs-read"],
