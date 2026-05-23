@@ -504,6 +504,41 @@ runBtn.addEventListener("click", async (e) => {
         throw new Error("emailType is required.");
     }
 
+    // users-management create/edit (real + sandbox): build the body and
+    // do light pre-flight (server still validates everything).
+    if (
+      endpointSel.value === "users-management-create" ||
+      endpointSel.value === "sandbox-users-management-create"
+    ) {
+      jsonBodyStr = buildUsersManagementBodyStr(endpointSel.value, false);
+      let bodyTest = {};
+      try { bodyTest = JSON.parse(jsonBodyStr || "{}"); } catch {}
+      const note = String(bodyTest.note || "").trim();
+      const user = bodyTest.user && typeof bodyTest.user === "object" ? bodyTest.user : {};
+      if (!note) throw new Error("note is required for this endpoint.");
+      if (!String(user.email || "").trim()) throw new Error("user.email is required.");
+      if (!String(user.password || "").trim()) throw new Error("user.password is required.");
+      if (!String(user.passwordConfirmation || "").trim())
+        throw new Error("user.passwordConfirmation is required.");
+    }
+    if (
+      endpointSel.value === "users-management-edit" ||
+      endpointSel.value === "sandbox-users-management-edit"
+    ) {
+      jsonBodyStr = buildUsersManagementBodyStr(endpointSel.value, false);
+      let bodyTest = {};
+      try { bodyTest = JSON.parse(jsonBodyStr || "{}"); } catch {}
+      const userId = Number(bodyTest.userId);
+      const note = String(bodyTest.note || "").trim();
+      const updates = bodyTest.updates && typeof bodyTest.updates === "object" ? bodyTest.updates : {};
+      const resetMfa = String(bodyTest.resetMfa || "none");
+      if (!Number.isFinite(userId) || !Number.isInteger(userId) || userId <= 0)
+        throw new Error("userId is required (positive integer).");
+      if (!note) throw new Error("note is required for this endpoint.");
+      if (Object.keys(updates).length === 0 && resetMfa === "none")
+        throw new Error("Add at least one update field or set resetMfa.");
+    }
+
     renderHeaders(metaStr, jsonBodyStr);
     if (metaStr) metaOut.value = metaStr;
     buildAndRenderSnippets(ep, metaStr, jsonBodyStr);
@@ -530,6 +565,13 @@ runBtn.addEventListener("click", async (e) => {
     )
       body = jsonBodyStr;
     if (endpointSel.value === "email-trigger") body = jsonBodyStr;
+    if (
+      endpointSel.value === "users-management-create" ||
+      endpointSel.value === "users-management-edit" ||
+      endpointSel.value === "sandbox-users-management-create" ||
+      endpointSel.value === "sandbox-users-management-edit"
+    )
+      body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });
     const text = await res.text();
