@@ -859,12 +859,23 @@ html[data-theme="light"] .toast {
 /* ============================================================
    Users Management — chips para sponsor/group/payroll IDs
    ============================================================ */
+.um-mode-create,
+.um-mode-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
 .um-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin-bottom: 6px;
     min-height: 0;
+}
+
+.um-chips:empty {
+    display: none;
 }
 
 .um-chip {

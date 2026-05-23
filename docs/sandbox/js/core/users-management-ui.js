@@ -3,15 +3,16 @@
 // UI + JSON body para POST /forusbot/users-management/{create,edit} y sus
 // variantes /sandbox/...
 //
-// CREATE: form visual fijo arriba (firstName, lastName, email, password,
-//   role, active, isNewDashboardUser, notAnEmployee) + bloques colapsables
-//   (multi-selects con chips, optional, metadata, raw JSON).
+// CREATE: form visual lineal (firstName, lastName, email, password, role,
+//   active, isNewDashboardUser, notAnEmployee, sponsorIds, userGroupIds,
+//   payrollSetupIds, participantId, note, includeScreens, timeoutMs).
 // EDIT  : userId + note + resetMfa fijos + "Add field" rows estilo
 //   update-plan-ui.js para elegir qué actualizar (patch semantics).
 // Multi-selects: chips removibles construidos a partir de input + Enter /
 //   coma / paste de "1, 2, 3".
-// Escape hatch: <details> "Raw JSON" con textarea. Si el operador escribe
-//   ahí, el body se construye desde el raw y se ignora el builder visual.
+// Escape hatch (solo EDIT): <details> "Raw JSON" con textarea. Si el
+//   operador escribe ahí, el body se construye desde el raw y se ignora
+//   el builder visual.
 
 import { $ } from "./utils.js";
 
@@ -94,17 +95,18 @@ const FIELD_SPECS = [
 ];
 
 // ============================================================================
-// Estado interno de "raw dirty" — si el operador edita el raw, gana
+// Estado interno de "raw dirty" — si el operador edita el raw (solo EDIT), gana
 // ============================================================================
 
-const rawDirty = { create: false, edit: false };
+const rawDirty = { edit: false };
 
 function isRawActive(mode) {
   return rawDirty[mode] === true;
 }
 
 function getRawValue(mode) {
-  const id = mode === "create" ? "umCreateBody" : "umEditBody";
+  const id = mode === "edit" ? "umEditBody" : null;
+  if (!id) return "";
   return ($(`#${id}`)?.value || "").trim();
 }
 
@@ -252,11 +254,6 @@ function readCreateUser() {
 }
 
 function buildCreateBody(pretty) {
-  if (isRawActive("create")) {
-    const raw = getRawValue("create");
-    if (raw) return raw;
-  }
-
   const user = readCreateUser();
   const note = ($("#umcNote")?.value || "").trim();
   const includeScreens = !!$("#umcIncludeScreens")?.checked;
@@ -565,24 +562,6 @@ export function wireUsersManagementUI({ onChange } = {}) {
   wireChipsInput($("#umcSponsorChips"), $("#umcSponsorInput"), { onChange });
   wireChipsInput($("#umcUserGroupChips"), $("#umcUserGroupInput"), { onChange });
   wireChipsInput($("#umcPayrollChips"), $("#umcPayrollInput"), { onChange });
-
-  // Raw JSON (create)
-  const umcBody = $("#umCreateBody");
-  if (umcBody) {
-    umcBody.addEventListener("input", () => {
-      rawDirty.create = (umcBody.value || "").trim().length > 0;
-      onChange?.();
-    });
-  }
-  const umcRawReset = $("#umcRawReset");
-  if (umcRawReset) {
-    umcRawReset.addEventListener("click", (e) => {
-      e.preventDefault();
-      rawDirty.create = false;
-      if (umcBody) umcBody.value = "";
-      onChange?.();
-    });
-  }
 
   // ---- EDIT wiring ----
   const editScalarInputs = [

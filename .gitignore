@@ -9,3 +9,6 @@ tokens.json
 .user-data
 .env.production
 .gcp-config.local
+
+.DS_Store
+**/.DS_Store

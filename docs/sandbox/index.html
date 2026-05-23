@@ -276,6 +276,8 @@
               </div>
             </div>
 
+            <br>
+
             <div class="field">
               <label>note</label>
               <textarea
@@ -326,6 +328,8 @@
                 dry-run modes require an allowlisted token.
               </div>
             </div>
+
+            <br>
 
             <!-- ============= CREATE ============= -->
             <div class="um-mode-create">
@@ -394,71 +398,46 @@
                 </div>
               </div>
 
-              <details>
-                <summary>Multi-selects (sponsor, group, payroll setup)</summary>
-                <div class="field">
-                  <label>sponsorIds</label>
-                  <div id="umcSponsorChips" class="um-chips"></div>
-                  <input id="umcSponsorInput" class="um-chip-input" type="text" autocomplete="off"
-                         placeholder='Type ID and press Enter or comma (paste "515, 221" supported)' />
-                </div>
-                <div class="field">
-                  <label>userGroupIds</label>
-                  <div id="umcUserGroupChips" class="um-chips"></div>
-                  <input id="umcUserGroupInput" class="um-chip-input" type="text" autocomplete="off"
-                         placeholder="Type ID and press Enter or comma" />
-                </div>
-                <div class="field">
-                  <label>payrollSetupIds</label>
-                  <div id="umcPayrollChips" class="um-chips"></div>
-                  <input id="umcPayrollInput" class="um-chip-input" type="text" autocomplete="off"
-                         placeholder="Type ID and press Enter or comma" />
-                </div>
-              </details>
+              <div class="field">
+                <label>sponsorIds</label>
+                <div id="umcSponsorChips" class="um-chips"></div>
+                <input id="umcSponsorInput" class="um-chip-input" type="text" autocomplete="off"
+                       placeholder='Type ID and press Enter or comma (paste "515, 221" supported)' />
+              </div>
+              <div class="field">
+                <label>userGroupIds</label>
+                <div id="umcUserGroupChips" class="um-chips"></div>
+                <input id="umcUserGroupInput" class="um-chip-input" type="text" autocomplete="off"
+                       placeholder="Type ID and press Enter or comma" />
+              </div>
+              <div class="field">
+                <label>payrollSetupIds</label>
+                <div id="umcPayrollChips" class="um-chips"></div>
+                <input id="umcPayrollInput" class="um-chip-input" type="text" autocomplete="off"
+                       placeholder="Type ID and press Enter or comma" />
+              </div>
 
-              <details>
-                <summary>Optional fields</summary>
-                <div class="field">
-                  <label>participantId</label>
-                  <input id="umcParticipantId" type="text" autocomplete="off" />
-                </div>
-                <div class="help">
-                  <code>commSettings</code> (6 toggles) is not exposed here — if
-                  you need it, use the Raw JSON block below.
-                </div>
-              </details>
+              <div class="field">
+                <label>participantId</label>
+                <input id="umcParticipantId" type="text" autocomplete="off" />
+              </div>
 
-              <details>
-                <summary>Metadata</summary>
+              <div class="field">
+                <label>note *</label>
+                <textarea id="umcNote" rows="2"
+                          placeholder="Why is this user being created?"></textarea>
+              </div>
+              <div class="two hidden">
                 <div class="field">
-                  <label>note *</label>
-                  <textarea id="umcNote" rows="2"
-                            placeholder="Why is this user being created?"></textarea>
+                  <label class="small">
+                    <input id="umcIncludeScreens" type="checkbox" /> includeScreens
+                  </label>
                 </div>
-                <div class="two">
-                  <div class="field">
-                    <label class="small">
-                      <input id="umcIncludeScreens" type="checkbox" /> includeScreens
-                    </label>
-                  </div>
-                  <div class="field">
-                    <label>timeoutMs</label>
-                    <input id="umcTimeoutMs" type="number" min="5000" max="180000" placeholder="30000" />
-                  </div>
+                <div class="field">
+                  <label>timeoutMs</label>
+                  <input id="umcTimeoutMs" type="number" min="5000" max="180000" placeholder="30000" />
                 </div>
-              </details>
-
-              <details>
-                <summary>Raw JSON (advanced)</summary>
-                <div class="help">
-                  If you type here, the visual form above is ignored and this
-                  raw JSON is sent. Click "Reset raw" to revert to the visual
-                  builder.
-                </div>
-                <button id="umcRawReset" class="btn ghost small" type="button">Reset raw</button>
-                <textarea id="umCreateBody" rows="12" spellcheck="false"
-                          style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"></textarea>
-              </details>
+              </div>
             </div>
 
             <!-- ============= EDIT ============= -->
