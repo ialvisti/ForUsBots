@@ -855,3 +855,46 @@ html[data-theme="light"] .toast {
 .years-token-wrap.hidden {
     display: none !important;
 }
+
+/* ============================================================
+   Users Management — chips para sponsor/group/payroll IDs
+   ============================================================ */
+.um-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+    min-height: 0;
+}
+
+.um-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--badge-bg, #eee);
+    border: 1px solid var(--input-border, #ccc);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text, #111);
+    line-height: 1.4;
+}
+
+.um-chip-x {
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    color: var(--muted, #777);
+    padding: 0 2px;
+    line-height: 1;
+}
+
+.um-chip-x:hover {
+    color: var(--text, #000);
+}
+
+.um-chip-input {
+    width: 100%;
+}

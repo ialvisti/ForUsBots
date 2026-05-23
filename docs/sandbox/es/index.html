@@ -330,43 +330,199 @@
               </div>
             </div>
 
-            <div class="field um-mode-create">
-              <label>Cuerpo de la petición (JSON) — <code>users-management/create</code></label>
-              <textarea
-                id="umCreateBody"
-                rows="22"
-                spellcheck="false"
-                style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"
-              ></textarea>
-              <div class="help">
-                Edita el JSON arriba. <code>user.email</code>, <code>user.password</code>,
-                <code>user.passwordConfirmation</code> y <code>note</code> son
-                obligatorios. Los multi-select IDs (<code>sponsorIds</code>,
-                <code>userGroupIds</code>, <code>payrollSetupIds</code>) son
-                arrays de enteros con los <code>value</code> del
-                <code>&lt;option&gt;</code> del portal. Si seleccionas el
-                endpoint <i>real</i>, hará la petición al portal; elige la
-                variante dry-run para validar el payload sin levantar
-                Playwright.
+            <!-- ============= CREATE ============= -->
+            <div class="um-mode-create">
+              <div class="two">
+                <div class="field">
+                  <label>Nombre</label>
+                  <input id="umcFirstName" type="text" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label>Apellido</label>
+                  <input id="umcLastName" type="text" autocomplete="off" />
+                </div>
               </div>
+
+              <div class="field">
+                <label>Email *</label>
+                <input id="umcEmail" type="email" autocomplete="off" />
+              </div>
+
+              <div class="two">
+                <div class="field">
+                  <label>Contraseña *</label>
+                  <input id="umcPassword" type="password" autocomplete="new-password" />
+                </div>
+                <div class="field">
+                  <label>Confirmar contraseña *</label>
+                  <input id="umcPasswordConfirmation" type="password" autocomplete="new-password" />
+                </div>
+              </div>
+
+              <div class="two">
+                <div class="field">
+                  <label>Rol</label>
+                  <select id="umcRole">
+                    <option value="">— elegir —</option>
+                    <option value="1">1 — forus_admin</option>
+                    <option value="2" selected>2 — sponsor_admin</option>
+                    <option value="3">3 — sponsor_rep</option>
+                    <option value="4">4 — super_admin</option>
+                    <option value="5">5 — cs_admin</option>
+                    <option value="6">6 — auditor</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Estado</label>
+                  <select id="umcActive">
+                    <option value="true" selected>activo</option>
+                    <option value="false">inactivo</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="two">
+                <div class="field">
+                  <label>Dashboard</label>
+                  <select id="umcIsNewDashboardUser">
+                    <option value="true" selected>nuevo</option>
+                    <option value="false">antiguo</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="small">
+                    <input id="umcNotAnEmployee" type="checkbox" checked />
+                    No es empleado
+                  </label>
+                </div>
+              </div>
+
+              <details>
+                <summary>Multi-selects (sponsor, group, payroll setup)</summary>
+                <div class="field">
+                  <label>sponsorIds</label>
+                  <div id="umcSponsorChips" class="um-chips"></div>
+                  <input id="umcSponsorInput" class="um-chip-input" type="text" autocomplete="off"
+                         placeholder='Escribe un ID y pulsa Enter o coma (también acepta pegar "515, 221")' />
+                </div>
+                <div class="field">
+                  <label>userGroupIds</label>
+                  <div id="umcUserGroupChips" class="um-chips"></div>
+                  <input id="umcUserGroupInput" class="um-chip-input" type="text" autocomplete="off"
+                         placeholder="Escribe un ID y pulsa Enter o coma" />
+                </div>
+                <div class="field">
+                  <label>payrollSetupIds</label>
+                  <div id="umcPayrollChips" class="um-chips"></div>
+                  <input id="umcPayrollInput" class="um-chip-input" type="text" autocomplete="off"
+                         placeholder="Escribe un ID y pulsa Enter o coma" />
+                </div>
+              </details>
+
+              <details>
+                <summary>Campos opcionales</summary>
+                <div class="field">
+                  <label>participantId</label>
+                  <input id="umcParticipantId" type="text" autocomplete="off" />
+                </div>
+                <div class="help">
+                  <code>commSettings</code> (6 toggles) no está expuesto aquí —
+                  si lo necesitas, usa el bloque Raw JSON más abajo.
+                </div>
+              </details>
+
+              <details>
+                <summary>Metadata</summary>
+                <div class="field">
+                  <label>note *</label>
+                  <textarea id="umcNote" rows="2"
+                            placeholder="¿Por qué se crea este usuario?"></textarea>
+                </div>
+                <div class="two">
+                  <div class="field">
+                    <label class="small">
+                      <input id="umcIncludeScreens" type="checkbox" /> includeScreens
+                    </label>
+                  </div>
+                  <div class="field">
+                    <label>timeoutMs</label>
+                    <input id="umcTimeoutMs" type="number" min="5000" max="180000" placeholder="30000" />
+                  </div>
+                </div>
+              </details>
+
+              <details>
+                <summary>Raw JSON (avanzado)</summary>
+                <div class="help">
+                  Si escribes aquí, el formulario visual se ignora y se envía
+                  este JSON crudo. Pulsa "Reset raw" para volver al builder.
+                </div>
+                <button id="umcRawReset" class="btn ghost small" type="button">Reset raw</button>
+                <textarea id="umCreateBody" rows="12" spellcheck="false"
+                          style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"></textarea>
+              </details>
             </div>
 
-            <div class="field um-mode-edit">
-              <label>Cuerpo de la petición (JSON) — <code>users-management/edit</code></label>
-              <textarea
-                id="umEditBody"
-                rows="18"
-                spellcheck="false"
-                style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"
-              ></textarea>
-              <div class="help">
-                Edita el JSON arriba. <code>userId</code> (entero) y
-                <code>note</code> son obligatorios; <code>updates</code>
-                aplica sólo las claves presentes (patch). <code>resetMfa</code>
-                ∈ <code>"employer" | "admin" | "both" | "none"</code> (default
-                <code>"none"</code>). Si <code>updates</code> está vacío Y
-                <code>resetMfa === "none"</code>, la petición se rechaza.
+            <!-- ============= EDIT ============= -->
+            <div class="um-mode-edit">
+              <div class="two">
+                <div class="field">
+                  <label>userId *</label>
+                  <input id="umeUserId" type="number" min="1" placeholder="ej. 1062" />
+                </div>
+                <div class="field">
+                  <label>resetMfa</label>
+                  <select id="umeResetMfa">
+                    <option value="none" selected>none</option>
+                    <option value="employer">employer</option>
+                    <option value="admin">admin</option>
+                    <option value="both">both</option>
+                  </select>
+                </div>
               </div>
+
+              <div class="field">
+                <label>note *</label>
+                <textarea id="umeNote" rows="2"
+                          placeholder="¿Por qué se edita este usuario?"></textarea>
+              </div>
+
+              <div class="field">
+                <label>updates</label>
+                <div id="umeRows" class="stack"></div>
+                <button id="umeAddRow" class="btn ghost small" type="button">Add field</button>
+                <div class="help">
+                  Semántica de patch — sólo los campos añadidos aquí se envían.
+                  Los multi-select aceptan pegar "1, 2, 3" también. Dejar un
+                  multi-select vacío lo limpia en el portal.
+                </div>
+              </div>
+
+              <details>
+                <summary>Metadata</summary>
+                <div class="two">
+                  <div class="field">
+                    <label class="small">
+                      <input id="umeIncludeScreens" type="checkbox" /> includeScreens
+                    </label>
+                  </div>
+                  <div class="field">
+                    <label>timeoutMs</label>
+                    <input id="umeTimeoutMs" type="number" min="5000" max="180000" placeholder="30000" />
+                  </div>
+                </div>
+              </details>
+
+              <details>
+                <summary>Raw JSON (avanzado)</summary>
+                <div class="help">
+                  Si escribes aquí, el formulario visual se ignora. Pulsa
+                  "Reset raw" para volver al builder.
+                </div>
+                <button id="umeRawReset" class="btn ghost small" type="button">Reset raw</button>
+                <textarea id="umEditBody" rows="12" spellcheck="false"
+                          style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;"></textarea>
+              </details>
             </div>
           </div>
 
