@@ -5,37 +5,23 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ForUsBots — Sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="sandbox.css" />
     <link rel="icon" type="image/png" href="/docs/images/icon.png" />
     <script src="./js/main.js" defer></script>
   </head>
   <body>
+    <!-- legacy header kept hidden for JS contract -->
     <header>
       <div class="wrap header-bar">
         <div class="brand">
           <img src="../images/icon.png" alt="icon" />
           <h1>ForUsBots — Sandbox</h1>
         </div>
-
         <div class="header-right">
-          <span class="spacer"></span>
           <div id="endpointBadges" class="badges"></div>
-          <span class="spacer"></span><span class="spacer"></span>
-          <a id="back-link" class="toplink" href="/docs/api">API Docs</a>
-          <span class="spacer"></span>
-          <label class="theme-toggle" title="Toggle light/dark theme">
-            <input id="themeSwitch" type="checkbox" aria-label="Toggle theme" />
-            <span class="track"><span class="thumb"></span></span>
-            <span class="toggle-label" id="themeLabel">Dark</span>
-          </label>
-          <span class="spacer"></span>
-          <div class="lang-switch">
-            <label for="lang-select" class="sr-only">Language</label>
-            <select id="lang-select" aria-label="Language">
-              <option value="en" selected>EN</option>
-              <option value="es">ES</option>
-            </select>
-          </div>
         </div>
       </div>
     </header>
@@ -47,10 +33,80 @@
       <span class="account-badge" id="me-account">(no account)</span>
     </div>
 
-    <div class="wrap grid cols-2">
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Endpoints">
+        <div class="sidebar-brand">
+          <img src="../images/icon.png" alt="ForUsBots" />
+          <div class="sidebar-brand-text">
+            <span class="sidebar-brand-title">ForUsBots</span>
+            <span class="sidebar-brand-sub">sandbox</span>
+          </div>
+        </div>
+
+        <div class="sidebar-search">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="navSearch" type="text" placeholder="Search endpoints…" autocomplete="off" />
+        </div>
+
+        <nav class="sidebar-nav" id="sidebarNav" aria-label="Endpoint list"></nav>
+
+        <div class="sidebar-footer">
+          <div class="sidebar-row" id="meRow">
+            <span class="me-label">User</span>
+            <span id="meNameMini" style="font-weight:600;color:var(--text);font-size:12px">—</span>
+          </div>
+          <div class="sidebar-row">
+            <label class="theme-toggle" title="Toggle light/dark theme">
+              <input id="themeSwitch" type="checkbox" aria-label="Toggle theme" />
+              <span class="track">
+                <span class="thumb">
+                  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79Z" fill="currentColor"/></svg>
+                  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </span>
+              </span>
+              <span class="toggle-label" id="themeLabel">dark</span>
+            </label>
+            <span class="spacer"></span>
+            <div class="lang-switch">
+              <label for="lang-select" class="sr-only">Language</label>
+              <select id="lang-select" aria-label="Language">
+                <option value="en" selected>EN</option>
+                <option value="es">ES</option>
+              </select>
+            </div>
+          </div>
+          <div class="sidebar-row">
+            <a id="back-link" class="badge" href="/docs/api" style="text-decoration:none;cursor:pointer">API Docs ↗</a>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div class="topbar-endpoint">
+            <span class="topbar-method m-post" id="topbarMethod">POST</span>
+            <span class="topbar-path" id="topbarPath">/forusbot/vault-file-upload</span>
+          </div>
+          <div class="topbar-actions">
+            <button class="btn ghost" id="topbarCancel" disabled>Cancel</button>
+            <button class="btn success" id="topbarRun">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7L8 5z"/></svg>
+              Run
+            </button>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" data-tab-target="tab-builder">Builder</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab-target="tab-snippets">Snippets</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab-target="tab-result">Result</button>
+        </div>
+
+        <div class="main-content">
       <!-- Generator -->
-      <section class="card" id="generator">
-        <h2>1) Build your request</h2>
+      <section class="card" id="generator" data-anchor="tab-builder">
+        <span id="tab-builder" style="position:absolute;top:-80px"></span>
+        <h2>Build your request</h2>
         <p class="muted">
           Select the endpoint and fill the fields. We’ll generate headers,
           x-meta (if applicable) and ready-to-use snippets.
@@ -61,7 +117,7 @@
             <label class="small">Endpoint</label>
             <select id="endpoint" class="endpoint-select">
               <option value="vault-upload">
-                POST /forusbot/vault-file-upload ⚠️ CAUTION: Real Request ⚠️
+                POST /forusbot/vault-file-upload — caution · real request
               </option>
               <option value="sandbox-upload">
                 POST /forusbot/sandbox/vault-file-upload (dry-run)
@@ -72,7 +128,7 @@
               </option>
 
               <option value="update-plan">
-                POST /forusbot/update-plan ⚠️ CAUTION: Real Request ⚠️ (restricted)
+                POST /forusbot/update-plan — caution · real request (restricted)
               </option>
               <option value="sandbox-update-plan">
                 POST /forusbot/sandbox/update-plan (dry-run, restricted)
@@ -96,13 +152,13 @@
               </option>
 
               <option value="users-management-create">
-                POST /forusbot/users-management/create ⚠️ CAUTION: Real Request ⚠️ (restricted)
+                POST /forusbot/users-management/create — caution · real request (restricted)
               </option>
               <option value="sandbox-users-management-create">
                 POST /forusbot/sandbox/users-management/create (dry-run, restricted)
               </option>
               <option value="users-management-edit">
-                POST /forusbot/users-management/edit ⚠️ CAUTION: Real Request ⚠️ (restricted)
+                POST /forusbot/users-management/edit — caution · real request (restricted)
               </option>
               <option value="sandbox-users-management-edit">
                 POST /forusbot/sandbox/users-management/edit (dry-run, restricted)
@@ -968,7 +1024,8 @@
 
           <div class="sep"></div>
 
-          <div class="field">
+          <div class="field" data-anchor="tab-snippets">
+            <span id="tab-snippets" style="position:absolute;top:-80px"></span>
             <h3>Snippets</h3>
             <div class="grid code-grid">
               <div class="code">
@@ -1013,8 +1070,9 @@
       </section>
 
       <!-- Runner -->
-      <section class="card" id="runner">
-        <h2>2) Test against the server</h2>
+      <section class="card" id="runner" data-anchor="tab-result">
+        <span id="tab-result" style="position:absolute;top:-80px"></span>
+        <h2>Run &amp; inspect the response</h2>
         <p class="muted">
           Execute the real request against the selected endpoint and inspect the
           response.
@@ -1039,11 +1097,14 @@
           <div id="jobJson" class="code"><pre>(waiting for job)</pre></div>
         </div>
       </section>
+        </div>
+      </main>
     </div>
 
-    <div id="toast" class="toast">Copied ✅</div>
+    <div id="toast" class="toast">Copied</div>
 
     <script>
+      // ===== Language switch =====
       (function () {
         const sel = document.getElementById("lang-select");
         if (!sel) return;
@@ -1055,6 +1116,204 @@
           const v = e.target.value;
           location.href = v === "es" ? "/docs/sandbox/es" : "/docs/sandbox";
         });
+      })();
+
+      // ===== Sidebar nav (mirrors #endpoint select) =====
+      (function () {
+        const select = document.getElementById("endpoint");
+        const navRoot = document.getElementById("sidebarNav");
+        const search = document.getElementById("navSearch");
+        const tMethod = document.getElementById("topbarMethod");
+        const tPath = document.getElementById("topbarPath");
+        if (!select || !navRoot) return;
+
+        const GROUPS = [
+          { title: "Vault",            keys: ["vault-upload", "sandbox-upload"] },
+          { title: "Participants",     keys: ["update-participant", "scrape-participant", "search-participants", "mfa-reset"] },
+          { title: "Plans",            keys: ["update-plan", "sandbox-update-plan", "scrape-plan"] },
+          { title: "Users management", keys: ["users-management-create", "sandbox-users-management-create", "users-management-edit", "sandbox-users-management-edit"] },
+          { title: "Email",            keys: ["email-trigger"] },
+          { title: "Jobs & status",    keys: ["jobs-get", "jobs-delete", "status-get"] }
+        ];
+
+        function parseOption(opt) {
+          const raw = opt.textContent.trim().replace(/\s+/g, " ");
+          const m = raw.match(/^(GET|POST|PUT|PATCH|DELETE)\s+(\S+)(.*)$/);
+          if (!m) return { method: "", path: raw, rest: "", warn: false };
+          const rest = m[3].trim();
+          return {
+            method: m[1],
+            path: m[2],
+            rest,
+            warn: /caution|restricted/i.test(rest)
+          };
+        }
+
+        const items = Array.from(select.options).map((opt) => {
+          const meta = parseOption(opt);
+          return { value: opt.value, ...meta, label: meta.path.replace(/^\/forusbot\//, "") };
+        });
+
+        const byKey = new Map(items.map((it) => [it.value, it]));
+
+        function build() {
+          navRoot.innerHTML = "";
+          const used = new Set();
+          GROUPS.forEach((g) => {
+            const groupItems = g.keys.map((k) => byKey.get(k)).filter(Boolean);
+            if (!groupItems.length) return;
+            const grp = document.createElement("div");
+            grp.className = "nav-group";
+            const title = document.createElement("div");
+            title.className = "nav-group-title";
+            title.textContent = g.title;
+            grp.appendChild(title);
+            groupItems.forEach((it) => {
+              used.add(it.value);
+              grp.appendChild(makeItem(it));
+            });
+            navRoot.appendChild(grp);
+          });
+          const leftovers = items.filter((it) => !used.has(it.value));
+          if (leftovers.length) {
+            const grp = document.createElement("div");
+            grp.className = "nav-group";
+            const title = document.createElement("div");
+            title.className = "nav-group-title";
+            title.textContent = "Other";
+            grp.appendChild(title);
+            leftovers.forEach((it) => grp.appendChild(makeItem(it)));
+            navRoot.appendChild(grp);
+          }
+          syncActive();
+        }
+
+        function makeItem(it) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "nav-item";
+          btn.dataset.value = it.value;
+          btn.setAttribute("aria-current", "false");
+          btn.title = it.path + (it.rest ? " " + it.rest : "");
+          const m = document.createElement("span");
+          m.className = "nav-method m-" + it.method.toLowerCase();
+          m.textContent = it.method || "—";
+          const l = document.createElement("span");
+          l.className = "nav-label";
+          l.textContent = it.label || it.path;
+          btn.appendChild(m);
+          btn.appendChild(l);
+          if (it.warn) {
+            const w = document.createElement("span");
+            w.className = "nav-warn";
+            w.title = "Real request";
+            btn.appendChild(w);
+          }
+          btn.addEventListener("click", () => {
+            select.value = it.value;
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            syncActive();
+          });
+          return btn;
+        }
+
+        function syncActive() {
+          const v = select.value;
+          navRoot.querySelectorAll(".nav-item").forEach((el) => {
+            const active = el.dataset.value === v;
+            el.setAttribute("aria-current", active ? "true" : "false");
+          });
+          const it = byKey.get(v);
+          if (it && tMethod && tPath) {
+            tMethod.textContent = it.method || "—";
+            tMethod.className = "topbar-method m-" + (it.method || "").toLowerCase();
+            tPath.textContent = it.path;
+          }
+        }
+
+        select.addEventListener("change", syncActive);
+
+        if (search) {
+          search.addEventListener("input", () => {
+            const q = search.value.trim().toLowerCase();
+            navRoot.querySelectorAll(".nav-item").forEach((el) => {
+              const match = !q || (el.textContent || "").toLowerCase().includes(q);
+              el.style.display = match ? "" : "none";
+            });
+            navRoot.querySelectorAll(".nav-group").forEach((g) => {
+              const anyVisible = Array.from(g.querySelectorAll(".nav-item"))
+                .some((it) => it.style.display !== "none");
+              g.style.display = anyVisible ? "" : "none";
+            });
+          });
+        }
+
+        build();
+      })();
+
+      // ===== Tabs (scroll-to anchors) =====
+      (function () {
+        const tabs = document.querySelectorAll(".tab[data-tab-target]");
+        if (!tabs.length) return;
+        tabs.forEach((t) => {
+          t.addEventListener("click", () => {
+            tabs.forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+            const id = t.getAttribute("data-tab-target");
+            const target = document.getElementById(id);
+            if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+
+        // scroll-spy: highlight tab when its anchor passes top
+        const anchors = ["tab-builder", "tab-snippets", "tab-result"]
+          .map((id) => document.getElementById(id))
+          .filter(Boolean);
+        if (!anchors.length) return;
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((e) => {
+              if (e.isIntersecting) {
+                const id = e.target.id;
+                tabs.forEach((x) => {
+                  x.setAttribute("aria-selected", x.dataset.tabTarget === id ? "true" : "false");
+                });
+              }
+            });
+          },
+          { rootMargin: "-80px 0px -70% 0px", threshold: 0 }
+        );
+        anchors.forEach((a) => observer.observe(a));
+      })();
+
+      // ===== Topbar Run + Cancel forwarding =====
+      (function () {
+        const topRun = document.getElementById("topbarRun");
+        const topCancel = document.getElementById("topbarCancel");
+        const runBtn = document.getElementById("runBtn");
+        const cancelBtn = document.getElementById("cancelBtn");
+
+        if (topRun && runBtn) {
+          topRun.addEventListener("click", () => runBtn.click());
+        }
+        if (topCancel && cancelBtn) {
+          topCancel.addEventListener("click", () => cancelBtn.click());
+          const obs = new MutationObserver(() => {
+            topCancel.disabled = cancelBtn.disabled;
+          });
+          obs.observe(cancelBtn, { attributes: true, attributeFilter: ["disabled"] });
+        }
+      })();
+
+      // ===== Mirror #me-name → sidebar mini =====
+      (function () {
+        const src = document.getElementById("me-name");
+        const dst = document.getElementById("meNameMini");
+        if (!src || !dst) return;
+        const obs = new MutationObserver(() => {
+          dst.textContent = src.textContent;
+        });
+        obs.observe(src, { childList: true, characterData: true, subtree: true });
+        dst.textContent = src.textContent;
       })();
     </script>
 

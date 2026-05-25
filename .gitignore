@@ -12,3 +12,6 @@ tokens.json
 
 .DS_Store
 **/.DS_Store
+
+.claude/
+.cursor/
