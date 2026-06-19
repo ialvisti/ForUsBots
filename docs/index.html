@@ -273,6 +273,36 @@ x-auth-token: ...
             </p>
             <p class="small"><a href="/docs/api#emailtrigger">Read docs →</a></p>
           </div>
+
+          <!-- NEW: Update Plan (RESTRICTED) -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/update-plan</code></strong>
+            </div>
+            <p class="muted">
+              RESTRICTED. Updates plan configuration fields. 202 Accepted with
+              jobId. A dry-run validator is available at
+              <code>/forusbot/sandbox/update-plan</code>.
+            </p>
+            <p class="small"><a href="/docs/api#update-plan">Read docs →</a></p>
+          </div>
+
+          <!-- NEW: Users Management (RESTRICTED) -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/users-management/create</code></strong>
+              <br />
+              <strong>POST <code>/forusbot/users-management/edit</code></strong>
+            </div>
+            <p class="muted">
+              RESTRICTED. Create or edit portal users; edit supports optional
+              <code>resetMfa</code> (employer|admin|both|none). 202 Accepted with
+              jobId. Dry-run validators at
+              <code>/forusbot/sandbox/users-management/create</code> and
+              <code>/forusbot/sandbox/users-management/edit</code>.
+            </p>
+            <p class="small"><a href="/docs/api#users-management-create">Read docs →</a></p>
+          </div>
         </div>
       </section>
 
@@ -774,6 +804,42 @@ x-auth-token: ...
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
   -d '{"planId":627,"emailType":"statement_notice","statement":{"year":2025,"quarter":1,"season":"Q1"}}'</code></pre>
         <p><a href="/docs/api#emailtrigger">Read full reference →</a></p>
+      </section>
+
+      <!-- Update Plan -->
+      <section id="bot-update-plan">
+        <h3>Update Plan Bot (RESTRICTED)</h3>
+        <p>
+          Updates plan configuration fields on the ForUsAll Employer Portal.
+          Returns <code>202 Accepted</code> with <code>jobId</code>. Access is
+          restricted by email allowlist (currently
+          <code>ivan.alvis@forusall.com</code>). A dry-run validator is
+          available at <code>POST /forusbot/sandbox/update-plan</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/update-plan</code> (auth, RESTRICTED)</p>
+        <p><a href="/docs/api#update-plan">Read full reference →</a></p>
+      </section>
+
+      <!-- Users Management -->
+      <section id="bot-users-management">
+        <h3>Users Management Bot (RESTRICTED)</h3>
+        <p>
+          Creates and edits portal users. Edit supports an optional
+          <code>resetMfa</code> field (<code>employer</code>, <code>admin</code>,
+          <code>both</code>, or <code>none</code>). Returns
+          <code>202 Accepted</code> with <code>jobId</code>. Access is restricted
+          by email allowlist (currently <code>ivan.alvis@forusall.com</code> and
+          <code>sponsorservicesbot@forusall.com</code>). Dry-run validators are
+          available at <code>POST /forusbot/sandbox/users-management/create</code>
+          and <code>POST /forusbot/sandbox/users-management/edit</code>.
+        </p>
+        <h4>Endpoints</h4>
+        <p>
+          <code>POST /forusbot/users-management/create</code> (auth, RESTRICTED)<br />
+          <code>POST /forusbot/users-management/edit</code> (auth, RESTRICTED)
+        </p>
+        <p><a href="/docs/api#users-management-create">Read full reference →</a></p>
       </section>
 
       <section id="jobs">

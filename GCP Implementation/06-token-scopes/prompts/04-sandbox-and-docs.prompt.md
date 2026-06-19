@@ -33,7 +33,7 @@ El plan vive en este sub-folder:
 6. Actualizar el OpenAPI YAML (path en `src/routes/index.js:213` o donde se sirva `/forusbot/openapi`):
    - schema `WhoAmI` con `accountAlias` y `scope`,
    - respuestas `403 forbidden` documentadas en endpoints protegidos.
-7. Actualizar `FOLDER_CONTEXT.md` y `README.md` con la sección "Tokens & Scopes" (instrucciones de edición vía Secret Manager).
+7. Actualizar `PROJECT_STRUCTURE.md` y `README.md` con la sección "Tokens & Scopes" (instrucciones de edición vía Secret Manager).
 8. **Rename** `GCP Implementation/06-looker-studio-dashboards.md` → `GCP Implementation/07-looker-studio-dashboards.md` con `git mv`.
 9. Actualizar `GCP Implementation/00-OVERVIEW.md` (overview del folder padre) para reflejar la nueva tabla de fases (06 = token scopes, 07 = looker).
 10. Smoke visual de la sandbox local con 1 token admin y 1 token user (cards correctas habilitadas/deshabilitadas).
@@ -53,7 +53,7 @@ El plan vive en este sub-folder:
 
 ## Qué reportarme al final
 
-1. Lista de archivos modificados (esperado: `docs/sandbox/*`, OpenAPI yaml, `FOLDER_CONTEXT.md`, `README.md`, `GCP Implementation/00-OVERVIEW.md`).
+1. Lista de archivos modificados (esperado: `docs/sandbox/*`, OpenAPI yaml, `PROJECT_STRUCTURE.md`, `README.md`, `GCP Implementation/00-OVERVIEW.md`).
 2. Lista de cards marcadas con `data-feature` / `data-endpoint` (esperado: 8 bots + 2 sandbox + jobs/admin si la sandbox los muestra).
 3. Screenshot/descripción del header de la sandbox con un token admin y un token user (texto exacto que mostraría cada uno).
 4. Resultado del rename: `ls "GCP Implementation/"` debe mostrar `07-looker-studio-dashboards.md` y `06-token-scopes/`, NO `06-looker-studio-dashboards.md`.

@@ -8,12 +8,12 @@
 
 ## Contexto (lee antes de empezar)
 
-Lee primero [00-OVERVIEW.md](./00-OVERVIEW.md). Fase 02 ya extendió `/forusbot/auth/whoami` con `scope` y `accountAlias`. Fase 03 ya inyecta credenciales per-token en runtime.
+Lee primero [00-OVERVIEW.md](./00-OVERVIEW.md). Fase 02 ya extendió `/forusbot/whoami` con `scope` y `accountAlias`. Fase 03 ya inyecta credenciales per-token en runtime.
 
 Esta fase es de **superficie y documentación**:
 1. La sandbox HTML (`docs/sandbox/index.html`) refleja dinámicamente las features permitidas/denegadas del token actual.
 2. OpenAPI YAML se actualiza para documentar el shape nuevo de `whoami`.
-3. Docs del repo (`README.md`, `FOLDER_CONTEXT.md`) ganan una sección "Tokens & Scopes".
+3. Docs del repo (`README.md`, `PROJECT_STRUCTURE.md`) ganan una sección "Tokens & Scopes".
 4. Se renombra `GCP Implementation/06-looker-studio-dashboards.md` → `07-looker-studio-dashboards.md` y se actualiza el enlace en el overview del folder padre.
 
 ---
@@ -285,7 +285,7 @@ responses:
 
 ### 8. Docs del repo
 
-#### `FOLDER_CONTEXT.md`
+#### `PROJECT_STRUCTURE.md`
 
 Agregar una sección al final:
 
@@ -386,7 +386,7 @@ echo "Estructura del folder: OK"
 grep -q "06-token-scopes" "GCP Implementation/00-OVERVIEW.md" && echo "Overview actualizado: OK"
 
 # 5. Docs del repo mencionan tokens & scopes
-grep -q "Tokens & Scopes\|TOKENS_JSON" FOLDER_CONTEXT.md && echo "FOLDER_CONTEXT.md: OK"
+grep -q "Tokens & Scopes\|TOKENS_JSON" PROJECT_STRUCTURE.md && echo "PROJECT_STRUCTURE.md: OK"
 grep -q "x-auth-token\|role catalog\|featureMap" README.md   && echo "README.md: OK"
 ```
 
@@ -395,14 +395,14 @@ Si todo pasa, commit:
 ```bash
 git add docs/sandbox/index.html docs/sandbox/js/main.js docs/sandbox/sandbox.css docs/sandbox/es/ \
         src/routes/index.js \
-        FOLDER_CONTEXT.md README.md \
+        PROJECT_STRUCTURE.md README.md \
         "GCP Implementation/00-OVERVIEW.md" "GCP Implementation/07-looker-studio-dashboards.md"
 
 git commit -m "Token scopes 04: sandbox UI dinámica + docs + rename Looker
 
 - docs/sandbox: header muestra name/role/accountAlias; cards deshabilitadas por scope.deniedFeatures; overrides marcados con outline punteado
 - OpenAPI: schema WhoAmI extendido (accountAlias, scope), respuestas 403 documentadas en endpoints protegidos
-- README + FOLDER_CONTEXT: sección Tokens & Scopes con instrucciones de edición en Secret Manager
+- README + PROJECT_STRUCTURE: sección Tokens & Scopes con instrucciones de edición en Secret Manager
 - Rename GCP Implementation/06-looker-studio-dashboards.md → 07-...; subfolder 06-token-scopes/ ocupa la fase 06
 - Overview del folder GCP Implementation actualizado con la nueva tabla
 "

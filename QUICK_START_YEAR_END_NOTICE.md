@@ -12,7 +12,7 @@ export AUTH_TOKEN=your-token-here
 
 #### Option 1: Bash Script (Recommended for Shell)
 ```bash
-cd /Users/ivanalvis/Desktop/ForUsBots\ copy
+cd /Users/ivanalvis/Desktop/ForUsBots
 
 # Trigger email for plan 627
 ./examples/emailtrigger-year-end-notice.sh 627
@@ -23,7 +23,7 @@ WAIT_FOR_COMPLETION=true ./examples/emailtrigger-year-end-notice.sh 627
 
 #### Option 2: Node.js Script (Recommended for Automation)
 ```bash
-cd /Users/ivanalvis/Desktop/ForUsBots\ copy
+cd /Users/ivanalvis/Desktop/ForUsBots
 
 # Trigger email for plan 627
 node examples/emailtrigger-year-end-notice.js 627

@@ -1,608 +1,290 @@
-# ForUsBots - Project Structure Map
+# ForUsBots — Project Structure Map
 
-> **🎯 AI Agent Quick Start:** Read this file FIRST to understand where everything is located, then dive into specific `FOLDER_CONTEXT.md` files for details.
+> **🎯 Quick Start:** Read this file FIRST to understand where everything lives. It is the single navigation map for the repository.
 
 ## 📊 Project Overview
 
+ForUsBots is a Node.js (CommonJS) service that automates the ForUsAll employer portal with **Playwright** (Chromium, login + TOTP), processes uploads, extracts participant/plan data, and exposes a small HTTP API under `/forusbot`. Docs are bilingual (EN/ES) and `docs/openapi.yaml` is the source of truth.
+
 ```
 ForUsBots/
-├── 🏠 Root Config & Entry Points
-├── 📦 src/                          Core application source code
-│   ├── 🤖 bots/                     Individual automation bots
-│   ├── ⚙️  engine/                   Core infrastructure & utilities
-│   ├── 📤 extractors/               Data extraction modules
-│   ├── 🔌 providers/                Provider-specific config
-│   ├── 🔐 middleware/               Express middleware
-│   └── 🛣️  routes/                   API route definitions
-├── 📚 docs/                         Documentation website
-├── 💾 migrations/                   Database migrations
-├── 🔧 scripts/                      Utility scripts
-├── 📋 examples/                     Integration examples
-└── 🧪 forusall-portal-html-data/   Test fixtures (HTML snapshots)
+├── 🏠 Root config & entry points
+├── 📦 src/                  Core application source
+│   ├── 🤖 bots/             Automation bots (one folder per bot)
+│   ├── 🔐 auth/             Token roles, scopes & feature map
+│   ├── ⚙️  engine/           Browser/queue/session/logging infrastructure
+│   ├── 📤 extractors/        Participant & plan data extractors
+│   ├── 🔌 providers/         Provider config (URLs & selectors)
+│   ├── 🧱 middleware/        Express middleware (auth, scopes, formatters)
+│   ├── 🛣️  routes/            HTTP API route definitions
+│   └── 💾 db/                Firestore + BigQuery clients
+├── 📚 docs/                 Bilingual docs site, OpenAPI, sandbox, admin/data consoles, KB
+├── 🔧 scripts/              Operational scripts (health, validation, monitoring)
+├── 📋 examples/             Integration examples (curl, n8n, email-trigger)
+├── 📊 bq/                   BigQuery views (SQL) + apply script
+├── 🧩 extensions/           Firebase extension configs (firestore→bigquery export)
+└── 🗺️  GCP Implementation/   GCP migration planning docs (logging, Firestore, infra, scopes)
 ```
 
+> **Stack:** Node.js (CommonJS), Express 5.x, Playwright 1.54.x (Chromium), Firestore + BigQuery (data/metrics), optional PostgreSQL audit trail (`src/engine/audit.js`). Containerized via Docker; deploy targets include Cloud Run and Render.
+
+> **There is no `migrations/` or `forusall-portal-html-data/` directory.** Persistence lives in `src/db/` (Firestore/BigQuery) and the optional Postgres audit trail. Earlier revisions of this map referenced SQL migrations and an HTML-fixtures folder that no longer exist.
+
 ---
 
-## 🗺️ Complete Folder Map
+## 🗺️ Folder Map
 
 ### 🏠 Root Directory
-**Location**: `/`  
-**Context File**: `/FOLDER_CONTEXT.md`
 
-**What's Here**:
-- `package.json` - Dependencies, scripts, project metadata
-- `Dockerfile` - Container definition (Playwright base image)
-- `.gitignore` - Ignored files (tokens.json, .sessions, .env)
-- `.cursorrules` / `.cursor/rules/rules.mdc` - Development rules
-- `README.md` - Project overview and quickstart
-- `render.yaml` - Deployment configuration
+Config, deployment, and entry metadata:
 
-**When to Work Here**:
-- ✅ Updating dependencies (package.json)
-- ✅ Modifying Docker configuration
-- ✅ Changing deployment settings
-- ✅ Updating root documentation
+- `package.json` — dependencies and npm scripts
+- `Dockerfile` — Playwright-based container image
+- `cloudbuild.yaml` / `render.yaml` — deployment configs (Cloud Build / Render)
+- `firebase.json` / `.firebaserc` — Firebase project config
+- `README.md` — project overview, endpoint summary, quickstart, changelog
+- `PROJECT_STRUCTURE.md` — this navigation map
+- `.gitignore` — ignores `tokens.json`, `.sessions`, `.env`, `.user-data`
+- `tokens.json` (gitignored) — token → role/account/scope map, loaded at startup
+- `.env` (gitignored) — local environment variables
+- `payload.json` — sample request payload
 
-**DO NOT Work Here For**:
-- ❌ Bot implementation (→ `/src/bots/`)
-- ❌ Adding utilities (→ `/src/engine/utils/`)
-- ❌ API changes (→ `/src/routes/`)
+**Work here for:** dependencies, Docker/deploy config, root docs.
+**Not here for:** bot logic (`src/bots/`), utilities (`src/engine/utils/`), API changes (`src/routes/`).
 
 ---
 
-### 📦 /src/ - Application Source
-**Location**: `/src/`  
-**Context File**: `/src/FOLDER_CONTEXT.md`
+### 📦 /src/ — Application Source
 
-**What's Here**:
-- `index.js` - Entry point (HTTP server + signal handlers)
-- `server.js` - Express app setup
-- `config.js` - Environment variable configuration
+Entry points and config:
 
-**Subdirectories** (detailed below):
-- `/src/bots/` - Automation bots
-- `/src/engine/` - Core infrastructure
-- `/src/extractors/` - Data extraction
-- `/src/providers/` - Provider config
-- `/src/middleware/` - Auth middleware
-- `/src/routes/` - API routes
+- `index.js` — process entry point (HTTP server + signal handlers)
+- `server.js` — Express app setup and middleware wiring
+- `config.js` — environment-variable configuration
+- `secrets.js` — secret resolution (env / Secret Manager)
 
-**When to Work Here**:
-- ✅ Modifying server setup (server.js)
-- ✅ Changing entry point logic (index.js)
-- ✅ Updating ENV config (config.js)
+Subdirectories: `bots/`, `auth/`, `engine/`, `extractors/`, `providers/`, `middleware/`, `routes/`, `db/` (detailed below).
 
 ---
 
-### 🤖 /src/bots/ - Automation Bots
-**Location**: `/src/bots/`  
-**Context File**: `/src/bots/FOLDER_CONTEXT.md`
+### 🤖 /src/bots/ — Automation Bots
 
-**What's Here**: Individual automation bots, each with standard 3-file structure:
+Each bot follows the standard 3-file structure:
+
 ```
 bot-name/
 ├── routes.js      # Express router
-├── controller.js  # Request validation + job submission
+├── controller.js  # Request validation + job submission (202 pattern)
 └── runFlow.js     # Playwright automation logic
 ```
 
-**Available Bots**:
-1. **`forusall-upload/`** - Document upload to vault
-   - Endpoint: `POST /forusbot/vault-file-upload`
-   - Purpose: PDF upload with metadata
+**The 9 bots:**
 
-2. **`forusall-scrape-participant/`** - Participant data extraction
-   - Endpoint: `POST /forusbot/scrape-participant`
-   - Purpose: Extract census, loans, payroll, etc.
+| Bot | Endpoint(s) | Purpose |
+|-----|-------------|---------|
+| `forusall-upload` | `POST /forusbot/vault-file-upload` | Upload a document (`.pdf`, `.xlsx`, `.xls`, `.csv`, `.zip`) to the vault with metadata |
+| `forusall-scrape-participant` | `POST /forusbot/scrape-participant` | Extract participant data (census, savings, loans, plan, payroll, MFA) |
+| `forusall-scrape-plan` | `POST /forusbot/scrape-plan` | Extract plan configuration (6 modules) |
+| `forusall-search-participants` | `POST /forusbot/search-participants` | Search participants by name/SSN/email |
+| `forusall-mfa-reset` | `POST /forusbot/mfa-reset` | Reset participant MFA |
+| `forusall-update-participant` | `POST /forusbot/update-participant` | Update participant census fields |
+| `forusall-update-plan` | `POST /forusbot/update-plan` (+ sandbox) | Update plan edit form. **Restricted** to `ivan.alvis@forusall.com` |
+| `forusall-emailtrigger` | `POST /forusbot/email-trigger` | Trigger portal emails. Has `flows/` for per-email-type logic |
+| `forusall-usersmanagement` | `POST /forusbot/users-management/{create,edit}` (+ sandbox) | Create/edit portal users + optional Reset MFA. **Restricted** to `ivan.alvis@forusall.com` and `sponsorservicesbot@forusall.com`. Has `web/` HTML references |
 
-3. **`forusall-scrape-plan/`** - Plan data extraction
-   - Endpoint: `POST /forusbot/scrape-plan`
-   - Purpose: Extract plan configuration (6 modules, 67 fields)
+Access restrictions are enforced by `src/middleware/restrictToEmails.js`; the `users-management` and `update-plan` features are denied by default for non-admin roles (`src/auth/roles.js`).
 
-4. **`forusall-mfa-reset/`** - MFA reset
-   - Endpoint: `POST /forusbot/mfa-reset`
-   - Purpose: Reset participant MFA
-
-5. **`forusall-search-participants/`** - Participant search
-   - Endpoint: `POST /forusbot/search-participants`
-   - Purpose: Search by name, SSN, email, etc.
-
-6. **`forusall-update-participant/`** - Participant updates
-   - Endpoint: `POST /forusbot/update-participant`
-   - Purpose: Update census fields
-
-7. **`forusall-update-plan/`** - Plan updates (RESTRICTED)
-   - Endpoint: `POST /forusbot/update-plan` (real)
-   - Sandbox: `POST /forusbot/sandbox/update-plan` (dry-run validator)
-   - Purpose: Update fields in the plan edit form and save with a note
-   - Access: Restricted to `ivan.alvis@forusall.com` via
-     `src/middleware/restrictToEmails.js` (other tokens get 403)
-
-8. **`forusall-emailtrigger/`** - Email triggering
-   - Endpoint: `POST /forusbot/email-trigger`
-   - Purpose: Trigger portal emails
-   - Has `/flows/` subdirectory for multi-flow logic
-
-9. **`forusall-usersmanagement/`** - Portal user administration (RESTRICTED)
-   - Endpoints: `POST /forusbot/users-management/create` (real)
-                `POST /forusbot/users-management/edit` (real, supports optional Reset MFA)
-                `POST /forusbot/sandbox/users-management/create` (dry-run)
-                `POST /forusbot/sandbox/users-management/edit` (dry-run)
-   - Purpose: Create and edit admin-portal users with role / sponsor / payroll setup
-     assignments, plus optional Reset MFA (admin / employer / both)
-   - Access: Restricted to `ivan.alvis@forusall.com` and
-     `sponsorservicesbot@forusall.com` via `src/middleware/restrictToEmails.js`;
-     feature `users-management` denied by default for non-admin roles.
-
-**When to Work Here**:
-- ✅ Creating new automation bots
-- ✅ Modifying existing bot logic
-- ✅ Adding new bot endpoints
-
-**DO NOT Work Here For**:
-- ❌ Changing selectors (→ `/src/providers/forusall/config.js`)
-- ❌ Adding utilities (→ `/src/engine/utils/`)
-- ❌ Modifying auth (→ `/src/engine/auth/`)
+**Work here for:** new bots, bot logic changes, new bot endpoints.
+**Not here for:** selectors (`src/providers/forusall/config.js`), shared utilities (`src/engine/utils/`), auth (`src/auth/`, `src/middleware/`).
 
 ---
 
-### ⚙️ /src/engine/ - Core Infrastructure
-**Location**: `/src/engine/`  
-**Context File**: `/src/engine/FOLDER_CONTEXT.md`
+### 🔐 /src/auth/ — Token Roles & Scopes
 
-**What's Here**: Shared infrastructure used by all bots
+The authorization engine that resolves what each token may do.
 
-**Key Modules**:
-- **`auth/loginOtp.js`** - Centralized login + OTP (CRITICAL: always use this)
-- **`browser.js`** - Chromium launcher
-- **`sharedContext.js`** - Page pooling & keep-alive
-- **`sessions.js`** - Session persistence (cookies + localStorage)
-- **`loginLock.js`** - OTP mutex (prevents code collision)
-- **`queue.js`** - Job queue with concurrency control
-- **`logger.js`** - Structured JSON logging
-- **`evidence.js`** - Screenshot utilities
-- **`normalizer.js`** - Result envelope normalization
-- **`settings.js`** - Runtime settings management
-- **`audit.js`** - PostgreSQL audit trail
+- `roles.js` — role definitions and per-role default denied features (`admin`, `user`, `pa_lead`, `rm_lead`, `ops_lead`, `imp_lead`)
+- `featureMap.js` — maps `method+path` → feature name
+- `scopes.js` — scope resolution algorithm (`deniedFeatures`, `deniedEndpoints`, `allowedEndpoints`) + `scopeToJSON`
+- `account.js` — per-token portal account `{alias, siteUser, sitePass, totpSecret}`
 
-**Subdirectory**:
-- **`utils/`** - Common utilities (select, verify, date, pdf, url)
-
-**When to Work Here**:
-- ✅ Modifying authentication logic
-- ✅ Improving browser performance
-- ✅ Adding core infrastructure features
-- ✅ Changing queue behavior
-- ✅ Updating logging format
-
-**DO NOT Work Here For**:
-- ❌ Bot-specific logic (→ `/src/bots/`)
-- ❌ Data extraction (→ `/src/extractors/`)
-- ❌ API routes (→ `/src/routes/`)
+Enforced at request time by `src/middleware/requireScope.js`. Inspect a token's effective scope with `GET /forusbot/whoami`.
 
 ---
 
-### 🛠️ /src/engine/utils/ - Utility Functions
-**Location**: `/src/engine/utils/`  
-**Context File**: `/src/engine/utils/FOLDER_CONTEXT.md`
+### ⚙️ /src/engine/ — Core Infrastructure
 
-**What's Here**: Reusable Playwright utilities
+Shared infrastructure used by all bots:
 
-**Available Utilities**:
-- **`select.js`** - Dropdown handling with Unicode normalization
-  - `waitForOptionFlex()` - Wait for dropdown option
-  - `selectByText()` - Select by visible text
+- `auth/loginOtp.js` — centralized login + OTP (`ensureAuthForTarget`). **Always use this.**
+- `browser.js` — Chromium launcher
+- `sharedContext.js` — page pooling & keep-alive
+- `sessions.js` — session persistence (cookies + localStorage)
+- `loginLock.js` — OTP mutex (prevents TOTP-window collisions)
+- `queue.js` — in-memory job queue with concurrency control + ETA estimation
+- `logger.js` + `log-context.js` — structured JSON logging (correlation IDs via AsyncLocalStorage); see `log-schema.md`
+- `evidence.js` — screenshot utilities
+- `normalizer.js` — result envelope normalization
+- `settings.js` — runtime settings (concurrency, flags)
+- `audit.js` — optional PostgreSQL audit trail
+- `utils/` — reusable Playwright helpers: `select.js`, `verify.js`, `date.js`, `pdf.js`, `url.js`
 
-- **`verify.js`** - Form verification after submission
-  - `waitForFormCleared()` - Poll until form resets
-
-- **`date.js`** - Date input helpers
-  - `setEffectiveDate()` - Fill date inputs
-
-- **`pdf.js`** - PDF metadata manipulation
-  - `setPdfTitle()` - Rewrite PDF title
-
-- **`url.js`** - URL template interpolation
-  - `buildUploadUrl()` - Build URLs from templates
-
-**When to Work Here**:
-- ✅ Adding reusable Playwright utilities
-- ✅ Fixing bugs in shared utilities
-- ✅ Improving Unicode handling
-
-**DO NOT Work Here For**:
-- ❌ Bot-specific helpers (keep in bot's runFlow.js)
-- ❌ Data extraction (→ `/src/extractors/`)
+**Work here for:** auth/OTP logic, browser performance, queue behavior, logging format.
+**Not here for:** bot-specific logic (`src/bots/`), extraction (`src/extractors/`), routes (`src/routes/`).
 
 ---
 
-### 📤 /src/extractors/ - Data Extraction
-**Location**: `/src/extractors/`  
-**Context File**: `/src/extractors/FOLDER_CONTEXT.md`
+### 📤 /src/extractors/ — Data Extraction
 
-**What's Here**: Modules that extract structured data from participant pages
+Structured extraction from portal pages:
 
-**Structure**:
 ```
 extractors/
-├── forusall-participant/     # Participant data extractors
-│   ├── modules/              # Individual extractors
-│   │   ├── census.js         # Demographics & employment
-│   │   ├── savings_rate.js   # Contribution settings
-│   │   ├── loans.js          # Loan information
-│   │   ├── plan_details.js   # Plan enrollment
-│   │   ├── payroll.js        # Payroll history
-│   │   └── mfa.js            # MFA status
-│   ├── registry.js           # Extractor lookup & validation
-│   └── utils.js              # Shared extraction helpers
-└── forusall-plan/            # Plan data extractors
-    ├── modules/              # Plan extractors
-    │   ├── basic_info.js     # Plan ID, company, EIN, status
-    │   ├── plan_design.js    # Eligibility, contributions
-    │   ├── onboarding.js     # Dates, conversion settings
-    │   ├── communications.js # Branding, messaging
-    │   ├── extra_settings.js # Advanced rules
-    │   └── feature_flags.js  # Feature toggles
-    ├── registry.js           # Plan extractor lookup
-    └── utils.js              # Plan extraction helpers
+├── forusall-participant/
+│   ├── modules/   # census, savings_rate, loans, plan_details, payroll, mfa
+│   ├── registry.js
+│   └── utils.js
+└── forusall-plan/
+    ├── modules/   # basic_info, plan_design, onboarding, communications, extra_settings, feature_flags
+    ├── registry.js
+    └── utils.js
 ```
 
-**When to Work Here**:
-- ✅ Adding new extractable fields
-- ✅ Creating new extraction modules
-- ✅ Fixing parsing bugs
-
-**DO NOT Work Here For**:
-- ❌ Navigation logic (→ bot's runFlow.js)
-- ❌ Changing selectors (→ `/src/providers/`)
+**Work here for:** new extractable fields, new extraction modules, parsing fixes.
+**Not here for:** navigation (bot `runFlow.js`), selectors (`src/providers/`).
 
 ---
 
-### 🔌 /src/providers/ - Provider Configuration
-**Location**: `/src/providers/`  
-**Context File**: `/src/providers/FOLDER_CONTEXT.md`
+### 🔌 /src/providers/ — Provider Configuration
 
-**What's Here**: Provider-specific URLs, selectors, defaults
-
-**Structure**:
 ```
-providers/
-└── forusall/
-    ├── config.js           # URLs & selectors (SOURCE OF TRUTH)
-    ├── participantMap.js   # Participant module specifications
-    └── planMap.js          # Plan module specifications
+providers/forusall/
+├── config.js          # URLs & ALL CSS selectors (SOURCE OF TRUTH for selectors)
+├── participantMap.js  # Participant module specs
+└── planMap.js         # Plan module specs
 ```
 
-**config.js Contains**:
-- Login URLs
-- Upload/participant/search URLs
-- All CSS selectors (auth, upload, MFA, search, etc.)
-- Alternative selectors (fallbacks)
-- Timeout defaults
-
-**When to Work Here**:
-- ✅ Portal HTML structure changes
-- ✅ Selectors need updating
-- ✅ Adding new URLs
-- ✅ Portal UI changes
-
-**CRITICAL**: This is the ONLY place to update selectors!
-
-**DO NOT Work Here For**:
-- ❌ Bot logic (→ `/src/bots/`)
-- ❌ Extraction logic (→ `/src/extractors/`)
+**CRITICAL:** `config.js` is the only place to update selectors.
 
 ---
 
-### 🔐 /src/middleware/ - Express Middleware
-**Location**: `/src/middleware/`  
-**Context File**: `/src/middleware/FOLDER_CONTEXT.md`
+### 🧱 /src/middleware/ — Express Middleware
 
-**What's Here**: Express middleware (currently only auth)
+- `auth.js` — token authentication (`requireUser`, `requireAdmin`, default export = `requireUser`)
+- `requireScope.js` — scope/feature enforcement (403 with `{feature, endpoint, reason}`)
+- `restrictToEmails.js` — per-endpoint email allowlist (used by restricted bots)
+- `public-response.js` / `public-formatters.js` — public job-shape formatting (`toPublicJob`)
+- `request-log.js` — per-request logging + correlation IDs
 
-**Files**:
-- **`auth.js`** - Token-based authentication
-  - `requireUser` - Requires any authenticated user
-  - `requireAdmin` - Requires admin role
-  - `resolveRole()` - Check token role
-  - `listUsersPublic()` - Get user list
-
-**Token Storage**: `tokens.json` (gitignored, loaded at startup)
-
-**When to Work Here**:
-- ✅ Adding authentication methods
-- ✅ Implementing new role types
-- ✅ Changing token validation
-
-**DO NOT Work Here For**:
-- ❌ Changing tokens.json structure (maintain backward compatibility)
-- ❌ Bot logic (→ `/src/bots/`)
+**Token storage:** `tokens.json` (gitignored, loaded at startup).
 
 ---
 
-### 🛣️ /src/routes/ - API Routes
-**Location**: `/src/routes/`  
-**Context File**: `/src/routes/FOLDER_CONTEXT.md`
+### 🛣️ /src/routes/ — API Routes
 
-**What's Here**: HTTP API route definitions
+- `index.js` — main `/forusbot` router: health/status, jobs, locks, settings, metrics, version, openapi, whoami, `_close`, sandbox dry-runs, and all bot mounts
+- `admin-auth.js` — admin login/logout/whoami
+- `admin-jobs-db.js` / `admin-metrics-db.js` — admin job/metric queries from the data store
+- `articles-files.js` / `articles-draft.js` — knowledge-base article APIs
 
-**Key Files**:
-- **`index.js`** - Main router (mounts all sub-routers)
-  - Core endpoints: /health, /status, /jobs, /locks, /settings, /metrics
-  - Bot mounts
-  - Admin endpoints
-  
-- **`admin-auth.js`** - Admin authentication (login/logout/whoami)
-- **`admin-jobs-db.js`** - Admin job database queries
-- **`admin-metrics-db.js`** - Admin metrics from DB
-- **`data-jobs-db.js`** - User job queries
-- **`data-metrics-db.js`** - User metrics
-- **`articles-files.js`** - Knowledge base API
-- **`articles-draft.js`** - Draft articles API
-
-**When to Work Here**:
-- ✅ Adding new API endpoints
-- ✅ Changing request/response formats
-- ✅ Modifying route middleware
-
-**DO NOT Work Here For**:
-- ❌ Bot implementation (→ `/src/bots/`)
-- ❌ Queue logic (→ `/src/engine/queue.js`)
+**Work here for:** new endpoints, request/response shape, route middleware.
+**Not here for:** bot implementation (`src/bots/`), queue logic (`src/engine/queue.js`).
 
 ---
 
-### 📚 /docs/ - Documentation Website
-**Location**: `/docs/`  
-**Context File**: `/docs/FOLDER_CONTEXT.md`
+### 💾 /src/db/ — Data Layer
 
-**What's Here**: Complete static documentation website
+- `firestore.js` — Firestore client (jobs/metrics persistence)
+- `bigquery.js` — BigQuery client (analytics export)
 
-**Structure**:
-- **`index.html`** - Documentation home
-- **`openapi.yaml`** - API specification (SOURCE OF TRUTH)
-- **`api/`** - API reference (EN/ES)
-- **`sandbox/`** - Interactive testing UI (EN/ES)
-- **`admin/`** - Admin console (dashboard, jobs, metrics)
-- **`data/`** - Data console (non-admin)
-- **`evidence/`** - Evidence browser
-- **`knowledge-database/`** - Internal knowledge base
-  - `Articles/` - Published articles (JSON)
-  - `Articles_Draft/` - Draft articles
-  - `Js/`, `Css/`, `Images/` - KB assets
-
-**When to Work Here**:
-- ✅ Updating API documentation
-- ✅ Adding sandbox features
-- ✅ Improving admin console
-- ✅ Creating knowledge base articles
-
-**DO NOT Work Here For**:
-- ❌ Backend changes (→ `/src/`)
-- ❌ API implementation (→ `/src/routes/`)
-
-**IMPORTANT**: Always update `openapi.yaml` BEFORE updating HTML docs!
+Companion artifacts: `bq/views/*.sql` (BigQuery views) and `extensions/*.env` (Firebase firestore→bigquery export configs). The optional Postgres audit trail lives in `src/engine/audit.js`.
 
 ---
 
-### 💾 /migrations/ - Database Migrations
-**Location**: `/migrations/`  
-**Context File**: `/migrations/FOLDER_CONTEXT.md`
+### 📚 /docs/ — Documentation Website
 
-**What's Here**: PostgreSQL migration scripts (sequential, numbered)
+- `index.html` — docs home (EN); `es/index.html` — docs home (ES)
+- `openapi.yaml` — **API spec, source of truth (v2.5.0)**
+- `api/index.html` (EN) + `api/es/index.html` (ES) — API reference
+- `sandbox/` — interactive testing UI (`index.html`, `js/`, `es/`)
+- `admin/` — admin console (dashboard, jobs, metrics)
+- `data/` — non-admin data console
+- `evidence/` — evidence browser
+- `knowledge-database/` — internal KB (`Articles/`, `Css/`, `Js/`, `Images/`)
 
-**Files**:
-1. **`001_init.sql`** - Initial schema (jobs, job_stages tables)
-2. **`002_views.sql`** - Analytical views
-3. **`003_alias_views.sql`** - Compatibility aliases
-4. **`004_reset_schema.sql`** - Reset script (DEV ONLY)
-5. **`005_ms_durations.sql`** - Millisecond precision
-6. **`006_job_stages_dedupe.sql`** - Deduplication fix
-
-**When to Work Here**:
-- ✅ Adding new tables/columns
-- ✅ Creating indexes
-- ✅ Modifying views
-
-**DO NOT Work Here For**:
-- ❌ Application logic (→ `/src/`)
-- ❌ In-memory queue (→ `/src/engine/queue.js`)
-
-**CRITICAL**: Always test migrations on copy of production data!
+**IMPORTANT:** Update `openapi.yaml` BEFORE the HTML docs. Keep EN/ES in parity.
 
 ---
 
-### 🔧 /scripts/ - Utility Scripts
-**Location**: `/scripts/`  
-**Context File**: `/scripts/FOLDER_CONTEXT.md`
+### 🔧 /scripts/ — Utility Scripts
 
-**What's Here**: Operational scripts for health, validation, maintenance
-
-**Files**:
-- **`healthcheck.sh`** - Docker health check
-- **`audit-smoke.js`** - Database smoke test
-- **`validate-jobs.mjs`** - Job data validation
-- **`validate-jobs-deep.mjs`** - Deep validation with DB cross-checks
-
-**When to Work Here**:
-- ✅ Adding operational tools
-- ✅ Creating validation scripts
-- ✅ Building maintenance utilities
-
-**DO NOT Work Here For**:
-- ❌ Bot logic (→ `/src/bots/`)
-- ❌ Core infrastructure (→ `/src/engine/`)
+- `healthcheck.sh` — Docker health check
+- `audit-smoke.js` — audit DB smoke test
+- `validate-jobs.mjs` / `validate-jobs-deep.mjs` — job data validation (deep = DB cross-checks)
+- `test-public-shape.sh` — public response-shape test
+- `test-scopes.mjs` — token scope tests
+- `setup-monitoring.sh` — monitoring setup
 
 ---
 
-### 📋 /examples/ - Integration Examples
-**Location**: `/examples/`  
-**Context File**: `/examples/FOLDER_CONTEXT.md`
+### 📋 /examples/ — Integration Examples
 
-**What's Here**: Example integrations and usage patterns
-
-**Files**:
-- **`curl.sh`** - Shell script with curl examples
-- **`forus-bot-n8n.json`** - n8n workflow template
-
-**When to Work Here**:
-- ✅ Adding integration examples
-- ✅ Creating SDK templates
-- ✅ Documenting common patterns
-
-**DO NOT Work Here For**:
-- ❌ Production code (→ `/src/`)
-- ❌ Tests (→ test directories in `/src/`)
+- `curl.sh` — curl examples for the API
+- `forus-bot-n8n.json` — n8n workflow template
+- `emailtrigger-year-end-notice.js` / `.sh` — year-end-notice email-trigger examples
 
 ---
 
-### 🧪 /forusall-portal-html-data/ - Test Fixtures
-**Location**: `/forusall-portal-html-data/`  
-**Context File**: `/forusall-portal-html-data/FOLDER_CONTEXT.md`
+### 🗺️ /GCP Implementation/ — Migration Planning
 
-**What's Here**: Saved HTML snapshots from ForUsAll portal
-
-**Structure**:
-```
-forusall-portal-html-data/
-└── plans data/
-    ├── Sample1.html    # Plan setup page
-    └── Sample2.html    # Alternative view
-```
-
-**Purpose**:
-- Selector development & testing
-- Extractor development (offline)
-- Debugging (compare HTML changes)
-- Testing without portal access
-- Onboarding reference
-
-**When to Work Here**:
-- ✅ Portal structure changes (save new snapshot)
-- ✅ Need more test examples
-- ✅ Adding new portal module snapshots
-
-**DO NOT Work Here For**:
-- ❌ Editing HTML content (read-only references)
-- ❌ Bot implementation (→ `/src/bots/`)
-
-**CRITICAL**: Always sanitize sensitive data before committing!
+Planning docs for the GCP migration: logging refactor, public-payload cleanup, infra provisioning, Firestore data layer, deploy/cutover, per-token scopes (`06-token-scopes/`), and Looker Studio dashboards. These are point-in-time planning artifacts, not runtime code.
 
 ---
 
-## 🧭 Quick Navigation Guide
+## 🧭 Quick Navigation — "I need to…"
 
-### "I need to..."
-
-#### Add a New Bot
-1. Read `/src/bots/FOLDER_CONTEXT.md`
-2. Create new folder in `/src/bots/`
-3. Add routes.js, controller.js, runFlow.js
-4. Register in `/src/routes/index.js`
-
-#### Update Portal Selectors
-1. Read `/src/providers/FOLDER_CONTEXT.md`
-2. Modify `/src/providers/forusall/config.js`
-3. Test with HTML fixtures in `/forusall-portal-html-data/`
-
-#### Add a Utility Function
-1. Read `/src/engine/utils/FOLDER_CONTEXT.md`
-2. Add to appropriate file in `/src/engine/utils/`
-3. Export function
-4. Use in bots
-
-#### Create a Data Extractor
-1. Read `/src/extractors/FOLDER_CONTEXT.md`
-2. Add module file in `/src/extractors/forusall-participant/modules/`
-3. Register in `registry.js`
-4. Test with HTML fixtures
-
-#### Update API Documentation
-1. Read `/docs/FOLDER_CONTEXT.md`
-2. Update `/docs/openapi.yaml` FIRST
-3. Update HTML docs in `/docs/api/`
-4. Update sandbox if needed
-
-#### Add Database Schema
-1. Read `/migrations/FOLDER_CONTEXT.md`
-2. Create new migration file (sequential number)
-3. Test on copy of production data
-4. Apply migration
-
-#### Debug Selector Issues
-1. Check `/forusall-portal-html-data/` for HTML fixtures
-2. Compare with live portal
-3. Update `/src/providers/forusall/config.js`
-4. Test with bot
-
----
-
-## 🎯 AI Agent Workflow
-
-### Step 1: Read This File (PROJECT_STRUCTURE.md)
-**Get oriented**: Understand where everything is
-
-### Step 2: Identify Target Folder(s)
-**Use the quick nav guide** above to find relevant folders
-
-### Step 3: Read Specific FOLDER_CONTEXT.md
-**Dive deep**: Read context file for folder you'll work in
-
-### Step 4: Implement Changes
-**Follow patterns**: Use examples from context file
-
-### Step 5: Test
-**Follow testing guidance**: From folder context file
+| Task | Go to |
+|------|-------|
+| Add a new bot | Create folder in `src/bots/` (routes/controller/runFlow), register in `src/routes/index.js` |
+| Update portal selectors | `src/providers/forusall/config.js` |
+| Add a shared utility | `src/engine/utils/` |
+| Create a data extractor | `src/extractors/.../modules/` + register in `registry.js` |
+| Change token roles/scopes | `src/auth/roles.js`, `src/auth/featureMap.js` |
+| Update API docs | `docs/openapi.yaml` FIRST, then `docs/api/` HTML (EN+ES) |
+| Change queue/concurrency | `src/engine/queue.js`, `src/engine/settings.js` |
+| Add API endpoint | `src/routes/index.js` (or a new router) |
 
 ---
 
 ## 📌 Critical Rules
 
-### ALWAYS Read Context Files First
-1. Read `PROJECT_STRUCTURE.md` (this file) for overview
-2. Read specific `FOLDER_CONTEXT.md` before touching any folder
-3. Never assume you know project structure
-
-### NEVER Modify Without Context
-- Don't change files without reading folder context
-- Don't add code without checking for existing utilities
-- Don't duplicate functionality
-
-### Respect Boundaries
-- Selectors ONLY in `/src/providers/forusall/config.js`
-- Bot logic ONLY in `/src/bots/`
-- Utilities ONLY in `/src/engine/utils/`
-- Extractors ONLY in `/src/extractors/`
-
-### Security
-- Never commit credentials
-- Never log sensitive data
-- Sanitize HTML fixtures before committing
-- Keep `tokens.json` gitignored
+- **Selectors** live only in `src/providers/forusall/config.js`.
+- **Login/OTP** always goes through `ensureAuthForTarget()` in `src/engine/auth/loginOtp.js`; never bypass the OTP mutex.
+- **Release pages** with `releasePage()` in a `finally` block.
+- **Never commit** `tokens.json`, `.env`, `.sessions`, or any credentials.
+- **OpenAPI first:** update `docs/openapi.yaml` before HTML docs.
 
 ---
 
-## 📊 Project Statistics
+## 📊 Project Stats
 
-- **Total Folders**: 14 major directories
-- **Context Files**: 14 comprehensive guides
-- **Bots**: 9 automation bots
-- **Extractors**: 12 data extraction modules (6 participant + 6 plan)
-- **Utilities**: 5 reusable helpers
-- **Documentation**: Multi-language (EN/ES)
-- **Lines of Code**: ~20,000+ (excluding node_modules)
+- **Bots:** 9
+- **HTTP endpoints:** 24 under `/forusbot` (see `docs/openapi.yaml`)
+- **Extractor modules:** 12 (6 participant + 6 plan)
+- **Engine utilities:** 5 (`select`, `verify`, `date`, `pdf`, `url`)
+- **Roles:** 6 (`admin`, `user`, `pa_lead`, `rm_lead`, `ops_lead`, `imp_lead`)
+- **Documentation:** bilingual (EN/ES)
 
 ---
 
 ## 🔗 Related Files
 
-- **`.cursor/rules/rules.mdc`** - Comprehensive development rules
-- **`CONTEXT_FILES_SUMMARY.md`** - Summary of all context files
-- **`README.md`** - Project overview
-- **`/docs/openapi.yaml`** - API specification
+- `.cursor/rules/rules.mdc` — development rules and conventions
+- `README.md` — project overview, endpoint table, changelog
+- `docs/openapi.yaml` — API specification (source of truth)
+- `src/engine/log-schema.md` — log record schema
 
 ---
 
-**Last Updated**: 2025-01-15  
-**Version**: 2.3.0  
-**Maintained By**: ForUsBots Team
-
+**Last Updated:** 2026-06-19
+**API Version:** 2.5.0

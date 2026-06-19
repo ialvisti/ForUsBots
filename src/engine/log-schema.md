@@ -23,13 +23,14 @@ job.accepted               job.started
 job.succeeded              job.failed              job.canceled
 job.summary
 stage.start                stage.succeed           stage.fail
-bot.error                  bot.<name>.<event>
+bot.<name>.<event>
 infra.startup              infra.shutdown          infra.exit
 infra.process_exit
 infra.unhandled_rejection  infra.uncaught_exception
 infra.server_error         infra.server_close_error
-db.error
+infra.secrets_load_error
 audit.<event>
+login.attempt
 route.<name>.<event>
 http.<endpoint>.<event>
 ```

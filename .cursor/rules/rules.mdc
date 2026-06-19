@@ -1,116 +1,38 @@
 ---
 alwaysApply: true
 ---
-## 🔍 CRITICAL: Project Structure & Folder Context Files
+## 🔍 Project Structure & Orientation
 
-### MANDATORY Reading Order for AI Agents
+### Read FIRST, Before Any Task
 
-**BEFORE starting ANY task, you MUST read files in this order:**
-
-#### Step 1: Read PROJECT_STRUCTURE.md (ALWAYS FIRST)
 **Location**: `/PROJECT_STRUCTURE.md`
 
-**Why**: This file provides a complete map of the entire project:
+This file is the single navigation map for the repository:
 - Overview of all folders and their purposes
-- Quick navigation guide ("I need to...")
+- Quick navigation guide ("I need to…")
 - Clear boundaries (what goes where)
-- Links to all FOLDER_CONTEXT.md files
+- Project stats (bots, endpoints, roles)
 
-**Action**: Read this FIRST to orient yourself and identify which folder(s) you need to work in.
+**Action**: Read `PROJECT_STRUCTURE.md` first to orient yourself and identify which folder(s) you need to work in. Then read the actual source files in that folder before changing them — never assume their contents.
 
-#### Step 2: Read Specific FOLDER_CONTEXT.md Files
-**Location**: Each directory has its own `FOLDER_CONTEXT.md`
+> Per-folder `FOLDER_CONTEXT.md` files were removed. `PROJECT_STRUCTURE.md` (folder map) + `README.md` (endpoint summary) + `docs/openapi.yaml` (API source of truth) are now the canonical orientation set. Do not recreate per-folder context files.
 
-**BEFORE making ANY changes to files in a directory, you MUST:**
+### Canonical Reference Files
 
-1. **Check for `FOLDER_CONTEXT.md`** in that directory
-2. **Read the entire context file** to understand:
-   - What the folder contains
-   - The role of code in that folder
-   - When to modify vs when NOT to modify
-   - Dependencies and patterns
-   - Best practices specific to that folder
-
-### Project Navigation Files
-
-**Master Map (Read FIRST)**:
-- `/PROJECT_STRUCTURE.md` - Complete project map with quick navigation guide
-
-**Folder Context Files (Read for specific folders)**:
-Every major folder has a `FOLDER_CONTEXT.md` file:
-- `/FOLDER_CONTEXT.md` - Root directory context
-- `/src/FOLDER_CONTEXT.md` - Source root context
-- `/src/bots/FOLDER_CONTEXT.md` - All bots overview
-- `/src/engine/FOLDER_CONTEXT.md` - Core infrastructure
-- `/src/engine/utils/FOLDER_CONTEXT.md` - Utility functions
-- `/src/extractors/FOLDER_CONTEXT.md` - Data extraction modules
-- `/src/providers/FOLDER_CONTEXT.md` - Provider configuration
-- `/src/middleware/FOLDER_CONTEXT.md` - Express middleware
-- `/src/routes/FOLDER_CONTEXT.md` - API routes
-- `/docs/FOLDER_CONTEXT.md` - Documentation website
-- `/migrations/FOLDER_CONTEXT.md` - Database migrations
-- `/scripts/FOLDER_CONTEXT.md` - Utility scripts
-- `/examples/FOLDER_CONTEXT.md` - Integration examples
-- `/forusall-portal-html-data/FOLDER_CONTEXT.md` - Portal HTML fixtures
+- `/PROJECT_STRUCTURE.md` — complete folder map and quick navigation
+- `/README.md` — project overview, endpoint table, changelog
+- `/docs/openapi.yaml` — API specification (source of truth)
+- `/src/engine/log-schema.md` — structured-log record schema
 
 ### Why This Matters
 
-Reading folder context **PREVENTS**:
+Orienting yourself first **PREVENTS**:
 - ❌ Modifying files in wrong directories
 - ❌ Breaking existing functionality
-- ❌ Violating project patterns
+- ❌ Duplicating existing utilities (e.g., re-implementing helpers in `src/engine/utils/`)
 - ❌ Creating circular dependencies
-- ❌ Duplicating existing utilities
 
-Reading folder context **ENSURES**:
-- ✅ Changes go in correct locations
-- ✅ Consistent code patterns
-- ✅ Proper use of existing utilities
-- ✅ Understanding of dependencies
-- ✅ Compliance with best practices
-
-### Workflow Example
-
-```
-Task: "Add validation for email field in census data"
-
-STEP 1: Read PROJECT_STRUCTURE.md
-- Get overview of project layout
-- Use "Quick Navigation Guide" to identify target folders
-  → Need to work in: /src/extractors/ and possibly /src/engine/utils/
-
-STEP 2: Read specific context files
-- Read /src/extractors/FOLDER_CONTEXT.md
-  → Understand extractors are for data parsing
-  → census.js is correct location
-- Read /src/engine/utils/FOLDER_CONTEXT.md
-  → Check if email validation utility exists
-
-STEP 3: Implement
-- If email util exists: Use it
-- If not: Add to /src/engine/utils/ (NOT in extractor)
-
-STEP 4: Test
-- Follow testing guidance from context files
-```
-
-### **NEVER Skip This Step**
-
-These files are optimized for AI understanding. They provide:
-- **PROJECT_STRUCTURE.md**: Birds-eye view, quick navigation, folder map
-- **FOLDER_CONTEXT.md**: Clear boundaries, dependencies, patterns, examples, testing
-
-**If you skip reading these files, you WILL:**
-- Make changes in wrong files
-- Break existing functionality
-- Duplicate existing utilities
-- Violate project patterns
-- Create circular dependencies
-- Require extensive rework
-
-**Reading Order is CRITICAL:**
-1. 🗺️ PROJECT_STRUCTURE.md → Understand WHERE to work
-2. 📁 FOLDER_CONTEXT.md → Understand HOW to work
+…and **ENSURES** changes land in the right place, follow existing patterns, and reuse existing utilities.
 
 ---
 
@@ -136,32 +58,45 @@ These files are optimized for AI understanding. They provide:
 ### File Organization
 ```
 src/
-├── bots/                       # Each bot has routes.js, controller.js, runFlow.js
+├── bots/                       # 9 bots; each has routes.js, controller.js, runFlow.js
 │   ├── forusall-upload/
 │   ├── forusall-scrape-participant/
+│   ├── forusall-scrape-plan/
+│   ├── forusall-search-participants/
 │   ├── forusall-mfa-reset/
-│   └── ...
+│   ├── forusall-update-participant/
+│   ├── forusall-update-plan/           # restricted (restrictToEmails)
+│   ├── forusall-emailtrigger/          # has flows/ per email type
+│   └── forusall-usersmanagement/       # restricted; has web/ HTML refs
+├── auth/                       # Token authorization engine
+│   ├── roles.js                # Roles + default denied features
+│   ├── featureMap.js           # method+path → feature
+│   ├── scopes.js               # Scope resolution + scopeToJSON
+│   └── account.js              # Per-token portal account
 ├── engine/                     # Core automation infrastructure
-│   ├── auth/loginOtp.js        # Centralized login + OTP logic
+│   ├── auth/loginOtp.js        # Centralized login + OTP (ensureAuthForTarget)
 │   ├── browser.js              # Chromium launch/context creation
 │   ├── queue.js                # Job queue, concurrency, metrics
 │   ├── sessions.js             # StorageState persistence
 │   ├── sharedContext.js        # Page pooling, keep-alive, asset blocking
 │   ├── evidence.js             # Screenshot utilities
-│   ├── logger.js               # Structured logging
+│   ├── logger.js / log-context.js  # Structured logging + correlation IDs
 │   ├── settings.js             # Runtime settings (concurrency, flags)
+│   ├── audit.js                # Optional Postgres audit trail
 │   └── utils/                  # Helpers (select, verify, pdf, date, url)
-├── extractors/                 # Data extraction from participant pages
-│   └── forusall-participant/
-│       ├── modules/            # Per-module extractors (census, loans, payroll, etc.)
-│       └── registry.js         # Extractor registration
+├── extractors/                 # Data extraction from portal pages
+│   ├── forusall-participant/   # modules/, registry.js, utils.js
+│   └── forusall-plan/          # modules/, registry.js, utils.js
 ├── providers/                  # Provider-specific config (URLs, selectors)
 │   └── forusall/
-│       ├── config.js           # Hardcoded URLs & selectors
-│       └── participantMap.js   # Field/module mappings
-├── middleware/                 # Express middleware (auth)
-├── routes/                     # API routes
+│       ├── config.js           # URLs & selectors (source of truth)
+│       ├── participantMap.js   # Participant module specs
+│       └── planMap.js          # Plan module specs
+├── middleware/                 # auth, requireScope, restrictToEmails, public-*, request-log
+├── routes/                     # API routes (index.js + admin/articles routers)
+├── db/                         # Firestore + BigQuery clients
 ├── config.js                   # ENV-based config (SITE_USER, TOTP_SECRET, etc.)
+├── secrets.js                  # Secret resolution (env / Secret Manager)
 ├── server.js                   # Express app setup
 └── index.js                    # Entry point (HTTP server + signal handlers)
 ```
@@ -571,7 +506,7 @@ TOTP_STEP_SECONDS=30
 
 ### OpenAPI Spec
 - Source of truth: `docs/openapi.yaml`
-- Version: 2.2.0
+- Version: 2.5.0
 - Exposed at `GET /forusbot/openapi` (admin only)
 
 ### Static Docs
@@ -580,8 +515,9 @@ TOTP_STEP_SECONDS=30
 - Sandbox UI: `/docs/sandbox` (with live testing)
 
 ### Sandbox UI
-- **NO** "Try it out" button (static reference only)
-- Generate example requests (curl, JS fetch)
+- Interactive: builds and **sends** real requests (per-endpoint handlers under `docs/sandbox/js/endpoints/`)
+- Generates example snippets (curl, JS fetch) alongside live execution
+- Reads the token's effective scope (`whoami`) to grey out denied options
 - Mask tokens in snippets (`****...last4`)
 
 ---
@@ -599,9 +535,12 @@ TOTP_STEP_SECONDS=30
 - Secrets via ENV vars (never in image)
 - Evidence dir: `/tmp/evidence` (ephemeral or mounted volume)
 
-### Migrations
-- SQL migrations in `migrations/` (if using PostgreSQL)
-- Apply in order: `001_init.sql`, `002_views.sql`, etc.
+### Data Layer
+- Jobs/metrics persistence via Firestore + BigQuery clients in `src/db/`
+- BigQuery analytical views in `bq/views/*.sql` (apply with `bq/apply-views.sh`)
+- Firestore→BigQuery export configured via Firebase extensions in `extensions/*.env`
+- Optional PostgreSQL audit trail in `src/engine/audit.js` (enabled by `AUDIT_DB=1` + `DATABASE_URL`)
+- There is no `migrations/` directory in this repo
 
 ---
 
@@ -780,6 +719,8 @@ const evidence = await saveEvidence(page, 'screenshot-tag', {
 
 ## Version History
 
+- **2.5.0**: Added users-management (create/edit + optional Reset MFA) and its sandbox dry-runs; registered `users-management` scope feature
+- **2.3.0**: Added scrape-plan, update-participant, email-trigger; expanded OpenAPI coverage
 - **2.2.0**: Added scrape-participant, search-participants, mfa-reset, sandbox dry-run
 - **2.1.0**: Improved OTP robustness, session persistence, page pooling
 - **2.0.0**: Migrated to Express 5.x, added audit DB, structured logging

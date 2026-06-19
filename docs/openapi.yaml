@@ -213,7 +213,7 @@ paths:
                     email:       { type: string, nullable: true }
                     ssn:         { type: string, nullable: true, description: "last 4" }
                     phone:       { type: string, nullable: true }
-                    participantId:{ type: string, nullable: true }
+                    participantId: { type: string, nullable: true }
                 options:
                   type: object
                   properties:
@@ -261,7 +261,7 @@ paths:
     post:
       summary: Dry-run validator for upload headers/body
       description: |
-        Validates x-filename and x-meta without creating a job. Accepts .pdf, .xlsx, .xls, .csv files.
+        Validates x-filename and x-meta without creating a job. Accepts .pdf files only.
       requestBody:
         required: false
         content:
@@ -269,18 +269,12 @@ paths:
             schema: { type: string, format: binary }
           application/pdf:
             schema: { type: string, format: binary }
-          application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-            schema: { type: string, format: binary }
-          application/vnd.ms-excel:
-            schema: { type: string, format: binary }
-          text/csv:
-            schema: { type: string, format: binary }
       parameters:
         - in: header
           name: x-filename
           schema: { type: string }
           required: true
-          description: Must end with .pdf, .xlsx, .xls, or .csv
+          description: Must end with .pdf
         - in: header
           name: x-meta
           schema: { type: string }
@@ -584,7 +578,7 @@ paths:
     post:
       summary: Accept a new upload job (202 Accepted)
       description: |
-        Uploads a document to the ForUsAll portal. Supports PDF, Excel (.xlsx, .xls), and CSV files.
+        Uploads a document to the ForUsAll portal. Supports PDF, Excel (.xlsx, .xls), CSV, and ZIP files.
       parameters:
         - in: header
           name: x-auth-token
@@ -594,7 +588,7 @@ paths:
           name: x-filename
           schema: { type: string }
           required: true
-          description: Must end with .pdf, .xlsx, .xls, or .csv
+          description: Must end with .pdf, .xlsx, .xls, .csv, or .zip
         - in: header
           name: x-meta
           schema: { type: string }
@@ -611,6 +605,8 @@ paths:
           application/vnd.ms-excel:
             schema: { type: string, format: binary }
           text/csv:
+            schema: { type: string, format: binary }
+          application/zip:
             schema: { type: string, format: binary }
       responses:
         '202': { description: Accepted (returns jobId and estimate) }

@@ -271,6 +271,36 @@
               <a href="/docs/api/es#emailtrigger">Leer docs →</a>
             </p>
           </div>
+
+          <!-- NUEVO: Update Plan (RESTRINGIDO) -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/update-plan</code></strong>
+            </div>
+            <p class="muted">
+              RESTRINGIDO. Actualiza campos de configuración del plan. 202 Accepted
+              con jobId. Hay un validador dry-run disponible en
+              <code>/forusbot/sandbox/update-plan</code>.
+            </p>
+            <p class="small"><a href="/docs/api/es#update-plan">Leer docs →</a></p>
+          </div>
+
+          <!-- NUEVO: Users Management (RESTRINGIDO) -->
+          <div class="card">
+            <div class="small">
+              <strong>POST <code>/forusbot/users-management/create</code></strong>
+              <br />
+              <strong>POST <code>/forusbot/users-management/edit</code></strong>
+            </div>
+            <p class="muted">
+              RESTRINGIDO. Crea o edita usuarios del portal; edit admite el campo
+              opcional <code>resetMfa</code> (employer|admin|both|none). 202 Accepted
+              con jobId. Validadores dry-run en
+              <code>/forusbot/sandbox/users-management/create</code> y
+              <code>/forusbot/sandbox/users-management/edit</code>.
+            </p>
+            <p class="small"><a href="/docs/api/es#users-management-create">Leer docs →</a></p>
+          </div>
         </div>
       </section>
 
@@ -789,23 +819,61 @@
         <p><a href="/docs/api/es#emailtrigger">Ver referencia completa →</a></p>
       </section>
 
+      <!-- Update Plan -->
+      <section id="bot-update-plan">
+        <h3>Update Plan Bot (RESTRINGIDO)</h3>
+        <p>
+          Actualiza campos de configuración del plan en el portal de empleadores
+          de ForUsAll. Devuelve <code>202 Accepted</code> con <code>jobId</code>.
+          El acceso está restringido por lista de correos permitidos (actualmente
+          <code>ivan.alvis@forusall.com</code>). Hay un validador dry-run
+          disponible en <code>POST /forusbot/sandbox/update-plan</code>.
+        </p>
+        <h4>Endpoint</h4>
+        <p><code>POST /forusbot/update-plan</code> (auth, RESTRINGIDO)</p>
+        <p><a href="/docs/api/es#update-plan">Ver referencia completa →</a></p>
+      </section>
+
+      <!-- Users Management -->
+      <section id="bot-users-management">
+        <h3>Users Management Bot (RESTRINGIDO)</h3>
+        <p>
+          Crea y edita usuarios del portal. La edición admite un campo opcional
+          <code>resetMfa</code> (<code>employer</code>, <code>admin</code>,
+          <code>both</code> o <code>none</code>). Devuelve
+          <code>202 Accepted</code> con <code>jobId</code>. El acceso está
+          restringido por lista de correos permitidos (actualmente
+          <code>ivan.alvis@forusall.com</code> y
+          <code>sponsorservicesbot@forusall.com</code>). Hay validadores dry-run
+          disponibles en <code>POST /forusbot/sandbox/users-management/create</code>
+          y <code>POST /forusbot/sandbox/users-management/edit</code>.
+        </p>
+        <h4>Endpoints</h4>
+        <p>
+          <code>POST /forusbot/users-management/create</code> (auth, RESTRINGIDO)<br />
+          <code>POST /forusbot/users-management/edit</code> (auth, RESTRINGIDO)
+        </p>
+        <p><a href="/docs/api/es#users-management-create">Ver referencia completa →</a></p>
+      </section>
+
       <section id="jobs">
-        <h2>Jobs API — estados y campos</h2>
+        <h2>Jobs API — shape público</h2>
         <ul class="list">
           <li>
             <strong>Estados</strong>: <code>queued</code>, <code>running</code>,
             <code>succeeded</code>, <code>failed</code>, <code>canceled</code>.
           </li>
           <li>
-            <strong>Campos</strong>: <code>jobId</code>, <code>botId</code>,
-            <code>meta</code>, <code>acceptedAt</code>, <code>startedAt</code>,
-            <code>finishedAt</code>, <code>result</code>, <code>error</code>.
+            <strong>Campos</strong>: sólo <code>state</code> para queued/running/canceled;
+            <code>state + error</code> en failed; <code>state + data + warnings + errors</code>
+            en succeeded. No se exponen <code>jobId</code>, <code>botId</code>, <code>meta</code>,
+            <code>stages</code>, <code>createdBy</code> ni métricas de ejecución.
           </li>
           <li>
-            <strong>Métricas de ejecución</strong>: en cola →
-            <code>waitingSeconds</code> y <code>position</code>; ejecutando →
-            <code>elapsedSeconds</code> y etapa; terminado →
-            <code>totalSeconds</code>.
+            <code>data</code> depende del bot (p. ej. scrape-participant devuelve
+            <code>{participantId, census?, savings_rate?, ...}</code>). Para forensics
+            detallado con stages, eco de meta, timestamps y métricas, usa
+            <code>GET /forusbot/admin/jobs-db/:id</code> (solo admin).
           </li>
         </ul>
       </section>
@@ -845,20 +913,25 @@
   "capacitySnapshot": { ... }
 }</code></pre>
 
-        <h3>Job (GET /jobs/:id)</h3>
-        <pre><code>{
-  "ok": true,
-  "jobId": "...",
-  "state": "running|...|failed",
-  "error": null | "mensaje",
-  "result": null | {...},
-  "waitingSeconds"?: 4,
-  "position"?: 1,
-  "elapsedSeconds"?: 8,
-  "stage"?: "login|otp|...|done",
-  "stageSeconds"?: 2,
-  "totalSeconds"?: 117
-}</code></pre>
+        <h3>Job (GET /jobs/:id) — shape público</h3>
+        <pre><code>// queued / running / canceled
+{ "state": "queued" }
+
+// failed
+{
+  "state": "failed",
+  "error": { "code": "ERROR", "message": "Login failed" }
+}
+
+// succeeded — el shape de `data` depende del bot
+{
+  "state": "succeeded",
+  "data": { "participantId": "158948", "census": { ... } },
+  "warnings": [],
+  "errors": []
+}
+
+// Para verbose: GET /forusbot/admin/jobs-db/:id (solo token admin)</code></pre>
       </section>
 
       <section id="examples">
@@ -892,6 +965,14 @@ curl -sS -X POST https://TU_URL/forusbot/vault-file-upload \
           <h3>Cancelar un job en cola</h3>
           <pre><code>curl -sS -X DELETE -H 'x-auth-token: TU_TOKEN' \
   https://TU_URL/forusbot/jobs/JOB_ID</code></pre>
+        </div>
+
+        <div class="card spacey">
+          <h3>Cambiar visibilidad de status</h3>
+          <pre><code>curl -sS -X PATCH https://TU_URL/forusbot/settings \
+  -H 'x-auth-token: TU_TOKEN' \
+  -H 'Content-Type: application/json' \
+  -d '{"flags":{"statusPublic":false}}'</code></pre>
         </div>
       </section>
 
