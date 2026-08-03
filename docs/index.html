@@ -12,17 +12,18 @@
       <div class="wrap header-row">
         <h1>ForUsBots — API Docs</h1>
         <nav class="topnav">
+          <a href="/docs" aria-current="page">Docs</a>
+          <a href="/docs/api">API Reference</a>
+          <a href="/docs/sandbox">Sandbox</a>
           <a href="#overview">Overview</a>
-          <a href="#base">Base URLs</a>
           <a href="#auth">Auth</a>
           <a href="#endpoints">Endpoints</a>
+          <a href="#jobs">Jobs</a>
           <a href="#schemas">Schemas</a>
           <a href="#examples">Examples</a>
           <a href="#env">Env</a>
-          <a href="#evidence">Evidence</a>
           <a href="#errors">Errors</a>
           <a href="#openapi">OpenAPI</a>
-          <a href="/docs/api">API</a>
 
           <span class="spacer"></span>
           <div class="lang-switch">
@@ -40,14 +41,14 @@
       <section id="overview">
         <h2>Overview</h2>
         <p>
-          This service automates portal actions (currently: ForUsAll employer
-          portal document uploads) using Playwright. The server logs in (TOTP
-          when required), fills the upload form, submits the file, and can store
-          screenshots as evidence. A single HTTP API accepts the binary file
-          plus minimal metadata (<code>x-meta</code>) and returns a
-          <em>202 Accepted</em> with a <code>jobId</code>.
+          ForUsBots exposes nine Playwright automation bots for vault uploads,
+          participant and plan scraping, participant search, MFA reset,
+          participant and plan updates, email triggers, and portal user
+          management. Protected operations use token-specific portal accounts,
+          TOTP when required, and an asynchronous <code>202 + jobId</code>
+          workflow.
         </p>
-        <p class="small">Docs updated: 2025-08-20</p>
+        <p class="small">Docs audited: 2026-07-16 · API v2.5.0</p>
       </section>
 
       <section id="base">
@@ -67,15 +68,28 @@
       <section id="auth">
         <h2>Authentication</h2>
         <p>
-          Protected routes require header <code>x-auth-token</code> equal to
-          server env <code>SHARED_TOKEN</code>. Missing/invalid token →
-          <code>401</code>.
+          Protected routes accept <code>x-auth-token</code> or
+          <code>Authorization: Bearer …</code>. Tokens are defined in the
+          gitignored <code>tokens.json</code> registry (or
+          <code>TOKENS_FILE</code>). A deployment may materialize that file
+          from the <code>TOKENS_JSON</code> secret. Missing or unknown tokens
+          return <code>401</code>.
         </p>
-        <pre><code>x-auth-token: dev-secret</code></pre>
+        <pre><code>x-auth-token: YOUR_TOKEN</code></pre>
+        <p>
+          Roles are <code>admin</code>, <code>user</code>,
+          <code>pa_lead</code>, <code>rm_lead</code>,
+          <code>ops_lead</code>, and <code>imp_lead</code>. Effective scope
+          merges role defaults with token-level <code>deniedFeatures</code>,
+          <code>deniedEndpoints</code>, and <code>allowedEndpoints</code>;
+          an exact allow overrides denies. Inspect the resolved identity,
+          account alias, and scope with <code>GET /forusbot/whoami</code>.
+        </p>
         <p class="small muted">
-          By default, <code>/forusbot/status</code> is public. You can require
-          auth by toggling <code>flags.statusPublic</code> via
-          <code>PATCH /forusbot/settings</code>.
+          Locks, settings, metrics, version, and served OpenAPI are admin-only.
+          Update-plan and users-management also use email allowlists; being an
+          admin does not bypass those restrictions. Status depends on runtime
+          flags.
         </p>
       </section>
 
@@ -114,8 +128,8 @@
               <li>
                 <strong>Headers</strong>: <code>x-auth-token</code> (req),
                 <code>x-filename</code> (req), <code>x-meta</code> (JSON, req),
-                <code>Content-Type</code>=<code>application/octet-stream</code>
-                or <code>application/pdf</code>
+                and a content type matching PDF, Excel, CSV, ZIP, or
+                <code>application/octet-stream</code>
               </li>
               <li><strong>Body</strong>: raw file bytes</li>
             </ul>
@@ -124,7 +138,7 @@
           <div class="card">
             <div class="small"><strong>GET /forusbot/jobs</strong></div>
             <p class="muted">List job records with filters (requires auth).</p>
-            <pre><code>GET /forusbot/jobs?state=queued&botId=forusall&limit=50&offset=0</code></pre>
+            <pre><code>GET /forusbot/jobs?state=queued&botId=scrape-plan&limit=50&offset=0</code></pre>
           </div>
 
           <div class="card">
@@ -186,8 +200,8 @@ x-auth-token: ...
               >
             </div>
             <p class="muted">
-              Dry-run validator for uploads. Validates headers/body without
-              creating a job.
+              Public PDF-only dry-run validator. Validates headers/body without
+              creating a job or launching Playwright.
             </p>
             <p class="small">
               <a href="/docs/api#sandbox-upload">Read docs →</a>
@@ -316,7 +330,7 @@ x-auth-token: ...
       <section id="bot-vault-file-upload">
         <h3>Vault File Upload Bot</h3>
         <p>
-          Automates secure PDF uploads to the ForUsAll Employer Portal. Accepts
+          Automates secure uploads to the ForUsAll Employer Portal. Accepts
           a binary body and metadata in headers; returns
           <code>202 Accepted</code> with a <code>jobId</code> for polling.
         </p>
@@ -343,7 +357,7 @@ x-auth-token: ...
               <td><code>x-filename</code></td>
               <td>string</td>
               <td>yes</td>
-              <td>Original filename. Supports <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>.</td>
+              <td>Original filename. Supports <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, and <code>.zip</code>.</td>
             </tr>
             <tr>
               <td><code>x-meta</code></td>
@@ -361,13 +375,14 @@ x-auth-token: ...
               <td>
                 <code>application/pdf</code>, <code>application/octet-stream</code>, 
                 <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code>, 
-                <code>application/vnd.ms-excel</code>, or <code>text/csv</code>.
+                <code>application/vnd.ms-excel</code>, <code>text/csv</code>,
+                or <code>application/zip</code>.
               </td>
             </tr>
           </tbody>
         </table>
         <h4>Body</h4>
-        <p>Binary file (PDF, Excel, or CSV).</p>
+        <p>Binary file (PDF, Excel, CSV, or ZIP). The public dry-run remains PDF-only.</p>
         <h4>Responses</h4>
         <ul>
           <li>
@@ -447,8 +462,8 @@ x-auth-token: ...
               <td>array</td>
               <td>no</td>
               <td>
-                List of module descriptors (e.g.,
-                <code>[{"name":"profile"}]</code>).
+                Module keys or descriptors, e.g.
+                <code>["census",{"key":"payroll","fields":["Latest Payroll","years:2026"]}]</code>.
               </td>
             </tr>
           </tbody>
@@ -458,7 +473,7 @@ x-auth-token: ...
           class="code"
         ><code>curl -X POST "$BASE/forusbot/scrape-participant" \
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
-  -d '{"participantId":"12345","return":"data","strict":true,"modules":[{"name":"profile"}]}'</code></pre>
+  -d '{"participantId":"12345","return":"data","strict":true,"modules":["census",{"key":"payroll","fields":["Latest Payroll","years:2026"]}]}'</code></pre>
         <p><a href="/docs/api#scrape-participant">Read full reference →</a></p>
       </section>
 
@@ -718,7 +733,7 @@ x-auth-token: ...
               <td><code>updates</code></td>
               <td>object</td>
               <td>yes</td>
-              <td>Fields to update (firstName, lastName, hireDate, address, etc.)</td>
+              <td>Exact Census UI labels such as <code>First Name</code>, <code>Hire Date</code>, and <code>Address 1</code>.</td>
             </tr>
             <tr>
               <td><code>options</code></td>
@@ -730,14 +745,20 @@ x-auth-token: ...
         </table>
         <h4>Available Update Fields</h4>
         <p class="muted">
-          firstName, lastName, eligibilityStatus (A/D/I/X/U), birthDate, hireDate, 
-          terminationDate, address1, address2, city, state, zipcode, email, phone, and more.
-          All dates must be in YYYY-MM-DD format.
+          <code>First Name</code>, <code>Last Name</code>,
+          <code>Preferred First Name</code>, <code>Preferred Last Name</code>,
+          <code>Eligibility Status</code> (A/D/I/X/U), <code>Birth Date</code>,
+          <code>Hire Date</code>, <code>Rehire Date</code>,
+          <code>Termination Date</code>, <code>Projected Plan Entry Date</code>,
+          <code>Address 1</code>, <code>Address 2</code>, <code>City</code>,
+          <code>State</code>, <code>Zip Code</code>, <code>Primary Email</code>,
+          <code>Home Email</code>, and <code>Phone</code>. Labels are
+          case-sensitive; internal camelCase names are not accepted.
         </p>
         <h4>Quick cURL</h4>
         <pre class="code"><code>curl -X POST "$BASE/forusbot/update-participant" \
   -H "x-auth-token: &lt;TOKEN&gt;" -H "Content-Type: application/json" \
-  -d '{"participantId":"12345","note":"Correcting hire date","updates":{"hireDate":"2024-01-15"}}'</code></pre>
+  -d '{"participantId":"12345","note":"Correcting hire date","updates":{"Hire Date":"2024-01-15","State":"CA"}}'</code></pre>
         <p><a href="/docs/api#update-participant">Read full reference →</a></p>
       </section>
 
@@ -971,7 +992,7 @@ curl -sS -X POST https://YOUR_URL/forusbot/vault-file-upload \
         <h2>Environment & Defaults</h2>
         <pre><code># Required
 PORT=10000
-SHARED_TOKEN=dev-secret
+TOKENS_FILE=tokens.json     # optional path override
 
 # Portal credentials
 SITE_USER=...
@@ -988,12 +1009,13 @@ ESTIMATE_AVG_WINDOW=10
 EVIDENCE_DIR=/tmp/evidence
 
 # Playwright
-HEADFUL=0             # 0=headless (recommended in cloud), 1=show browser locally
-SLOWMO=0              # ms per action when HEADFUL=1
+HEADLESS=1            # preferred: 1=headless, 0=headed
+HEADFUL=0             # legacy fallback only when HEADLESS is unset
+SLOWMO=0              # ms per action
 CLOSE_KILL_MS=1500</code></pre>
         <p class="small muted">
-          The code uses <code>HEADFUL</code> (not <code>HEADLESS</code>). In
-          production set <code>HEADFUL=0</code>.
+          <code>HEADLESS</code> takes precedence. If neither variable is set,
+          Chromium runs headless.
         </p>
       </section>
 
@@ -1037,11 +1059,10 @@ CLOSE_KILL_MS=1500</code></pre>
         <h2>Changelog</h2>
         <ul class="list">
           <li>
-            <strong>2025-08-20</strong> — Namespaced <code>/forusbot</code>,
-            added <code>/jobs</code> list & cancel,
-            <code>/settings</code> (GET/PATCH), <code>/locks</code>,
-            <code>/metrics</code>, <code>/version</code>, <code>/openapi</code>;
-            docs updated for <code>HEADFUL</code>.
+            <strong>2026-07-16</strong> — Audited all nine bots; aligned
+            update-participant with exact Census labels; corrected tokens,
+            roles/scopes, admin permissions, public job shapes, ZIP/PDF-only
+            upload behavior, examples, links, and <code>HEADLESS</code>.
           </li>
         </ul>
       </section>

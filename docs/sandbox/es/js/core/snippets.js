@@ -17,8 +17,6 @@ export function buildSnippets(
 
   // helpers to safely inline JSON
   const escShell = (s) => s.replace(/'/g, `'\\''`);
-  const escJs = (s) =>
-    s.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/'/g, "\\'");
   const escPy = (s) => s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
   // cURL
@@ -51,28 +49,38 @@ export function buildSnippets(
     )}'`;
   }
 
-  // Node
+  // Node: literales JSON evitan convertir valores de solicitud en código.
+  const js = (value) => JSON.stringify(String(value));
   let node = `// Node.js 18+
-const base='${base}';
-const token='${tokLiteral}';
-const res = await fetch(base + '${url}', {
-  method: '${ep.method}',
-  headers: {${
+const token = process.env.FORUSBOTS_TOKEN || ${js(tokLiteral)};
+
+async function main() {
+  const base = ${js(base)};
+  const path = ${js(url)};
+  const res = await fetch(base + path, {
+    method: ${js(ep.method)},
+    headers: {${
     isUpload
       ? `\n    'Content-Type': 'application/octet-stream',`
       : `\n    'Content-Type': 'application/json',`
   }${ep.needs?.token ? `\n    'x-auth-token': token,` : ""}${
-    ep.needs?.xfilename ? `\n    'x-filename': '${fileName}',` : ""
-  }${ep.needs?.meta ? `\n    'x-meta': JSON.stringify(${metaStr}),` : ""}
-  },${
+    ep.needs?.xfilename ? `\n    'x-filename': ${js(fileName)},` : ""
+  }${ep.needs?.meta ? `\n    'x-meta': ${js(metaStr)},` : ""}
+    },${
     isUpload
-      ? `\n  body: require('node:fs').readFileSync('./${fileName}')`
+      ? `\n    body: require('node:fs').readFileSync(${js(`./${fileName}`)})`
       : isJsonWithBody
-      ? `\n  body: '${escJs(jsonBodyStr)}'`
-      : `\n  body: undefined`
+      ? `\n    body: ${js(jsonBodyStr)}`
+      : `\n    body: undefined`
   }
-});
-console.log(res.status, await res.text());`;
+  });
+  console.log(res.status, await res.text());
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});`;
 
   // Python
   let py = `# Python 3 + requests

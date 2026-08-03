@@ -8,6 +8,7 @@ export function validateBasicsForRun({
   xFilename,
   metaStr,
   pdfFile,
+  jobId,
 }) {
   const base = (baseUrl.value || window.location.origin).replace(/\/$/, "");
   const headers = {};
@@ -16,7 +17,8 @@ export function validateBasicsForRun({
   headers["Content-Type"] =
     ep.group === "upload" ? "application/octet-stream" : "application/json";
 
-  const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+  const allowedExts = new Set(ep.allowedExts || [".pdf"]);
+  const allowedList = Array.from(allowedExts).join(", ");
   const getExt = (name) => {
     const m = String(name || "")
       .trim()
@@ -30,6 +32,10 @@ export function validateBasicsForRun({
     headers["x-auth-token"] = (token.value || "").trim();
   }
 
+  if (ep.needs.jobId && !String(jobId?.value || "").trim()) {
+    throw new Error("jobId is required for this endpoint.");
+  }
+
   let xf = "";
   let xfExt = "";
   if (ep.needs.xfilename) {
@@ -39,12 +45,12 @@ export function validateBasicsForRun({
     xfExt = getExt(xf);
     if (!xfExt) {
       throw new Error(
-        "x-filename must include an extension. Allowed: .pdf, .xlsx, .csv, .xls."
+        `x-filename must include an extension. Allowed: ${allowedList}.`
       );
     }
-    if (!ALLOWED_EXTS.has(xfExt)) {
+    if (!allowedExts.has(xfExt)) {
       throw new Error(
-        "Invalid x-filename extension. Allowed: .pdf, .xlsx, .csv, .xls."
+        `Invalid x-filename extension. Allowed: ${allowedList}.`
       );
     }
     headers["x-filename"] = xf;
@@ -79,9 +85,9 @@ export function validateBasicsForRun({
 
     if (file) {
       const fileExt = getExt(file.name);
-      if (!ALLOWED_EXTS.has(fileExt)) {
+      if (!allowedExts.has(fileExt)) {
         throw new Error(
-          "Selected file type is not allowed. Allowed: .pdf, .xlsx, .csv, .xls."
+          `Selected file type is not allowed. Allowed: ${allowedList}.`
         );
       }
       // If x-filename is provided, ensure its extension matches the selected file's extension

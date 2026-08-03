@@ -23,6 +23,59 @@ const GENERIC_KINDS = [
   "other",
 ];
 
+export function validateEmailBody(body) {
+  const planId = Number(body.planId);
+  const emailType = String(body.emailType || "").trim();
+  if (!Number.isFinite(planId) || planId <= 0)
+    throw new Error("planId is required and must be greater than 0.");
+  if (!emailType) throw new Error("emailType is required.");
+  if (!ALLOWED_TYPES.includes(emailType))
+    throw new Error(`Invalid emailType. Allowed: ${ALLOWED_TYPES.join(", ")}.`);
+
+  if (emailType === "statement_notice") {
+    const statement = body.statement || {};
+    const missing = ["year", "quarter", "season"].filter(
+      (key) => statement[key] === undefined
+    );
+    if (missing.length)
+      throw new Error(`statement is missing: ${missing.join(", ")}.`);
+  }
+
+  if (emailType === "sponsor_quarterly_email") {
+    const sponsor = body.sponsorQuarterly || {};
+    const required = [
+      "year", "quarter", "caNoteSubject", "caNoteDetails", "caUrl",
+      "quarterlyInvestmentReviewUrl", "nextReviewDate", "nextReviewTime",
+    ];
+    const missing = required.filter(
+      (key) => sponsor[key] == null || String(sponsor[key]).trim() === ""
+    );
+    if (missing.length)
+      throw new Error(`sponsorQuarterly is missing: ${missing.join(", ")}.`);
+  }
+
+  if (
+    emailType === "onboard_communications" &&
+    !body.onboardOrNewHire?.planSnapshot
+  ) {
+    throw new Error("onboardOrNewHire.planSnapshot is required.");
+  }
+
+  if (emailType === "generic_email") {
+    const subtype = body.genericEmail?.subType || {};
+    if (!GENERIC_KINDS.includes(String(subtype.kind || "")))
+      throw new Error(`Invalid generic subType.kind. Allowed: ${GENERIC_KINDS.join(", ")}.`);
+    if (subtype.kind === "other" && !subtype.otherText)
+      throw new Error("genericEmail.subType.otherText is required for kind 'other'.");
+    if (
+      ["onboard_communications", "new_hire_communications"].includes(subtype.kind) &&
+      !subtype.emailToSend
+    ) {
+      throw new Error("genericEmail.subType.emailToSend is required for this kind.");
+    }
+  }
+}
+
 export function wireEmailUI({ onChange }) {
   const emailTypeSelect = $("#emailType");
   const statementFields = $("#statementFields");

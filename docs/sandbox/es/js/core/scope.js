@@ -36,12 +36,18 @@ export function renderMeBanner(me) {
   const nameEl = document.getElementById("me-name");
   const roleEl = document.getElementById("me-role");
   const accEl = document.getElementById("me-account");
+  const miniNameEl = document.getElementById("meNameMini");
+  const miniRoleEl = document.getElementById("meRoleMini");
+  const miniAccountEl = document.getElementById("meAccountMini");
   if (!nameEl || !roleEl || !accEl) return;
 
   if (!me || !me.ok) {
     nameEl.textContent = STRINGS.anonymous;
     roleEl.textContent = "—";
     accEl.textContent = STRINGS.noAccount;
+    if (miniNameEl) miniNameEl.textContent = STRINGS.anonymous;
+    if (miniRoleEl) miniRoleEl.textContent = "—";
+    if (miniAccountEl) miniAccountEl.textContent = STRINGS.noAccount;
     return;
   }
   nameEl.textContent = me.user?.name || STRINGS.anonymous;
@@ -49,6 +55,9 @@ export function renderMeBanner(me) {
   accEl.textContent = me.accountAlias
     ? STRINGS.accountLabel(me.accountAlias)
     : STRINGS.noAccount;
+  if (miniNameEl) miniNameEl.textContent = nameEl.textContent;
+  if (miniRoleEl) miniRoleEl.textContent = roleEl.textContent;
+  if (miniAccountEl) miniAccountEl.textContent = accEl.textContent;
 }
 
 function originalLabel(optionEl) {
@@ -69,7 +78,10 @@ export function applyScopeToEndpointSelect(selectEl, me, ENDPOINTS) {
   const options = Array.from(selectEl.options);
   options.forEach(resetOption);
 
-  if (!me || !me.scope) return;
+  if (!me || !me.scope) {
+    selectEl.dispatchEvent(new Event("scopechange"));
+    return;
+  }
 
   const scope = me.scope;
   const deniedFeatures = new Set(scope.deniedFeatures || []);
@@ -106,4 +118,5 @@ export function applyScopeToEndpointSelect(selectEl, me, ENDPOINTS) {
       selectEl.dispatchEvent(new Event("change"));
     }
   }
+  selectEl.dispatchEvent(new Event("scopechange"));
 }

@@ -1,9 +1,15 @@
 :root {
   --fg: #0a0a0a;
-  --muted: #676b73;
+  --muted: #555b65;
   --line: #e7e7ea;
   --bg: #fff;
-  --chip: #f6f7f9
+  --surface: #fff;
+  --chip: #f6f7f9;
+  --link: #174ea6;
+  --focus: #1d4ed8;
+  --input-border: #c9cdd3;
+  --input-bg: #fff;
+  --text: var(--fg);
 }
 
 * {
@@ -14,7 +20,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #fff;
+  background: var(--bg);
   color: var(--fg);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"
 }
@@ -61,8 +67,22 @@ nav a {
   font-size: 14px
 }
 
-nav a:hover {
+nav a:hover,
+nav a[aria-current="page"] {
   color: var(--fg)
+}
+
+a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+
+a:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--focus) 32%, transparent);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 h1 {
@@ -90,12 +110,23 @@ section {
   scroll-margin-top: 80px
 }
 
+main,
+section,
+.card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[id] {
+  scroll-margin-top: 96px;
+}
+
 .card {
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .03);
-  background: #fff
+  background: var(--surface)
 }
 
 .grid {
@@ -116,6 +147,30 @@ pre {
   border-radius: 12px;
   overflow: auto;
   font-size: 13px
+}
+
+.tbl {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tbl th,
+.tbl td {
+  min-width: 110px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tbl thead th {
+  background: var(--chip);
+  color: var(--fg);
 }
 
 code {
@@ -199,6 +254,40 @@ code {
 
 .lang-switch select:hover {
   filter: brightness(1.03);
+}
+
+@media (max-width: 899px) {
+  .wrap {
+    padding: 14px 16px;
+  }
+
+  header .wrap {
+    align-items: stretch;
+  }
+
+  header nav {
+    width: 100%;
+    padding-bottom: 4px;
+  }
+
+  .card {
+    border-radius: 12px;
+  }
+
+  pre {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 /* Accesibilidad: esconder solo visualmente */

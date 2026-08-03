@@ -2,6 +2,11 @@ openapi: 3.0.3
 info:
   title: ForUsBots API
   version: 2.5.0
+  description: |
+    API for nine Playwright automation bots. Protected operations accept
+    `x-auth-token` (or `Authorization: Bearer <token>`). Tokens are loaded from
+    `tokens.json` (or the configured `TOKENS_FILE`); deployments may materialize
+    that file from the `TOKENS_JSON` secret before startup.
 servers:
   - url: http://localhost:10000
 paths:
@@ -43,7 +48,19 @@ paths:
           schema: { type: string, enum: [queued, running, succeeded, failed, canceled] }
         - in: query
           name: botId
-          schema: { type: string }
+          description: Runtime bot identifier used by queue filtering.
+          schema:
+            type: string
+            enum:
+              - vault-file-upload
+              - scrape-participant
+              - scrape-plan
+              - search-participants
+              - forusall-mfa-reset
+              - update-participant
+              - update-plan
+              - forusall-emailtrigger
+              - users-management
         - in: query
           name: limit
           schema: { type: integer, minimum: 1, maximum: 500 }
@@ -1055,7 +1072,12 @@ paths:
     post:
       summary: Update participant (Census tab) with note
       description: |
-        Abre el perfil del participante y actualiza los campos indicados en *Census*. La **nota** es obligatoria y se envía en el modal de confirmación. El **éxito** se determina exclusivamente por la aparición del alert en `data-alerts="alerts"`.
+        Opens the participant profile and updates fields in *Census*. The keys
+        inside `updates` must be the exact labels shown in the portal UI (for
+        example, `"Hire Date"`), not camelCase internal names. Unknown labels
+        are ignored and returned as warnings; at least one recognized label is
+        required. The note is required. Success requires the exact portal
+        confirmation `Participant updated successfully.`.
       parameters:
         - in: header
           name: x-auth-token
@@ -1077,28 +1099,31 @@ paths:
                   description: Nota obligatoria con el motivo del cambio
                 updates:
                   type: object
-                  description: Al menos 1 campo permitido
+                  minProperties: 1
+                  additionalProperties: false
+                  description: Exact Census UI label → value. At least one recognized label is required.
                   properties:
-                    firstName: { type: string, nullable: true }
-                    lastName: { type: string, nullable: true }
-                    preferredFirstName: { type: string, nullable: true }
-                    preferredLastName: { type: string, nullable: true }
-                    eligibilityStatus:
+                    "First Name": { type: string, nullable: true }
+                    "Last Name": { type: string, nullable: true }
+                    "Preferred First Name": { type: string, nullable: true }
+                    "Preferred Last Name": { type: string, nullable: true }
+                    "Eligibility Status":
                       type: string
                       enum: [A, D, I, X, U]
-                    birthDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
-                    hireDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$' }
-                    rehireDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
-                    terminationDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
-                    projectedPlanEntryDate: { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
-                    address1: { type: string, nullable: true }
-                    address2: { type: string, nullable: true }
-                    city: { type: string, nullable: true }
-                    state: { type: string, minLength: 2, maxLength: 2, nullable: true }
-                    zipcode: { type: string, nullable: true }
-                    email: { type: string, nullable: true }
-                    homeEmail: { type: string, nullable: true }
-                    phone: { type: string, nullable: true }
+                    "Birth Date": { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    "Hire Date": { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    "Rehire Date": { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    "Termination Date": { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    "Projected Plan Entry Date": { type: string, pattern: '^\d{4}-\d{2}-\d{2}$', nullable: true }
+                    "Address 1": { type: string, nullable: true }
+                    "Address 2": { type: string, nullable: true }
+                    "City": { type: string, nullable: true }
+                    "State": { type: string, minLength: 2, maxLength: 2, nullable: true }
+                    "Zip Code": { type: string, nullable: true }
+                    "Zipcode": { type: string, nullable: true, description: Accepted compatibility alias for "Zip Code". }
+                    "Primary Email": { type: string, nullable: true }
+                    "Home Email": { type: string, nullable: true }
+                    "Phone": { type: string, nullable: true }
                 options:
                   type: object
                   nullable: true
@@ -1107,11 +1132,22 @@ paths:
                 created_by:
                   type: string
                   nullable: true
+            example:
+              participantId: "12345"
+              note: "Correcting hire date per HR records"
+              updates:
+                "Hire Date": "2024-01-15"
+                "Address 1": "123 Main St"
+                "City": "San Francisco"
+                "State": "CA"
+                "Zip Code": "94102"
       responses:
         '202': { description: Accepted (returns jobId) }
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: No recognized Census labels or invalid field values
         '500': { description: Internal Server Error }
 
   /forusbot/email-trigger:
@@ -1294,6 +1330,16 @@ paths:
 
 
 components:
+  securitySchemes:
+    TokenHeader:
+      type: apiKey
+      in: header
+      name: x-auth-token
+      description: Token defined in the server token registry.
+    BearerToken:
+      type: http
+      scheme: bearer
+      description: Alternative to x-auth-token.
   schemas:
     ResultEnvelope:
       type: object

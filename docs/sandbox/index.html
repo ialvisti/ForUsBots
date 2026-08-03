@@ -10,7 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="sandbox.css" />
     <link rel="icon" type="image/png" href="/docs/images/icon.png" />
-    <script src="./js/main.js" defer></script>
   </head>
   <body>
     <!-- legacy header kept hidden for JS contract -->
@@ -53,7 +52,11 @@
         <div class="sidebar-footer">
           <div class="sidebar-row" id="meRow">
             <span class="me-label">User</span>
-            <span id="meNameMini" style="font-weight:600;color:var(--text);font-size:12px">—</span>
+            <div class="sidebar-user-details">
+              <span id="meNameMini">—</span>
+              <span><span class="me-label">Role:</span> <span id="meRoleMini">—</span></span>
+              <span id="meAccountMini">(no account)</span>
+            </div>
           </div>
           <div class="sidebar-row">
             <label class="theme-toggle" title="Toggle light/dark theme">
@@ -96,10 +99,10 @@
           </div>
         </div>
 
-        <div class="tabs" role="tablist">
-          <button class="tab" role="tab" aria-selected="true" data-tab-target="tab-builder">Builder</button>
-          <button class="tab" role="tab" aria-selected="false" data-tab-target="tab-snippets">Snippets</button>
-          <button class="tab" role="tab" aria-selected="false" data-tab-target="tab-result">Result</button>
+        <div class="tabs" role="tablist" aria-label="Sandbox sections">
+          <button id="tab-control-builder" class="tab" role="tab" aria-selected="true" aria-controls="tab-builder" tabindex="0" data-tab-target="tab-builder">Builder</button>
+          <button id="tab-control-snippets" class="tab" role="tab" aria-selected="false" aria-controls="tab-snippets" tabindex="-1" data-tab-target="tab-snippets">Snippets</button>
+          <button id="tab-control-result" class="tab" role="tab" aria-selected="false" aria-controls="tab-result" tabindex="-1" data-tab-target="tab-result">Result</button>
         </div>
 
         <div class="main-content">
@@ -206,7 +209,7 @@
               <input
                 id="pdfFile"
                 type="file"
-                accept=".pdf,.xlsx,.csv,.xls,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                accept=".pdf,.xlsx,.xls,.csv,.zip,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/zip"
                 class="file-input-hidden"
               />
               <div
@@ -217,7 +220,7 @@
                 aria-label="Upload file"
               >
                 Click or drag a <b>file</b> here
-                <span class="muted">(allowed: .pdf, .xlsx, .csv, .xls)</span>
+                <span class="muted">(real: .pdf/.xlsx/.xls/.csv/.zip; dry-run: .pdf only)</span>
               </div>
               <div id="fileName" class="file-name muted">No file selected.</div>
               <div class="help">
@@ -999,13 +1002,6 @@
             <button class="btn" id="genBtn">
               Generate (headers, x-meta, snippets)
             </button>
-            <button
-              class="btn secondary"
-              id="dryBtn"
-              title="Validate without launching a job"
-            >
-              Dry-Run
-            </button>
           </div>
 
           <div class="sep"></div>
@@ -1195,6 +1191,7 @@
           btn.dataset.value = it.value;
           btn.setAttribute("aria-current", "false");
           btn.title = it.path + (it.rest ? " " + it.rest : "");
+          btn.dataset.originalTitle = btn.title;
           const m = document.createElement("span");
           m.className = "nav-method m-" + it.method.toLowerCase();
           m.textContent = it.method || "—";
@@ -1210,6 +1207,8 @@
             btn.appendChild(w);
           }
           btn.addEventListener("click", () => {
+            const option = Array.from(select.options).find((opt) => opt.value === it.value);
+            if (!option || option.disabled) return;
             select.value = it.value;
             select.dispatchEvent(new Event("change", { bubbles: true }));
             syncActive();
@@ -1222,6 +1221,13 @@
           navRoot.querySelectorAll(".nav-item").forEach((el) => {
             const active = el.dataset.value === v;
             el.setAttribute("aria-current", active ? "true" : "false");
+            const option = Array.from(select.options).find((opt) => opt.value === el.dataset.value);
+            const denied = !!option?.disabled;
+            el.disabled = denied;
+            el.setAttribute("aria-disabled", denied ? "true" : "false");
+            el.title = denied
+              ? "Unavailable for this token scope"
+              : el.dataset.originalTitle || "";
           });
           const it = byKey.get(v);
           if (it && tMethod && tPath) {
@@ -1232,6 +1238,7 @@
         }
 
         select.addEventListener("change", syncActive);
+        select.addEventListener("scopechange", syncActive);
 
         if (search) {
           search.addEventListener("input", () => {
@@ -1257,10 +1264,27 @@
         if (!tabs.length) return;
         tabs.forEach((t) => {
           t.addEventListener("click", () => {
-            tabs.forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+            tabs.forEach((x) => {
+              const active = x === t;
+              x.setAttribute("aria-selected", active ? "true" : "false");
+              x.tabIndex = active ? 0 : -1;
+            });
             const id = t.getAttribute("data-tab-target");
             const target = document.getElementById(id);
             if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+          t.addEventListener("keydown", (event) => {
+            const list = Array.from(tabs);
+            const current = list.indexOf(t);
+            let next = current;
+            if (event.key === "ArrowRight") next = (current + 1) % list.length;
+            else if (event.key === "ArrowLeft") next = (current - 1 + list.length) % list.length;
+            else if (event.key === "Home") next = 0;
+            else if (event.key === "End") next = list.length - 1;
+            else return;
+            event.preventDefault();
+            list[next].focus();
+            list[next].click();
           });
         });
 
@@ -1275,7 +1299,9 @@
               if (e.isIntersecting) {
                 const id = e.target.id;
                 tabs.forEach((x) => {
-                  x.setAttribute("aria-selected", x.dataset.tabTarget === id ? "true" : "false");
+                  const active = x.dataset.tabTarget === id;
+                  x.setAttribute("aria-selected", active ? "true" : "false");
+                  x.tabIndex = active ? 0 : -1;
                 });
               }
             });

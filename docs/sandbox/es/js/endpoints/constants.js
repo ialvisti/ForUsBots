@@ -37,6 +37,7 @@ export const ENDPOINTS = {
     feature: "vault-upload",
     group: "upload",
     needs: { token: true, pdf: true, xfilename: true, meta: true },
+    allowedExts: [".pdf", ".xlsx", ".xls", ".csv", ".zip"],
     pollJob: true,
   },
   "sandbox-upload": {
@@ -46,6 +47,7 @@ export const ENDPOINTS = {
     feature: "sandbox-vault-upload",
     group: "upload",
     needs: { token: false, pdf: false, xfilename: true, meta: true },
+    allowedExts: [".pdf"],
     pollJob: false,
   },
   "jobs-get": {
@@ -72,7 +74,7 @@ export const ENDPOINTS = {
     path: "/forusbot/status",
     feature: null, // endpoint público — sin scope check
     group: "misc",
-    needs: { token: true },
+    needs: { token: false },
     pollJob: false,
   },
   // NEW: scrape participant
@@ -124,5 +126,42 @@ export const ENDPOINTS = {
     group: "email",
     needs: { token: true }, // JSON body
     pollJob: true,
+  },
+
+  "users-management-create": {
+    label: "POST /forusbot/users-management/create",
+    method: "POST",
+    path: "/forusbot/users-management/create",
+    feature: "users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: true,
+  },
+  "users-management-edit": {
+    label: "POST /forusbot/users-management/edit",
+    method: "POST",
+    path: "/forusbot/users-management/edit",
+    feature: "users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: true,
+  },
+  "sandbox-users-management-create": {
+    label: "POST /forusbot/sandbox/users-management/create (dry-run)",
+    method: "POST",
+    path: "/forusbot/sandbox/users-management/create",
+    feature: "sandbox-users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: false,
+  },
+  "sandbox-users-management-edit": {
+    label: "POST /forusbot/sandbox/users-management/edit (dry-run)",
+    method: "POST",
+    path: "/forusbot/sandbox/users-management/edit",
+    feature: "sandbox-users-management",
+    group: "users-management",
+    needs: { token: true },
+    pollJob: false,
   },
 };

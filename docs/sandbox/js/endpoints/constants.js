@@ -37,6 +37,7 @@ export const ENDPOINTS = {
     feature: "vault-upload",
     group: "upload",
     needs: { token: true, pdf: true, xfilename: true, meta: true },
+    allowedExts: [".pdf", ".xlsx", ".xls", ".csv", ".zip"],
     pollJob: true,
   },
   "sandbox-upload": {
@@ -46,6 +47,7 @@ export const ENDPOINTS = {
     feature: "sandbox-vault-upload",
     group: "upload",
     needs: { token: false, pdf: false, xfilename: true, meta: true },
+    allowedExts: [".pdf"],
     pollJob: false,
   },
   "jobs-get": {
@@ -72,7 +74,7 @@ export const ENDPOINTS = {
     path: "/forusbot/status",
     feature: null, // public/open endpoint — no scope check
     group: "misc",
-    needs: { token: true },
+    needs: { token: false },
     pollJob: false,
   },
   // NEW: scrape participant

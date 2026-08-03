@@ -1,6 +1,9 @@
 # ForUsBots – API (v2.5.0)
 
-Service that automates ForUsAll employer portal actions using Playwright (login with TOTP when needed), processes uploads, and exposes a small HTTP API. Docs are available in English and Spanish; OpenAPI is the source of truth.
+Service with **9 Playwright automation bots** for the ForUsAll employer portal:
+vault uploads, participant and plan scraping, participant search, participant
+MFA reset, participant and plan updates, email triggers, and portal user
+management. Login uses TOTP when needed. OpenAPI is the API source of truth.
 
 - English API docs: `/docs/api`
 - Spanish API docs: `/docs/api/es`
@@ -20,7 +23,7 @@ Namespace base: `/forusbot`
 |    GET | /forusbot/status                    |  Opt  | Public or token based (config)                        |
 |    GET | /forusbot/whoami                    |  Yes  | Role and user metadata for token                      |
 |   POST | /forusbot/vault-file-upload         |  Yes  | Binary body + headers x-filename, x-meta; returns 202 |
-|   POST | /forusbot/sandbox/vault-file-upload |  No   | Dry-run validator (no job created)                    |
+|   POST | /forusbot/sandbox/vault-file-upload |  No   | PDF-only dry-run validator (no job created)           |
 |   POST | /forusbot/scrape-participant        |  Yes  | Enqueue scrape; returns 202 with jobId                |
 |   POST | /forusbot/scrape-plan               |  Yes  | Enqueue plan scrape; returns 202 with jobId           |
 |   POST | /forusbot/search-participants       |  Yes  | Enqueue search; returns 202 with jobId                |
@@ -43,21 +46,43 @@ Namespace base: `/forusbot`
 |    GET | /forusbot/version                   | Yes\* | Admin only                                            |
 |    GET | /forusbot/openapi                   | Yes\* | Admin only                                            |
 
-> Auth header: `x-auth-token: YOUR_TOKEN`. Admin routes require an admin token. Routes marked Yes\*\* are restricted to a specific user token (see endpoint description).
+> Auth header: `x-auth-token: YOUR_TOKEN` (or `Authorization: Bearer YOUR_TOKEN`).
+> `locks`, `settings`, `metrics`, `version`, and `openapi` require an admin
+> token. Routes marked Yes\*\* use an additional email allowlist, so an admin
+> role alone does not grant access.
 
 ---
 
 ## Tokens & Scopes
 
-Each token in `TOKENS_JSON` carries three pieces of information:
+Tokens are loaded from the gitignored `tokens.json` registry. Set
+`TOKENS_FILE` to use another path. In managed deployments, the `TOKENS_JSON`
+secret can be materialized as that JSON file before the service starts; the
+runtime authentication middleware reads the file, not a shared `SHARED_TOKEN`.
+Each token entry carries:
 
 - **role** — one of `admin`, `user`, `pa_lead`, `rm_lead`, `ops_lead`, `imp_lead`. Each role has a default set of denied features (see `src/auth/roles.js`).
 - **account** — `{alias, siteUser, sitePass, totpSecret}`. The bot uses these credentials to drive the ForUsAll portal when this token invokes a bot. Different tokens can map to different accounts.
 - **scope overrides** — `deniedFeatures`, `deniedEndpoints`, `allowedEndpoints`. Per-token overrides that add to (or punch holes in) the role default.
 
-A request is authorized when the resolved feature for the endpoint is NOT in `deniedFeatures`, the `method+path` is NOT in `deniedEndpoints`, OR `method+path` is in `allowedEndpoints` (which trumps the denies). The endpoint→feature mapping lives in `src/auth/featureMap.js`; the resolution algorithm in `src/auth/scopes.js`; the enforcement in `src/middleware/requireScope.js`. A 403 carries `{ok:false, error:"forbidden", feature, endpoint, reason}`.
+A request is authorized when the resolved feature is not denied and the
+`METHOD /path` is not denied. An exact entry in `allowedEndpoints` overrides
+both deny lists. Role defaults and token overrides are merged. Scope failures
+return `{ok:false,error:"forbidden",feature,endpoint,reason}`; the simpler admin
+guard returns `{ok:false,error:"forbidden",warnings:[]}`.
 
 Inspect the effective scope of a token with `GET /forusbot/whoami` (returns `WhoAmI` from the OpenAPI schema). The sandbox UI consumes this endpoint to grey out denied options.
+
+`whoami` returns `role`, `isAdmin`, public user metadata, `accountAlias` (never
+portal credentials), and the effective `scope` with `deniedFeatures`,
+`deniedEndpoints`, and `allowedEndpoints`.
+
+### Runtime bot IDs
+
+Use these exact values with `GET /forusbot/jobs?botId=...`:
+`vault-file-upload`, `scrape-participant`, `scrape-plan`,
+`search-participants`, `forusall-mfa-reset`, `update-participant`,
+`update-plan`, `forusall-emailtrigger`, and `users-management`.
 
 ---
 
@@ -65,6 +90,10 @@ Inspect the effective scope of a token with `GET /forusbot/whoami` (returns `Who
 
 - Submit an upload (202): see `/docs/api#submit` for full schema.
 - For 202 flows, poll the job with `GET /forusbot/jobs/:id` until `state` is `succeeded|failed`.
+- The real upload accepts `.pdf`, `.xlsx`, `.xls`, `.csv`, and `.zip`.
+- The unauthenticated upload dry-run accepts `.pdf` only.
+- `HEADLESS=1` is the preferred browser setting (`HEADLESS=0` for headed local
+  debugging). Legacy `HEADFUL` is supported only when `HEADLESS` is unset.
 
 ```bash
 # Auth header example
@@ -90,7 +119,7 @@ curl -sS -X POST "$BASE/forusbot/sandbox/vault-file-upload" \
 curl -sS -X POST "$BASE/forusbot/scrape-participant" \
   -H 'x-auth-token: YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
-  -d '{"participantId":"12345","modules":["census"],"return":"data","strict":true}'
+  -d '{"participantId":"12345","modules":["census",{"key":"payroll","fields":["Latest Payroll","years:2026"]}],"return":"data","strict":true}'
 # Docs: /docs/api#scrape-participant
 ```
 
@@ -126,9 +155,13 @@ curl -sS -X POST "$BASE/forusbot/mfa-reset" \
 curl -sS -X POST "$BASE/forusbot/update-participant" \
   -H 'x-auth-token: YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
-  -d '{"participantId":"12345","note":"Correcting hire date","updates":{"hireDate":"2024-01-15"}}'
+  -d '{"participantId":"12345","note":"Correcting hire date","updates":{"Hire Date":"2024-01-15","State":"CA"}}'
 # Docs: /docs/api#update-participant
 ```
+
+`updates` keys must match the Census UI labels exactly (for example,
+`"First Name"`, `"Hire Date"`, `"Primary Email"`, `"Zip Code"`). Internal
+camelCase names such as `hireDate` are not accepted.
 
 ```bash
 # 7) Trigger email (auth)
@@ -211,6 +244,12 @@ curl -sS -X POST "$BASE/forusbot/sandbox/users-management/edit" \
 ---
 
 ## Changelog
+
+- 2.5.0 documentation audit (2026-07-16)
+  - Aligned `update-participant` with the exact Census UI labels accepted by runtime.
+  - Documented all 9 bots, runtime bot IDs, token roles/scopes and complete `whoami`.
+  - Corrected admin permissions, `HEADLESS` precedence, public job shapes, ZIP support, and the PDF-only upload dry-run.
+  - Brought English and Spanish Docs/API pages and navigation into parity.
 
 - 2.5.0
   - Added `POST /forusbot/users-management/create` and `POST /forusbot/users-management/edit` for portal user administration (create/edit users, multi-select sponsor/group/payroll IDs, optional Reset MFA admin/employer/both).

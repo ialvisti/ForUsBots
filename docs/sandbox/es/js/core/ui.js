@@ -16,7 +16,6 @@ export function renderBadges(endpointSel, endpointBadges, ENDPOINTS) {
 export function updateVisibility(
   endpointSel,
   metaBlock,
-  dryBtn,
   jobArea,
   ENDPOINTS
 ) {
@@ -30,10 +29,6 @@ export function updateVisibility(
 
   // x-meta block visibility
   metaBlock.classList.toggle("hidden", !ep.needs?.meta);
-
-  // Dry button only for sandbox-upload
-  if (dryBtn)
-    dryBtn.classList.toggle("hidden", endpointSel.value !== "sandbox-upload");
 
   // Job area visible whenever endpoint implies polling (e.g., uploads or scrape)
   if (jobArea) jobArea.classList.toggle("hidden", !ep.pollJob);
@@ -130,15 +125,17 @@ export function populateCaptionsFromSection(
 
 export function updateFileNameUI(pdfFile, fileNameEl) {
   const f = pdfFile.files && pdfFile.files[0];
-  fileNameEl.textContent = f ? f.name : "No file selected.";
+  fileNameEl.textContent = f ? f.name : "Ningún archivo seleccionado.";
 }
 
-const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".xls", ".csv", ".zip"]);
 const ALLOWED_MIMES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
   "text/csv",
+  "application/zip",
+  "application/x-zip-compressed",
 ]);
 
 const getExt = (name) => {
@@ -156,7 +153,7 @@ export function setFile(f, pdfFile, xFilename, fileNameEl, runResult) {
 
   if (!allowed) {
     runResult.textContent =
-      "Error: please drag/select a valid file (.pdf, .xlsx, .csv, .xls).";
+      "Error: selecciona un archivo válido (.pdf, .xlsx, .xls, .csv, .zip).";
     return;
   }
 

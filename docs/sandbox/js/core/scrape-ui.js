@@ -134,6 +134,16 @@ const els = {
 // callback global para disparar refresh desde controles dinámicos
 let onChangeCb = null;
 
+function wireOutsideClickOnce() {
+  if (window.__sandboxChkSelectOutsideClickWired) return;
+  window.__sandboxChkSelectOutsideClickWired = true;
+  document.addEventListener("click", (event) => {
+    document.querySelectorAll(".chkselect.open").forEach((wrap) => {
+      if (!wrap.contains(event.target)) wrap.classList.remove("open");
+    });
+  });
+}
+
 /** ====== Util ====== */
 function optionEl(value, text, disabled = false, selected = false) {
   const o = document.createElement("option");
@@ -187,10 +197,6 @@ function makeChkSelect({ key, options = [] }) {
     updateBtnText();
     onChangeCb?.(); // notificar cambios arriba
   });
-  document.addEventListener("click", (e) => {
-    if (!wrap.contains(e.target)) wrap.classList.remove("open");
-  });
-
   wrap.appendChild(btn);
   wrap.appendChild(menu);
   return wrap;
@@ -322,6 +328,7 @@ function addModuleRow({ key, removable, onChange }) {
 export function wireScrapeUI(arg) {
   const onChange = typeof arg === "function" ? arg : arg?.onChange;
   onChangeCb = onChange;
+  wireOutsideClickOnce();
   const strictDefault = (arg && arg.strictDefault) ?? true;
   const hideTimeout = (arg && arg.hideTimeout) ?? true;
 

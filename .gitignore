@@ -1,6 +1,7 @@
 # Folders
 node_modules
 forusall-portal-html-data
+src/bots/forusall-update-participant/html/
 
 # Files
 .env
@@ -9,6 +10,7 @@ tokens.json
 .user-data
 .env.production
 .gcp-config.local
+.envv
 
 .DS_Store
 **/.DS_Store

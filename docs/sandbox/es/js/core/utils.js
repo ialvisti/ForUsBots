@@ -1,7 +1,7 @@
 // docs/sandbox/js/core/utils.js
 export const $ = (sel) => document.querySelector(sel);
 
-export function showToast(toastEl, msg = "Copied ✅") {
+export function showToast(toastEl, msg = "Copiado") {
   if (!toastEl) return;
   toastEl.textContent = msg;
   toastEl.classList.add("show");
@@ -9,10 +9,9 @@ export function showToast(toastEl, msg = "Copied ✅") {
 }
 
 export function maskSecret(s) {
-  if (!s) return "(empty)";
-  const len = s.length;
-  const dots = "•".repeat(Math.min(len, 24));
-  return len > 24 ? dots + "…" : dots;
+  if (!s) return "(vacío)";
+  const value = String(s);
+  return `****...${value.slice(-4)}`;
 }
 
 export function prettyResult(outEl, status, text) {
@@ -29,6 +28,6 @@ export function lockBaseUrlToOrigin(baseUrlInput) {
     baseUrlInput.value = window.location.origin;
     baseUrlInput.readOnly = true;
     baseUrlInput.setAttribute("aria-readonly", "true");
-    baseUrlInput.title = "Locked to this page’s origin";
+    baseUrlInput.title = "Bloqueado al origen de esta página";
   } catch {}
 }

@@ -7,6 +7,7 @@ export function validateBasicsForRun({
   xFilename,
   metaStr,
   pdfFile,
+  jobId,
 }) {
   const base = (baseUrl.value || window.location.origin).replace(/\/$/, "");
   const headers = {};
@@ -15,7 +16,8 @@ export function validateBasicsForRun({
   headers["Content-Type"] =
     ep.group === "upload" ? "application/octet-stream" : "application/json";
 
-  const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+  const allowedExts = new Set(ep.allowedExts || [".pdf"]);
+  const allowedList = Array.from(allowedExts).join(", ");
   const getExt = (name) => {
     const m = String(name || "")
       .trim()
@@ -25,25 +27,29 @@ export function validateBasicsForRun({
 
   if (ep.needs.token) {
     if (!token.value)
-      throw new Error("x-auth-token is required for this endpoint.");
+      throw new Error("x-auth-token es obligatorio para este endpoint.");
     headers["x-auth-token"] = (token.value || "").trim();
+  }
+
+  if (ep.needs.jobId && !String(jobId?.value || "").trim()) {
+    throw new Error("jobId es obligatorio para este endpoint.");
   }
 
   let xf = "";
   let xfExt = "";
   if (ep.needs.xfilename) {
     xf = (xFilename.value || "").trim();
-    if (!xf) throw new Error("Fill in x-filename.");
+    if (!xf) throw new Error("Completa x-filename.");
 
     xfExt = getExt(xf);
     if (!xfExt) {
       throw new Error(
-        "x-filename must include an extension. Allowed: .pdf, .xlsx, .csv, .xls."
+        `x-filename debe incluir una extensión. Permitidas: ${allowedList}.`
       );
     }
-    if (!ALLOWED_EXTS.has(xfExt)) {
+    if (!allowedExts.has(xfExt)) {
       throw new Error(
-        "Invalid x-filename extension. Allowed: .pdf, .xlsx, .csv, .xls."
+        `Extensión de x-filename no válida. Permitidas: ${allowedList}.`
       );
     }
     headers["x-filename"] = xf;
@@ -66,7 +72,7 @@ export function validateBasicsForRun({
       missing.push("formData.captionOtherText");
     }
     if (missing.length)
-      throw new Error("Missing fields: " + missing.join(", "));
+      throw new Error("Faltan campos: " + missing.join(", "));
   }
 
   let bodyPromise = null;
@@ -74,19 +80,19 @@ export function validateBasicsForRun({
     const file = pdfFile.files && pdfFile.files[0];
 
     // Mantenemos el flag 'pdf' por compatibilidad, pero permitimos más tipos.
-    if (ep.needs.pdf && !file) throw new Error("Select a file to test.");
+    if (ep.needs.pdf && !file) throw new Error("Selecciona un archivo para probar.");
 
     if (file) {
       const fileExt = getExt(file.name);
-      if (!ALLOWED_EXTS.has(fileExt)) {
+      if (!allowedExts.has(fileExt)) {
         throw new Error(
-          "Selected file type is not allowed. Allowed: .pdf, .xlsx, .csv, .xls."
+          `El tipo de archivo no está permitido. Permitidos: ${allowedList}.`
         );
       }
       // Si viene x-filename, sus extensiones deben coincidir
       if (ep.needs.xfilename && xfExt && fileExt && xfExt !== fileExt) {
         throw new Error(
-          `x-filename extension (${xfExt}) must match the selected file's extension (${fileExt}).`
+          `La extensión de x-filename (${xfExt}) debe coincidir con la del archivo seleccionado (${fileExt}).`
         );
       }
       bodyPromise = file.arrayBuffer();
@@ -99,7 +105,7 @@ export function validateBasicsForRun({
       /^document\s+missing$/i.test(meta.formData?.status || "")
     ) {
       throw new Error(
-        "Status 'Document Missing' is not valid when a file is attached (422). Use 'Audit Ready'."
+        "El estado 'Document Missing' no es válido cuando hay un archivo adjunto (422). Usa 'Audit Ready'."
       );
     }
   }

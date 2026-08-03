@@ -19,7 +19,6 @@ import { buildSnippets } from "./core/snippets.js";
 import { validateBasicsForRun } from "./core/validate.js";
 import { ENDPOINTS } from "./endpoints/constants.js";
 import { startPolling } from "./endpoints/jobs.js";
-import { runDryUpload } from "./endpoints/upload.js";
 import { wireScrapeUI, buildScrapeBodyStr } from "./core/scrape-ui.js";
 import { wirePlanUI, buildPlanBodyStr } from "./core/plan-ui.js";
 import {
@@ -39,7 +38,13 @@ import {
 import {
   wireEmailUI,
   buildEmailBodyStr as buildEmailBodyStrET,
+  validateEmailBody,
 } from "./core/email-ui.js";
+
+import {
+  wireUsersManagementUI,
+  buildUsersManagementBodyStr,
+} from "./core/users-management-ui.js";
 
 import {
   fetchWhoami,
@@ -89,7 +94,6 @@ const pyCode = $("#pyCode");
 
 // ==== Buttons ====
 const genBtn = $("#genBtn");
-const dryBtn = $("#dryBtn");
 const runBtn = $("#runBtn");
 const cancelBtn = $("#cancelBtn");
 
@@ -103,12 +107,14 @@ const jobJson = $("#jobJson pre");
 const toast = $("#toast");
 
 // Allow-list (mantener en sync con validate.js)
-const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".xls", ".csv", ".zip"]);
 const ALLOWED_MIMES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
   "text/csv",
+  "application/zip",
+  "application/x-zip-compressed",
 ]);
 const getExt = (name) => {
   const m = String(name || "")
@@ -170,7 +176,7 @@ function buildAndRenderSnippets(ep, metaStr, jsonBodyStr = null) {
 function refreshAllOutputs() {
   const ep = ENDPOINTS[endpointSel.value];
   renderBadges(endpointSel, endpointBadges, ENDPOINTS);
-  updateVisibility(endpointSel, metaBlock, dryBtn, jobArea, ENDPOINTS);
+  updateVisibility(endpointSel, metaBlock, jobArea, ENDPOINTS);
   populateCaptionsFromSection(section, caption, otherWrap);
 
   let metaStr = "";
@@ -209,6 +215,20 @@ function refreshAllOutputs() {
     endpointSel.value === "sandbox-update-plan"
   ) {
     jsonBodyStr = buildUpdatePlanBodyStr(false);
+  } else if (
+    endpointSel.value === "users-management-create" ||
+    endpointSel.value === "users-management-edit" ||
+    endpointSel.value === "sandbox-users-management-create" ||
+    endpointSel.value === "sandbox-users-management-edit"
+  ) {
+    jsonBodyStr = buildUsersManagementBodyStr(endpointSel.value, false);
+    const isCreate = endpointSel.value.endsWith("create");
+    document
+      .querySelectorAll(".um-mode-create")
+      .forEach((el) => el.classList.toggle("hidden", !isCreate));
+    document
+      .querySelectorAll(".um-mode-edit")
+      .forEach((el) => el.classList.toggle("hidden", isCreate));
   }
 
   renderHeaders(metaStr, jsonBodyStr);
@@ -224,7 +244,8 @@ function refreshAllOutputs() {
 
 // ---- Events ----
 endpointSel.addEventListener("change", () => {
-  cancelPolling?.();
+  resetJobVisual();
+  runResult.textContent = "(no ejecutado)";
   refreshAllOutputs();
 });
 
@@ -267,6 +288,9 @@ wireUpdateUI({ onChange: refreshAllOutputs });
 
 // Update Plan UI
 wireUpdatePlanUI({ onChange: refreshAllOutputs });
+
+// Users Management UI
+wireUsersManagementUI({ onChange: refreshAllOutputs });
 
 // Email Trigger UI
 wireEmailUI({ onChange: refreshAllOutputs });
@@ -326,49 +350,18 @@ genBtn.addEventListener("click", (e) => {
   refreshAllOutputs();
 });
 
-// ---- Dry Run (upload sandbox only) ----
-dryBtn.addEventListener("click", async (e) => {
-  e.preventDefault();
-  if (endpointSel.value !== "sandbox-upload") {
-    runResult.textContent = "Dry-Run applies to the sandbox-upload endpoint.";
-    return;
-  }
-  try {
-    const ep = ENDPOINTS[endpointSel.value];
-    const metaStr = oneLineMeta({
-      planId,
-      section,
-      caption,
-      status,
-      effectiveDate,
-      captionOtherText,
-    });
-    renderHeaders(metaStr);
-    buildAndRenderSnippets(ep, metaStr);
-    metaOut.value = metaStr;
-
-    const { base, headers, bodyPromise } = validateBasicsForRun({
-      ep,
-      baseUrl,
-      token,
-      xFilename,
-      metaStr,
-      pdfFile,
-    });
-    await runDryUpload({
-      base,
-      headers,
-      bodyPromise,
-      runResultEl: runResult,
-    });
-  } catch (err) {
-    runResult.textContent = "Error: " + (err.message || String(err));
-  }
-});
-
 let cancelPolling = null;
 function setCancelPolling(fn) {
   cancelPolling = fn;
+}
+function resetJobVisual() {
+  const cancel = cancelPolling;
+  cancelPolling = null;
+  cancel?.(true);
+  cancelBtn.disabled = true;
+  jobState.className = "status";
+  jobState.querySelector(".txt").textContent = "—";
+  jobJson.textContent = "(esperando trabajo)";
 }
 cancelBtn.addEventListener("click", () => {
   if (cancelPolling) cancelPolling();
@@ -377,6 +370,8 @@ cancelBtn.addEventListener("click", () => {
 // ---- Run (incluye polling para 202) ----
 runBtn.addEventListener("click", async (e) => {
   e.preventDefault();
+  resetJobVisual();
+  runResult.textContent = "Ejecutando…";
   const ep = ENDPOINTS[endpointSel.value];
   try {
     let metaStr = "";
@@ -390,7 +385,7 @@ runBtn.addEventListener("click", async (e) => {
         captionOtherText,
       });
 
-    // scrape: participantId required
+    // scrape: participantId obligatorio
     let jsonBodyStr = null;
     if (endpointSel.value === "scrape-participant") {
       jsonBodyStr = buildScrapeBodyStr(false);
@@ -399,10 +394,10 @@ runBtn.addEventListener("click", async (e) => {
         !bodyTest.participantId ||
         String(bodyTest.participantId).trim() === ""
       )
-        throw new Error("participantId is required for this endpoint.");
+        throw new Error("participantId es obligatorio para este endpoint.");
     }
     
-    // scrape-plan: planId required
+    // scrape-plan: planId obligatorio
     if (endpointSel.value === "scrape-plan") {
       jsonBodyStr = buildPlanBodyStr(false);
       const bodyTest = JSON.parse(jsonBodyStr);
@@ -432,16 +427,11 @@ runBtn.addEventListener("click", async (e) => {
         throw new Error("Proporciona al menos un criterio de búsqueda.");
     }
 
-    // email-trigger: planId and emailType required
+    // email-trigger: replica el preflight del controller.
     if (endpointSel.value === "email-trigger") {
       jsonBodyStr = buildEmailBodyStrET(false);
       const bodyTest = JSON.parse(jsonBodyStr);
-      const planId = bodyTest.planId;
-      const emailType = bodyTest.emailType;
-      if (!planId || planId <= 0)
-        throw new Error("planId es obligatorio y debe ser > 0.");
-      if (!emailType || String(emailType).trim() === "")
-        throw new Error("emailType es obligatorio.");
+      validateEmailBody(bodyTest);
     }
 
     // update-participant: participantId, note y al menos 1 actualización
@@ -479,6 +469,34 @@ runBtn.addEventListener("click", async (e) => {
       if (!keys.length) throw new Error("Agrega al menos un campo de actualización.");
     }
 
+    if (
+      endpointSel.value === "users-management-create" ||
+      endpointSel.value === "sandbox-users-management-create"
+    ) {
+      jsonBodyStr = buildUsersManagementBodyStr(endpointSel.value, false);
+      const bodyTest = JSON.parse(jsonBodyStr || "{}");
+      const user = bodyTest.user && typeof bodyTest.user === "object" ? bodyTest.user : {};
+      if (!String(bodyTest.note || "").trim()) throw new Error("note es obligatorio.");
+      if (!String(user.email || "").trim()) throw new Error("user.email es obligatorio.");
+      if (!String(user.password || "").trim()) throw new Error("user.password es obligatorio.");
+      if (!String(user.passwordConfirmation || "").trim())
+        throw new Error("user.passwordConfirmation es obligatorio.");
+    }
+    if (
+      endpointSel.value === "users-management-edit" ||
+      endpointSel.value === "sandbox-users-management-edit"
+    ) {
+      jsonBodyStr = buildUsersManagementBodyStr(endpointSel.value, false);
+      const bodyTest = JSON.parse(jsonBodyStr || "{}");
+      const userId = Number(bodyTest.userId);
+      const updates = bodyTest.updates && typeof bodyTest.updates === "object" ? bodyTest.updates : {};
+      if (!Number.isInteger(userId) || userId <= 0)
+        throw new Error("userId es obligatorio (entero positivo).");
+      if (!String(bodyTest.note || "").trim()) throw new Error("note es obligatorio.");
+      if (!Object.keys(updates).length && String(bodyTest.resetMfa || "none") === "none")
+        throw new Error("Agrega un campo de actualización o configura resetMfa.");
+    }
+
     renderHeaders(metaStr, jsonBodyStr);
     if (metaStr) metaOut.value = metaStr;
     buildAndRenderSnippets(ep, metaStr, jsonBodyStr);
@@ -490,6 +508,7 @@ runBtn.addEventListener("click", async (e) => {
       xFilename,
       metaStr,
       pdfFile,
+      jobId,
     });
 
     const url = ep.path.replace(":id", jobId.value || "");
@@ -505,6 +524,13 @@ runBtn.addEventListener("click", async (e) => {
     )
       body = jsonBodyStr;
     if (endpointSel.value === "email-trigger") body = jsonBodyStr;
+    if (
+      endpointSel.value === "users-management-create" ||
+      endpointSel.value === "users-management-edit" ||
+      endpointSel.value === "sandbox-users-management-create" ||
+      endpointSel.value === "sandbox-users-management-edit"
+    )
+      body = jsonBodyStr;
 
     const res = await fetch(base + url, { method: ep.method, headers, body });
     const text = await res.text();
@@ -518,6 +544,10 @@ runBtn.addEventListener("click", async (e) => {
       if (!data.jobId) return;
 
       const renderState = (j) => {
+        if (!j) {
+          resetJobVisual();
+          return;
+        }
         const s = j.state ?? j.status;
         jobJson.textContent = JSON.stringify(j, null, 2);
         jobState.className = "status state-" + (s || "");
@@ -533,7 +563,7 @@ runBtn.addEventListener("click", async (e) => {
         renderState,
         cancelBtn,
       });
-      setCancelPolling(() => cancel());
+      setCancelPolling(cancel);
     } else {
       if (cancelPolling) cancelPolling();
     }
@@ -544,7 +574,7 @@ runBtn.addEventListener("click", async (e) => {
 
 // ==== Init ====
 renderBadges(endpointSel, endpointBadges, ENDPOINTS);
-updateVisibility(endpointSel, metaBlock, dryBtn, jobArea, ENDPOINTS);
+updateVisibility(endpointSel, metaBlock, jobArea, ENDPOINTS);
 if (!section.value) section.value = "CONTRACTS & AGREEMENTS";
 populateCaptionsFromSection(section, caption, otherWrap);
 updateFileNameUI(pdfFile, fileNameEl);
@@ -559,5 +589,10 @@ async function refreshScopeFromToken() {
   renderMeBanner(me);
   applyScopeToEndpointSelect(endpointSel, me, ENDPOINTS);
 }
+let scopeRefreshTimer = null;
+token.addEventListener("input", () => {
+  clearTimeout(scopeRefreshTimer);
+  scopeRefreshTimer = setTimeout(refreshScopeFromToken, 250);
+});
 token.addEventListener("change", refreshScopeFromToken);
 refreshScopeFromToken();
