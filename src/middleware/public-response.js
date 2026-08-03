@@ -18,10 +18,17 @@ function toPublicJob(record) {
 
   if (state === "failed") {
     const result = record.result || null;
+    const durableError =
+      result && result.code === "DURABLE_STATE_FAILED"
+        ? { code: result.code, message: result.message }
+        : null;
     return {
       state,
       error: normalizePublicError(
-        record.error || (result && result.errors && result.errors[0]) || null
+        durableError ||
+          record.error ||
+          (result && result.errors && result.errors[0]) ||
+          null
       ),
     };
   }

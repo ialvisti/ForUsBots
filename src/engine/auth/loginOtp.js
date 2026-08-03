@@ -75,12 +75,8 @@ async function waitForShell(
   return false;
 }
 
-/** Detección de formulario de login */
+/** Detección del formulario real de login (la URL por sí sola no basta). */
 async function isOnLogin(page, selectors) {
-  try {
-    const url = page.url() || "";
-    if (/\/sign_in\b/i.test(url)) return true;
-  } catch {}
   if (!selectors) return false;
   try {
     const hasUser = await page
@@ -93,6 +89,19 @@ async function isOnLogin(page, selectors) {
       .catch(() => 0);
     return hasUser > 0 && hasPass > 0;
   } catch {}
+  return false;
+}
+
+async function waitForLoginForm(
+  page,
+  selectors,
+  { timeoutMs = 5000, pollMs = 80 } = {}
+) {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    if (await isOnLogin(page, selectors)) return true;
+    await page.waitForTimeout(pollMs);
+  }
   return false;
 }
 
@@ -138,6 +147,24 @@ async function doLoginAndMaybeOtp(
   const alreadyOnLogin = await isOnLogin(page, selectors);
   if (!alreadyOnLogin) {
     await gotoFast(page, loginUrl, Math.max(20000, PW_DEFAULT_TIMEOUT + 2000));
+  }
+
+  const loginReady = await waitForLoginForm(page, selectors, {
+    timeoutMs: 5000,
+  });
+  if (!loginReady) {
+    const currentUrl = (() => {
+      try {
+        return page.url() || "[unknown]";
+      } catch {
+        return "[unknown]";
+      }
+    })();
+    throw new Error(
+      `Login form not available at ${currentUrl}. ` +
+        `Expected ${selectors.user} and ${selectors.pass}; ` +
+        "the target URL may be invalid or the portal login markup may have changed."
+    );
   }
 
   await page.fill(selectors.user, account.siteUser, { timeout: 20000 });
@@ -326,7 +353,6 @@ async function doLoginAndMaybeOtp(
 async function ensureAuthForTarget(
   page,
   {
-    loginUrl,
     targetUrl,
     selectors,
     shellSelectors,
@@ -336,7 +362,28 @@ async function ensureAuthForTarget(
   }
 ) {
   assertAccount(account, "ensureAuthForTarget");
-  await gotoFast(page, targetUrl, Math.max(20000, PW_DEFAULT_TIMEOUT + 2000));
+  const targetResponse = await gotoFast(
+    page,
+    targetUrl,
+    Math.max(20000, PW_DEFAULT_TIMEOUT + 2000)
+  );
+  const targetStatus =
+    targetResponse && typeof targetResponse.status === "function"
+      ? targetResponse.status()
+      : null;
+  if (Number.isInteger(targetStatus) && targetStatus >= 400) {
+    const currentUrl = (() => {
+      try {
+        return page.url() || "[unknown]";
+      } catch {
+        return "[unknown]";
+      }
+    })();
+    throw new Error(
+      `Target page unavailable (HTTP ${targetStatus}): ${currentUrl}. ` +
+        "Authentication was not retried because the portal did not display its login form."
+    );
+  }
 
   let didLogin = false;
   let usedOtp = false;
@@ -368,20 +415,18 @@ async function ensureAuthForTarget(
         url: page.url(),
       };
     }
-    const r = await doLoginAndMaybeOtp(page, {
-      loginUrl,
-      selectors,
-      shellSelectors,
-      jobCtx,
-      account,
-    });
-    didLogin = true;
-    usedOtp = !!r.usedOtp;
-    if (saveSession) {
+
+    const currentUrl = (() => {
       try {
-        await saveContextStorageState(page.context(), account.siteUser);
-      } catch {}
-    }
+        return page.url() || "[unknown]";
+      } catch {
+        return "[unknown]";
+      }
+    })();
+    throw new Error(
+      `Target page unavailable or expected shell not found: ${currentUrl}. ` +
+        "Authentication was not retried because the portal did not display its login form."
+    );
   }
 
   const entered = await waitForShell(page, shellSelectors, { timeoutMs: 6000 });
@@ -408,6 +453,7 @@ module.exports = {
     hasShell,
     waitForShell,
     isOnLogin,
+    waitForLoginForm,
     waitForShellOrOtp,
   },
 };

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ForUsBots API
-  version: 2.5.0
+  version: 2.6.0
 servers:
   - url: http://localhost:10000
 paths:
@@ -96,6 +96,16 @@ paths:
         '401': { description: Unauthorized }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { description: Not Found }
+        '503':
+          description: Durable job state is temporarily unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, error]
+                properties:
+                  ok: { type: boolean, example: false }
+                  error: { type: string, example: "Job state temporarily unavailable" }
     delete:
       summary: Cancel queued job
       parameters:
@@ -292,11 +302,23 @@ paths:
         Payroll static fields: Payroll Frequency, Next Schedule paycheck, Available Years, Latest Payroll.
         Latest Payroll returns the first detail row (most recent pay date) from the most recent payroll year.
         Dynamic payroll fields: "Payroll YYYY" for year tables; tokens "years:all" or "years:2024,2025".
+        When Idempotency-Key is supplied, the receipt is durable for at least 90 days:
+        the same key and normalized request returns the same jobId, while a different
+        request under the same principal and endpoint returns 409 without enqueueing.
       parameters:
         - in: header
           name: x-auth-token
           schema: { type: string }
           required: true
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 200
+            pattern: '^[!-~]{8,200}$'
+          required: false
+          description: Opaque printable-ASCII retry key. Required for durable retry safety.
       requestBody:
         required: true
         content:
@@ -321,11 +343,22 @@ paths:
                             type: array
                             items: { type: string }
       responses:
-        '202': { description: Accepted (returns jobId) }
+        '202':
+          description: Accepted, or replay of the original accepted job
+          headers:
+            Idempotency-Replayed:
+              schema: { type: string, enum: ['true', 'false'] }
+              description: True when this response reuses an existing durable receipt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitJobResponse'
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
         '403': { $ref: '#/components/responses/Forbidden' }
         '422': { description: Validation failed }
+        '409': { description: Idempotency-Key reused with a different request }
+        '503': { description: Durable idempotency or job state temporarily unavailable }
         '500': { description: Internal Server Error }
 
   /forusbot/scrape-plan:
@@ -335,11 +368,23 @@ paths:
         Extracts structured plan data from the ForUsAll employer portal. Supports extracting from 6 modules:
         basic_info (16 fields), plan_design (26 fields), onboarding (6 fields), communications (6 fields),
         extra_settings (10 fields), feature_flags (3 fields). Also extracts plan notes history.
+        When Idempotency-Key is supplied, the receipt is durable for at least 90 days:
+        the same key and normalized request returns the same jobId, while a different
+        request under the same principal and endpoint returns 409 without enqueueing.
       parameters:
         - in: header
           name: x-auth-token
           schema: { type: string }
           required: true
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 200
+            pattern: '^[!-~]{8,200}$'
+          required: false
+          description: Opaque printable-ASCII retry key. Required for durable retry safety.
       requestBody:
         required: true
         content:
@@ -435,57 +480,15 @@ paths:
                   strict: true
       responses:
         '202':
-          description: Job accepted and queued
+          description: Accepted, or replay of the original accepted job
+          headers:
+            Idempotency-Replayed:
+              schema: { type: string, enum: ['true', 'false'] }
+              description: True when this response reuses an existing durable receipt.
           content:
             application/json:
               schema:
-                type: object
-                required: [ok, jobId, acceptedAt, warnings, executedBy]
-                properties:
-                  ok:
-                    type: boolean
-                    example: true
-                  jobId:
-                    type: string
-                    format: uuid
-                    example: "f628e7c7-11b8-4419-9c30-29c572a99d81"
-                  acceptedAt:
-                    type: string
-                    format: date-time
-                    example: "2025-11-13T07:09:24.211Z"
-                  queuePosition:
-                    type: integer
-                    example: 1
-                  estimate:
-                    type: object
-                    properties:
-                      startAt:
-                        type: string
-                        format: date-time
-                      finishAt:
-                        type: string
-                        format: date-time
-                  capacitySnapshot:
-                    type: object
-                    properties:
-                      running: { type: integer }
-                      queued: { type: integer }
-                      maxConcurrency: { type: integer }
-                  warnings:
-                    type: array
-                    description: Non-fatal warnings (e.g., invalid modules ignored)
-                    items:
-                      type: object
-                      properties:
-                        type: { type: string }
-                        keys: { type: array, items: { type: string } }
-                        unknown: { type: array, items: { type: string } }
-                  executedBy:
-                    type: object
-                    properties:
-                      name: { type: string, nullable: true }
-                      role: { type: string }
-                      at: { type: string, format: date-time }
+                $ref: '#/components/schemas/SubmitJobResponse'
         '400':
           description: Invalid request format
           content:
@@ -524,6 +527,10 @@ paths:
                         key: { type: string }
                         reason: { type: string }
                         details: { type: object }
+        '409':
+          description: Idempotency-Key reused with a different request
+        '503':
+          description: Durable idempotency or job state temporarily unavailable
         '500':
           description: Internal server error
           content:
@@ -1312,6 +1319,61 @@ components:
         errors:
           type: array
           items: {}
+
+    SubmitJobResponse:
+      type: object
+      required: [ok, jobId, acceptedAt, warnings, executedBy]
+      description: |
+        Response shared by asynchronous scrape submissions. On an idempotent
+        replay, queuePosition, estimate, and capacitySnapshot are null while
+        jobId and acceptedAt remain those of the original accepted job.
+      properties:
+        ok:
+          type: boolean
+          example: true
+        jobId:
+          type: string
+          format: uuid
+          example: "f628e7c7-11b8-4419-9c30-29c572a99d81"
+        acceptedAt:
+          type: string
+          format: date-time
+          example: "2025-11-13T07:09:24.211Z"
+        queuePosition:
+          type: integer
+          nullable: true
+          minimum: 1
+          example: 1
+        estimate:
+          type: object
+          nullable: true
+          properties:
+            startAt: { type: string, format: date-time }
+            finishAt: { type: string, format: date-time }
+        capacitySnapshot:
+          type: object
+          nullable: true
+          properties:
+            running: { type: integer }
+            queued: { type: integer }
+            maxConcurrency: { type: integer }
+            slotsAvailable: { type: integer }
+        warnings:
+          type: array
+          description: Non-fatal warnings, such as invalid modules being ignored.
+          items:
+            type: object
+            properties:
+              type: { type: string }
+              keys: { type: array, items: { type: string } }
+              unknown: { type: array, items: { type: string } }
+        executedBy:
+          type: object
+          required: [name, role, at]
+          properties:
+            name: { type: string, nullable: true }
+            role: { type: string }
+            at: { type: string, format: date-time }
 
     StageEntry:
       type: object

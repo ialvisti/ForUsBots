@@ -1,4 +1,14 @@
 steps:
+  - id: verify
+    name: node:20-bookworm-slim
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        npm ci
+        npm test
+        npm run lint
+
   - id: build
     name: gcr.io/cloud-builders/docker
     args:
@@ -13,32 +23,180 @@ steps:
     name: gcr.io/cloud-builders/docker
     args: [push, --all-tags, $_IMAGE]
 
-  - id: rolling-update
+  - id: resolve-image-digest
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: bash
     args:
-      - -c
+      - -ceu
       - |
-        set -e
-        if ! gcloud compute instance-templates describe forusbots-template-$SHORT_SHA >/dev/null 2>&1; then
-          gcloud compute instance-templates create-with-container forusbots-template-$SHORT_SHA \
+        image_digest=""
+        for attempt in $$(seq 1 12); do
+          image_digest="$$(
+            gcloud artifacts docker images describe "$_IMAGE:$SHORT_SHA" \
+              --format='value(image_summary.digest)' 2>/dev/null || true
+          )"
+          if printf '%s\n' "$$image_digest" | grep -Eq '^sha256:[0-9a-f]{64}$$'; then
+            break
+          fi
+          image_digest=""
+          sleep 5
+        done
+        if [ -z "$$image_digest" ]; then
+          echo "Unable to resolve pushed image digest" >&2
+          exit 1
+        fi
+        image_ref="$_IMAGE@$$image_digest"
+        printf '%s\n' "$$image_digest" > /workspace/image-digest.txt
+        printf '%s\n' "$$image_ref" > /workspace/image-ref.txt
+
+  - id: rollout-and-verify
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        set -Eeuo pipefail
+
+        image_digest="$$(tr -d '\r\n' < /workspace/image-digest.txt)"
+        image_ref="$$(tr -d '\r\n' < /workspace/image-ref.txt)"
+        if ! printf '%s\n' "$$image_ref" | grep -Eq '^.+@sha256:[0-9a-f]{64}$$'; then
+          echo "Invalid immutable image reference: $$image_ref" >&2
+          exit 1
+        fi
+
+        digest_suffix="$${image_digest#sha256:}"
+        digest_suffix="$${digest_suffix:0:12}"
+        template_name="forusbots-template-$SHORT_SHA-$$digest_suffix"
+        previous_template="$$(
+          gcloud compute instance-groups managed describe forusbots-mig \
+            --zone=$_ZONE \
+            --format='value(instanceTemplate.basename())'
+        )"
+        if [ -z "$$previous_template" ]; then
+          echo "Unable to capture previous MIG template" >&2
+          exit 1
+        fi
+        printf '%s\n' "$$previous_template" > /workspace/previous-template.txt
+        printf '%s\n' "$$template_name" > /workspace/new-template.txt
+
+        probe_health() {
+          probe_label="$$1"
+          for attempt in $$(seq 1 30); do
+            response="$$(
+              curl -fsS --connect-timeout 3 --max-time 5 \
+                "http://$_STATIC_IP:10000/health" 2>/dev/null || true
+            )"
+            if printf '%s\n' "$$response" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true'; then
+              echo "HTTP health probe succeeded ($$probe_label) on attempt $$attempt"
+              return 0
+            fi
+            sleep 10
+          done
+          echo "HTTP health probe failed ($$probe_label)" >&2
+          return 1
+        }
+
+        assert_template_image() {
+          checked_template="$$1"
+          metadata_key="$$(
+            gcloud compute instance-templates describe "$$checked_template" \
+              --format='value(properties.metadata.items[0].key)'
+          )"
+          if [ "$$metadata_key" != "gce-container-declaration" ]; then
+            echo "Template $$checked_template has no container declaration" >&2
+            return 1
+          fi
+          container_declaration="$$(
+            gcloud compute instance-templates describe "$$checked_template" \
+              --format='value(properties.metadata.items[0].value)'
+          )"
+          if ! printf '%s\n' "$$container_declaration" | grep -F -- "image: $$image_ref" >/dev/null; then
+            echo "Template $$checked_template is not pinned to $$image_ref" >&2
+            return 1
+          fi
+        }
+
+        deploy_started=0
+        rollback() {
+          original_status=$$?
+          trap - EXIT
+          if [ "$$deploy_started" -ne 1 ] || [ "$$original_status" -eq 0 ]; then
+            exit "$$original_status"
+          fi
+
+          echo "Rollout failed; restoring template $$previous_template" >&2
+          set +e
+          if gcloud compute instance-groups managed set-instance-template forusbots-mig \
+              --zone=$_ZONE \
+              --template="$$previous_template" && \
+            gcloud compute instance-groups managed rolling-action start-update forusbots-mig \
+              --zone=$_ZONE \
+              --version="template=$$previous_template" \
+              --max-surge=0 --max-unavailable=1 && \
+            gcloud compute instance-groups managed wait-until forusbots-mig \
+              --zone=$_ZONE \
+              --stable \
+              --timeout=900; then
+            probe_health "rollback" || true
+          else
+            echo "Automatic rollback failed; manual intervention required" >&2
+          fi
+          exit "$$original_status"
+        }
+        trap rollback EXIT
+
+        if ! gcloud compute instance-templates describe "$$template_name" >/dev/null 2>&1; then
+          gcloud compute instance-templates create-with-container "$$template_name" \
             --machine-type=e2-small \
-            --container-image=$_IMAGE:$SHORT_SHA \
+            --container-image="$$image_ref" \
             --service-account=$_SA_EMAIL \
             --scopes=cloud-platform \
             --tags=http-server \
+            --metadata=google-logging-enabled=true \
             --address=$_STATIC_IP \
             --container-env=NODE_ENV=production,GCP_PROJECT=$PROJECT_ID,LOG_FORMAT=json,LOG_LEVEL=info,PORT=10000,AUDIT_DB=1 \
             --container-mount-disk=mount-path=/var/lib/forusbots,name=forusbots-state \
             --disk=name=forusbots-state,device-name=forusbots-state,mode=rw,boot=no
         fi
+        assert_template_image "$$template_name"
+
+        deploy_started=1
         gcloud compute instance-groups managed set-instance-template forusbots-mig \
           --zone=$_ZONE \
-          --template=forusbots-template-$SHORT_SHA
+          --template="$$template_name"
         gcloud compute instance-groups managed rolling-action start-update forusbots-mig \
           --zone=$_ZONE \
-          --version=template=forusbots-template-$SHORT_SHA \
+          --version="template=$$template_name" \
           --max-surge=0 --max-unavailable=1
+        gcloud compute instance-groups managed wait-until forusbots-mig \
+          --zone=$_ZONE \
+          --stable \
+          --timeout=900
+
+        configured_template="$$(
+          gcloud compute instance-groups managed describe forusbots-mig \
+            --zone=$_ZONE \
+            --format='value(instanceTemplate.basename())'
+        )"
+        if [ "$$configured_template" != "$$template_name" ]; then
+          echo "MIG configured template mismatch: $$configured_template" >&2
+          exit 1
+        fi
+
+        effective_template="$$(
+          gcloud compute instance-groups managed list-instances forusbots-mig \
+            --zone=$_ZONE \
+            --format='value(version.instanceTemplate.basename())' | sort -u
+        )"
+        if [ "$$effective_template" != "$$template_name" ]; then
+          echo "MIG effective template mismatch: $$effective_template" >&2
+          exit 1
+        fi
+        assert_template_image "$$effective_template"
+        probe_health "new rollout"
+
+        deploy_started=0
+        trap - EXIT
 
 substitutions:
   _IMAGE: us-central1-docker.pkg.dev/${PROJECT_ID}/forusbots/forusbots
@@ -50,3 +208,5 @@ options:
   logging: CLOUD_LOGGING_ONLY
   machineType: E2_HIGHCPU_8
   dynamic_substitutions: true
+
+timeout: 2400s

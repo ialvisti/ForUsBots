@@ -3,6 +3,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const { createHash } = require("crypto");
 const { resolveScope } = require("../auth/scopes");
 const { resolveAccount } = require("../auth/account");
 
@@ -101,6 +102,19 @@ function readToken(req) {
   return req.header("x-auth-token") || bearerToken(req) || null;
 }
 
+function principalIdForToken(token, user = null) {
+  if (typeof token !== "string" || !token) return null;
+  const stableId = user && user.id ? String(user.id).trim() : "";
+  const stableEmail =
+    user && user.email ? String(user.email).trim().toLowerCase() : "";
+  const basis = stableId
+    ? `registry-id:${stableId}`
+    : stableEmail
+    ? `registry-email:${stableEmail}`
+    : `token:${token}`;
+  return createHash("sha256").update(basis, "utf8").digest("hex");
+}
+
 // Acepta cualquier rol no vacío (admin, user, *_lead, etc.)
 function getIdentity(token) {
   if (!token) return null;
@@ -135,6 +149,7 @@ function requireUser(req, res, next) {
     scope: resolveScope(id.tokenMeta),
     account: resolveAccount(id.tokenMeta),
     tokenMeta: id.tokenMeta,
+    principalId: principalIdForToken(token, id.user),
   };
   next();
 }
@@ -157,6 +172,7 @@ function requireAdmin(req, res, next) {
     scope: resolveScope(id.tokenMeta),
     account: resolveAccount(id.tokenMeta),
     tokenMeta: id.tokenMeta,
+    principalId: principalIdForToken(token, id.user),
   };
   next();
 }
@@ -191,3 +207,4 @@ module.exports.listUsersPublic = listUsersPublic;
 module.exports._getIdentity = getIdentity;
 module.exports._tokenMetaCount = () => TOKEN_META.size;
 module.exports._tokensPath = () => TOKENS_PATH_USED;
+module.exports._principalIdForToken = principalIdForToken;

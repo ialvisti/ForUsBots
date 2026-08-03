@@ -16,6 +16,10 @@ const updatePlanRoutes = require("../bots/forusall-update-plan/routes");
 const usersManagementRoutes = require("../bots/forusall-usersmanagement/routes");
 const restrictToEmails = require("../middleware/restrictToEmails");
 const queue = require("../engine/queue");
+const {
+  getDefaultIdempotencyStore,
+  getJobWithDurableFallback,
+} = require("../engine/idempotency");
 const { getLoginLocksStatus } = require("../engine/loginLock");
 const auth = require("../middleware/auth"); // default = requireUser (compat)
 const { requireAdmin, requireUser } = require("../middleware/auth");
@@ -95,10 +99,20 @@ router.get("/jobs", auth, requireScope("jobs-read"), (req, res) => {
 });
 
 // Obtener estado de un job por id
-router.get("/jobs/:id", auth, requireScope("jobs-read"), (req, res) => {
-  const job = queue.getJob(req.params.id);
-  if (!job) return res.status(404).json({ ok: false, error: "Job not found" });
-  return res.json(toPublicJob(job));
+router.get("/jobs/:id", auth, requireScope("jobs-read"), async (req, res) => {
+  try {
+    const job = await getJobWithDurableFallback(req.params.id, {
+      memoryQueue: queue,
+      durableStore: getDefaultIdempotencyStore(),
+    });
+    if (!job) return res.status(404).json({ ok: false, error: "Job not found" });
+    return res.json(toPublicJob(job));
+  } catch (e) {
+    logger.error({ type: "route.index.jobs_get_error", error: e });
+    return res
+      .status(503)
+      .json({ ok: false, error: "Job state temporarily unavailable" });
+  }
 });
 
 // Cancelar un job en cola

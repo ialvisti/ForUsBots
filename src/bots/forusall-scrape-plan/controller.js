@@ -1,8 +1,11 @@
 // src/bots/forusall-scrape-plan/controller.js
-const queue = require("../../engine/queue");
 const { FIXED } = require("../../providers/forusall/config");
 const { allowedKeys } = require("../../providers/forusall/planMap");
 const logger = require("../../engine/logger");
+const {
+  submitIdempotently,
+  toIdempotencyHttpError,
+} = require("../../engine/idempotency");
 const {
   validateFieldsForModule,
 } = require("../../extractors/forusall-plan/registry");
@@ -174,8 +177,19 @@ module.exports = async function controller(req, res) {
       createdBy,
     };
 
-    const accepted = queue.submit({
+    const accepted = await submitIdempotently({
+      idempotencyKey: req.get("Idempotency-Key"),
       botId: "scrape-plan",
+      principalId: a.principalId || null,
+      fingerprintPayload: {
+        planId: meta.planId,
+        modules: meta.modules,
+        invalidModules: meta.invalidModules,
+        includeScreens,
+        returnMode,
+        timeoutMs,
+        strict,
+      },
       meta: {
         planId: meta.planId,
         modules: meta.modules,
@@ -189,6 +203,7 @@ module.exports = async function controller(req, res) {
     });
 
     res.set("Location", `/forusbot/jobs/${accepted.jobId}`);
+    res.set("Idempotency-Replayed", String(accepted.replayed));
     return res.status(202).json({
       ok: true,
       jobId: accepted.jobId,
@@ -209,6 +224,8 @@ module.exports = async function controller(req, res) {
       },
     });
   } catch (e) {
+    const httpError = toIdempotencyHttpError(e);
+    if (httpError) return res.status(httpError.status).json(httpError.body);
     logger.error({ type: "bot.scrape_plan.scrape_plan_controller_error", error: e });
     return res
       .status(500)
@@ -218,4 +235,3 @@ module.exports = async function controller(req, res) {
       });
   }
 };
-
