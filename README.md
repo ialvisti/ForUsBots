@@ -1,4 +1,4 @@
-# ForUsBots – API (v2.5.0)
+# ForUsBots – API (v2.6.0)
 
 Service with **9 Playwright automation bots** for the ForUsAll employer portal:
 vault uploads, participant and plan scraping, participant search, participant
@@ -7,7 +7,7 @@ management. Login uses TOTP when needed. OpenAPI is the API source of truth.
 
 - English API docs: `/docs/api`
 - Spanish API docs: `/docs/api/es`
-- OpenAPI: `docs/openapi.yaml` (version 2.5.0)
+- OpenAPI: `docs/openapi.yaml` (version 2.6.0)
 - Sandbox UI: `/docs/sandbox` (EN), `/docs/sandbox/es` (ES)
 
 ---
@@ -237,13 +237,17 @@ curl -sS -X POST "$BASE/forusbot/sandbox/users-management/edit" \
 
 ## OpenAPI & Docs
 
-- OpenAPI: `docs/openapi.yaml` (version 2.5.0)
+- OpenAPI: `docs/openapi.yaml` (version 2.6.0)
 - English docs: `/docs/api` — Spanish docs: `/docs/api/es`
 - Sandbox: `/docs/sandbox` (EN), `/docs/sandbox/es` (ES)
 
 ---
 
 ## Changelog
+
+- 2.6.0 (2026-08-03)
+  - Added durable Firestore-backed idempotency for participant and plan scrape submissions using `Idempotency-Key`.
+  - Documented replay, conflict, and temporary durability-failure responses without exposing raw authentication tokens.
 
 - 2.5.0 documentation audit (2026-07-16)
   - Aligned `update-participant` with the exact Census UI labels accepted by runtime.
