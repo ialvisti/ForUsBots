@@ -6,6 +6,7 @@ const runFlow = require("./runFlow");
 const { setPdfTitle } = require("../../engine/utils/pdf"); // PDF internal title
 const queue = require("../../engine/queue"); // queue and status
 const logger = require("../../engine/logger");
+const { parsePositivePlanId } = require("./validation");
 
 // 422 quick check if they send "Document Missing" with an attached file
 function prevalidate(metaIn, hasBinary) {
@@ -114,14 +115,19 @@ module.exports = async function controller(req, res) {
       });
     }
 
+    const planId = parsePositivePlanId(metaIn.planId);
+    if (planId === null) {
+      return res.status(400).json({
+        ok: false,
+        errorType: "validation",
+        error: "Invalid planId",
+        hint: "planId must be a positive integer greater than 0 (for example, 580)",
+        warnings,
+      });
+    }
+
     // 2) Minimal validations (accumulated)
     const missing = [];
-    if (
-      metaIn.planId === undefined ||
-      metaIn.planId === null ||
-      String(metaIn.planId).trim?.() === ""
-    )
-      missing.push("planId");
     if (!metaIn.formData || typeof metaIn.formData !== "object") {
       missing.push("formData");
     } else {
@@ -249,7 +255,7 @@ module.exports = async function controller(req, res) {
       loginUrl: FIXED.loginUrl,
       uploadUrlTemplate: FIXED.uploadUrlTemplate,
       selectors: FIXED.selectors,
-      planId: metaIn.planId,
+      planId,
       formData: metaIn.formData,
       options: { ...FIXED.options, ...(metaIn.options || {}) },
       createdBy,
@@ -258,7 +264,7 @@ module.exports = async function controller(req, res) {
     // 8) Submit (we return 202 immediately) + cleanup /tmp after finishing
     const minimalForm = metaIn.formData || {};
     const jobMeta = {
-      planId: metaIn.planId,
+      planId,
       filename: safeBase,
       section: minimalForm.section,
       caption: minimalForm.caption,

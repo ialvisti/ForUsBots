@@ -365,6 +365,7 @@ function makeStageTracker(job) {
         stages: stagesSummary,
         stagesList: history,
         meta: job.meta || null,
+        durableLifecycle: !!job.durableLifecycle,
       },
       ok ? "info" : "error"
     );
@@ -406,17 +407,19 @@ function maybeStartNext() {
         meta: job.meta || null,
         running: running.length,
         queued: queue.length,
+        durableLifecycle: !!job.durableLifecycle,
       },
       "info"
     );
 
     Promise.resolve()
-      .then(() =>
-        runWith(
+      .then(async () => {
+        if (typeof job.beforeRun === "function") await job.beforeRun();
+        return runWith(
           { jobId: job.jobId, botId: job.botId },
           () => job.run(jobCtx)
-        )
-      )
+        );
+      })
       .then(
         (val) => finalize(job, null, val),
         (err) => finalize(job, err, null)
@@ -424,57 +427,91 @@ function maybeStartNext() {
   }
 }
 
-function finalize(job, err, val) {
+async function finalize(job, err, val) {
   job.finishedAt = nowISO();
   clearJobStage(job.jobId);
-  const idx = running.findIndex((j) => j.jobId === job.jobId);
-  if (idx >= 0) running.splice(idx, 1);
-
   const reg = jobsById.get(job.jobId);
+  let terminalState = err ? "failed" : "succeeded";
+  let terminalError = err
+    ? String(err && err.message ? err.message : err)
+    : null;
+  let terminalResult;
+
+  if (err) {
+    try {
+      terminalResult = normalizeResultEnvelope(job.botId, false, null, {
+        error: terminalError,
+      });
+    } catch {
+      terminalResult = {
+        ok: false,
+        code: "ERROR",
+        message: terminalError || null,
+        data: null,
+        warnings: [],
+        errors: [],
+      };
+    }
+  } else {
+    try {
+      terminalResult = normalizeResultEnvelope(job.botId, true, val, null);
+    } catch {
+      terminalResult = {
+        ok: true,
+        code: "OK",
+        message: null,
+        data: val ?? null,
+        warnings: [],
+        errors: [],
+      };
+    }
+  }
+
+  if (typeof job.afterFinalize === "function") {
+    try {
+      await job.afterFinalize({
+        state: terminalState,
+        result: terminalResult,
+        error: terminalError,
+      });
+    } catch (durabilityError) {
+      err = new Error("Durable job state could not be persisted");
+      terminalState = "failed";
+      terminalError = "Durable job state could not be persisted";
+      terminalResult = {
+        ok: false,
+        code: "DURABLE_STATE_FAILED",
+        message: terminalError,
+        data: null,
+        warnings: [],
+        errors: [],
+      };
+      log.error({
+        type: "job.durable_state_failed",
+        jobId: job.jobId,
+        bot: job.botId,
+        error: durabilityError,
+      });
+    }
+  }
+
   if (reg) {
     reg.finishedAt = job.finishedAt;
-    if (err) {
-      reg.state = "failed";
-      reg.error = String(err && err.message ? err.message : err);
-      // Normalizar aún en error
-      try {
-        reg.result = normalizeResultEnvelope(reg.botId, false, null, {
-          error: reg.error,
-        });
-      } catch {
-        reg.result = {
-          ok: false,
-          code: "ERROR",
-          message: reg.error || null,
-          data: null,
-          warnings: [],
-          errors: [],
-        };
-      }
-    } else {
-      reg.state = "succeeded";
+    reg.state = terminalState;
+    reg.error = terminalError;
+    reg.result = terminalResult;
+    if (terminalState === "succeeded") {
       // Guardamos raw por depuración, pero no lo exponemos públicamente
       reg.rawResult = val;
-      // Normalizamos a envelope canónico
-      try {
-        reg.result = normalizeResultEnvelope(reg.botId, true, val, null);
-      } catch (e) {
-        // Si algo falla, degradamos a genérico
-        reg.result = {
-          ok: true,
-          code: "OK",
-          message: null,
-          data: val ?? null,
-          warnings: [],
-          errors: [],
-        };
-      }
       if (reg.startedAt) {
         const dur = secondsBetweenISO(reg.startedAt, reg.finishedAt);
         if (dur != null) pushDuration(reg.botId, dur);
       }
     }
   }
+
+  const idx = running.findIndex((j) => j.jobId === job.jobId);
+  if (idx >= 0) running.splice(idx, 1);
 
   // cerrar tracker (emite stage.* final y job.summary)
   if (job.__tracker) {
@@ -511,6 +548,7 @@ function finalize(job, err, val) {
         queueMs,
         totalMs,
         totalSeconds,
+        durableLifecycle: !!job.durableLifecycle,
       },
       "error"
     );
@@ -526,6 +564,7 @@ function finalize(job, err, val) {
         queueMs,
         totalMs,
         totalSeconds,
+        durableLifecycle: !!job.durableLifecycle,
       },
       "info"
     );
@@ -595,7 +634,17 @@ function enqueue({ botId, meta = {}, run }) {
 }
 
 // ===== Nueva API 202: submit =====
-function submit({ botId, meta = {}, run, account }) {
+function submit({
+  botId,
+  meta = {},
+  run,
+  account,
+  jobId: reservedJobId,
+  acceptedAt: reservedAcceptedAt,
+  beforeRun,
+  afterFinalize,
+  durableLifecycle = false,
+}) {
   if (typeof run !== "function")
     throw new Error("submit requiere un run() function");
   if (
@@ -612,8 +661,13 @@ function submit({ botId, meta = {}, run, account }) {
   // Separar createdBy y limpiar meta para persistencia
   const { metaSansCreator, createdBySan } = splitMeta(meta);
 
-  const jobId = randomUUID();
-  const acceptedAt = nowISO();
+  const jobId = reservedJobId ? String(reservedJobId) : randomUUID();
+  const acceptedAt = reservedAcceptedAt
+    ? new Date(reservedAcceptedAt).toISOString()
+    : nowISO();
+  if (jobsById.has(jobId)) {
+    throw new Error("submit: jobId ya existe");
+  }
   const job = {
     jobId,
     botId: String(botId || "unknown"),
@@ -623,6 +677,9 @@ function submit({ botId, meta = {}, run, account }) {
     account, // viaja con el job al runFlow; NO entra a jobsById ni a meta
     _resolve: () => {},
     _reject: () => {},
+    beforeRun,
+    afterFinalize,
+    durableLifecycle: !!durableLifecycle,
   };
 
   jobsById.set(jobId, {
@@ -661,7 +718,8 @@ function submit({ botId, meta = {}, run, account }) {
       accountAlias: account.alias || null,
       estimate,
       capacitySnapshot: cap2,
-      mode: "submit",
+      mode: durableLifecycle ? "submit-durable" : "submit",
+      durableLifecycle: !!durableLifecycle,
     },
     "info"
   );

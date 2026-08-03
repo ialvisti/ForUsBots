@@ -47,14 +47,14 @@ function safeJsonClone(v) {
   }
 }
 
-async function trackEvent(rec) {
+async function persistEvent(rec) {
   if (!ENABLED || !rec || !rec.type) return;
 
   const type = String(rec.type);
   const jobId = rec.jobId || rec.job_id || null;
 
   try {
-    if (type === "job.accepted" && jobId) {
+    if (type === "job.accepted" && jobId && !rec.durableLifecycle) {
       const { name, role, at } = pickCreatedBy(rec.executedBy);
       await jobsCol().doc(jobId).set(
         {
@@ -71,7 +71,7 @@ async function trackEvent(rec) {
         },
         { merge: true }
       );
-    } else if (type === "job.started" && jobId) {
+    } else if (type === "job.started" && jobId && !rec.durableLifecycle) {
       await jobsCol().doc(jobId).set(
         {
           state: "running",
@@ -84,7 +84,8 @@ async function trackEvent(rec) {
       (type === "job.succeeded" ||
         type === "job.failed" ||
         type === "job.canceled") &&
-      jobId
+      jobId &&
+      !rec.durableLifecycle
     ) {
       await jobsCol().doc(jobId).set(
         {
@@ -153,6 +154,23 @@ async function trackEvent(rec) {
     // eslint-disable-next-line no-console
     console.error("[audit] firestore write failed:", err.message);
   }
+}
+
+const writeChainsByJob = new Map();
+
+function trackEvent(rec) {
+  if (!ENABLED || !rec || !rec.type) return Promise.resolve();
+  const jobId = rec.jobId || rec.job_id || null;
+  if (!jobId) return persistEvent(rec);
+
+  const key = String(jobId);
+  const previous = writeChainsByJob.get(key) || Promise.resolve();
+  const current = previous.catch(() => {}).then(() => persistEvent(rec));
+  writeChainsByJob.set(key, current);
+  current.finally(() => {
+    if (writeChainsByJob.get(key) === current) writeChainsByJob.delete(key);
+  });
+  return current;
 }
 
 module.exports = {

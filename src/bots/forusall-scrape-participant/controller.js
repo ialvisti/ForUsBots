@@ -1,8 +1,11 @@
 // src/bots/forusall-scrape-participant/controller.js
-const queue = require("../../engine/queue");
 const { FIXED } = require("../../providers/forusall/config");
 const { allowedKeys } = require("../../providers/forusall/participantMap");
 const logger = require("../../engine/logger");
+const {
+  submitIdempotently,
+  toIdempotencyHttpError,
+} = require("../../engine/idempotency");
 const {
   validateFieldsForModule,
 } = require("../../extractors/forusall-participant/registry");
@@ -174,8 +177,19 @@ module.exports = async function controller(req, res) {
       createdBy,
     };
 
-    const accepted = queue.submit({
+    const accepted = await submitIdempotently({
+      idempotencyKey: req.get("Idempotency-Key"),
       botId: "scrape-participant",
+      principalId: a.principalId || null,
+      fingerprintPayload: {
+        participantId: meta.participantId,
+        modules: meta.modules,
+        invalidModules: meta.invalidModules,
+        includeScreens,
+        returnMode,
+        timeoutMs,
+        strict,
+      },
       meta: {
         participantId: meta.participantId,
         modules: meta.modules,
@@ -189,6 +203,7 @@ module.exports = async function controller(req, res) {
     });
 
     res.set("Location", `/forusbot/jobs/${accepted.jobId}`);
+    res.set("Idempotency-Replayed", String(accepted.replayed));
     return res.status(202).json({
       ok: true,
       jobId: accepted.jobId,
@@ -209,6 +224,8 @@ module.exports = async function controller(req, res) {
       },
     });
   } catch (e) {
+    const httpError = toIdempotencyHttpError(e);
+    if (httpError) return res.status(httpError.status).json(httpError.body);
     logger.error({ type: "bot.scrape_participant.scrape_participant_controller_error", error: e });
     return res
       .status(500)

@@ -3,7 +3,11 @@ FROM mcr.microsoft.com/playwright:v1.54.2-jammy
 
 # Crea el directorio de la app y ajusta permisos para el user por defecto (pwuser)
 USER root
-RUN mkdir -p /app && chown -R pwuser:pwuser /app
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends tini && \
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /app && \
+    chown -R pwuser:pwuser /app
 WORKDIR /app
 USER pwuser
 
@@ -29,5 +33,8 @@ EXPOSE 10000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=5 \
   CMD bash scripts/healthcheck.sh || exit 1
 
-# Comando de inicio
-CMD ["npm", "start"]
+# Tini actúa como PID 1 y recolecta los procesos Chromium terminados.
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Ejecuta Node directamente para que señales y códigos de salida se propaguen.
+CMD ["node", "src/index.js"]
