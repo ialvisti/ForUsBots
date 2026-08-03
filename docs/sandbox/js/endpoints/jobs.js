@@ -22,8 +22,6 @@ const TERMINAL_STATES = new Set([
   "CANCELLED",
 ]);
 
-const DONE_STAGE_RE = /^(done|finish|finished|final|finalize|completed)$/i;
-
 function isTerminalState(s) {
   return TERMINAL_STATES.has(
     String(s || "")
@@ -34,8 +32,8 @@ function isTerminalState(s) {
 
 /**
  * Polling en memoria:
- *  - Se detiene en terminal o si el stage coincide con "done/finish/...".
- *  - Si luego llega 404/Job not found, conserva el último snapshot visto.
+ *  - Stops only on a terminal job state or explicit cancellation.
+ *  - Transient 404/network responses do not end polling.
  *  - Devuelve una función canceladora: cancel(wipeUI:boolean=false).
  *    - Si llamas cancel(true) borra el snapshot (y puedes limpiar tu UI).
  */
@@ -70,25 +68,17 @@ export function startPolling({
     try {
       const { http, body } = await fetchJob(base, jobId, tokenValue);
 
-      // 404 / not found -> si ya teníamos snapshot, conservarlo y detener.
       if (
         http === 404 ||
         (body && body.ok === false && /not\s*found/i.test(body.error || ""))
       ) {
-        if (lastSnapshot) {
-          // Mantenemos lo último (posiblemente ya estaba en "done" stage)
-          cancel(false);
-          try {
-            renderState?.(lastSnapshot);
-          } catch {}
-          return;
-        } else {
-          cancel(false);
+        if (!lastSnapshot) {
           try {
             renderState?.({ ok: false, error: "Job not found" });
           } catch {}
-          return;
         }
+        if (!stopped) interval = setTimeout(poll, intervalMs);
+        return;
       }
 
       if (body && typeof body === "object") {
@@ -103,26 +93,16 @@ export function startPolling({
           return;
         }
 
-        // Señal temprana: algunos flows marcan stage "done" justo antes de finalizar.
-        const stageName = String(body.stage ?? body.stageName ?? "").trim();
-        if (stageName && DONE_STAGE_RE.test(stageName)) {
-          cancel(false);
-          return;
-        }
       }
     } catch {
-      // Error de red: si nunca vimos snapshot, corta y muestra error simple.
       if (!lastSnapshot) {
-        cancel(false);
         try {
           renderState?.({
             ok: false,
             error: "Network error while polling job",
           });
         } catch {}
-        return;
       }
-      // Si ya había snapshot, lo conservamos y seguimos al próximo tick.
     }
 
     if (!stopped) {

@@ -19,7 +19,6 @@ import { buildSnippets } from "./core/snippets.js";
 import { validateBasicsForRun } from "./core/validate.js";
 import { ENDPOINTS } from "./endpoints/constants.js";
 import { startPolling } from "./endpoints/jobs.js";
-import { runDryUpload } from "./endpoints/upload.js";
 import { wireScrapeUI, buildScrapeBodyStr } from "./core/scrape-ui.js";
 import { wirePlanUI, buildPlanBodyStr } from "./core/plan-ui.js";
 import {
@@ -39,6 +38,7 @@ import {
 import {
   wireEmailUI,
   buildEmailBodyStr as buildEmailBodyStrET,
+  validateEmailBody,
 } from "./core/email-ui.js";
 
 import {
@@ -94,7 +94,6 @@ const pyCode = $("#pyCode");
 
 // ==== Buttons ====
 const genBtn = $("#genBtn");
-const dryBtn = $("#dryBtn");
 const runBtn = $("#runBtn");
 const cancelBtn = $("#cancelBtn");
 
@@ -108,12 +107,14 @@ const jobJson = $("#jobJson pre");
 const toast = $("#toast");
 
 // Allow-list for upload types (keep in sync with validate.js)
-const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".csv", ".xls"]);
+const ALLOWED_EXTS = new Set([".pdf", ".xlsx", ".xls", ".csv", ".zip"]);
 const ALLOWED_MIMES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/vnd.ms-excel",
   "text/csv",
+  "application/zip",
+  "application/x-zip-compressed",
 ]);
 const getExt = (name) => {
   const m = String(name || "")
@@ -176,7 +177,7 @@ function buildAndRenderSnippets(ep, metaStr, jsonBodyStr = null) {
 function refreshAllOutputs() {
   const ep = ENDPOINTS[endpointSel.value];
   renderBadges(endpointSel, endpointBadges, ENDPOINTS);
-  updateVisibility(endpointSel, metaBlock, dryBtn, jobArea, ENDPOINTS);
+  updateVisibility(endpointSel, metaBlock, jobArea, ENDPOINTS);
   populateCaptionsFromSection(section, caption, otherWrap);
 
   let metaStr = "";
@@ -245,7 +246,8 @@ function refreshAllOutputs() {
 
 // ---- Events ----
 endpointSel.addEventListener("change", () => {
-  cancelPolling?.();
+  resetJobVisual();
+  runResult.textContent = "(not executed)";
   refreshAllOutputs();
 });
 
@@ -349,49 +351,18 @@ genBtn.addEventListener("click", (e) => {
   refreshAllOutputs();
 });
 
-// ---- Dry Run (upload sandbox only) ----
-dryBtn.addEventListener("click", async (e) => {
-  e.preventDefault();
-  if (endpointSel.value !== "sandbox-upload") {
-    runResult.textContent = "Dry-Run applies to the sandbox-upload endpoint.";
-    return;
-  }
-  try {
-    const ep = ENDPOINTS[endpointSel.value];
-    const metaStr = oneLineMeta({
-      planId,
-      section,
-      caption,
-      status,
-      effectiveDate,
-      captionOtherText,
-    });
-    renderHeaders(metaStr);
-    buildAndRenderSnippets(ep, metaStr);
-    metaOut.value = metaStr;
-
-    const { base, headers, bodyPromise } = validateBasicsForRun({
-      ep,
-      baseUrl,
-      token,
-      xFilename,
-      metaStr,
-      pdfFile,
-    });
-    await runDryUpload({
-      base,
-      headers,
-      bodyPromise,
-      runResultEl: runResult,
-    });
-  } catch (err) {
-    runResult.textContent = "Error: " + (err.message || String(err));
-  }
-});
-
 let cancelPolling = null;
 function setCancelPolling(fn) {
   cancelPolling = fn;
+}
+function resetJobVisual() {
+  const cancel = cancelPolling;
+  cancelPolling = null;
+  cancel?.(true);
+  cancelBtn.disabled = true;
+  jobState.className = "status";
+  jobState.querySelector(".txt").textContent = "—";
+  jobJson.textContent = "(waiting for job)";
 }
 cancelBtn.addEventListener("click", () => {
   if (cancelPolling) cancelPolling();
@@ -400,6 +371,8 @@ cancelBtn.addEventListener("click", () => {
 // ---- Run (incluye polling para 202) ----
 runBtn.addEventListener("click", async (e) => {
   e.preventDefault();
+  resetJobVisual();
+  runResult.textContent = "Running…";
   const ep = ENDPOINTS[endpointSel.value];
   try {
     let metaStr = "";
@@ -492,16 +465,11 @@ runBtn.addEventListener("click", async (e) => {
         throw new Error("Provide at least one search criteria field.");
     }
 
-    // email-trigger: planId and emailType required
+    // email-trigger: mirror controller preflight, including conditional fields.
     if (endpointSel.value === "email-trigger") {
       jsonBodyStr = buildEmailBodyStrET(false);
       const bodyTest = JSON.parse(jsonBodyStr);
-      const planId = bodyTest.planId;
-      const emailType = bodyTest.emailType;
-      if (!planId || planId <= 0)
-        throw new Error("planId is required and must be > 0.");
-      if (!emailType || String(emailType).trim() === "")
-        throw new Error("emailType is required.");
+      validateEmailBody(bodyTest);
     }
 
     // users-management create/edit (real + sandbox): build the body and
@@ -550,6 +518,7 @@ runBtn.addEventListener("click", async (e) => {
       xFilename,
       metaStr,
       pdfFile,
+      jobId,
     });
 
     const url = ep.path.replace(":id", jobId.value || "");
@@ -585,6 +554,10 @@ runBtn.addEventListener("click", async (e) => {
       if (!data.jobId) return;
 
       const renderState = (j) => {
+        if (!j) {
+          resetJobVisual();
+          return;
+        }
         const s = j.state ?? j.status;
         jobJson.textContent = JSON.stringify(j, null, 2);
         jobState.className = "status state-" + (s || "");
@@ -600,7 +573,7 @@ runBtn.addEventListener("click", async (e) => {
         renderState,
         cancelBtn,
       });
-      setCancelPolling(() => cancel());
+      setCancelPolling(cancel);
     } else {
       if (cancelPolling) cancelPolling();
     }
@@ -611,7 +584,7 @@ runBtn.addEventListener("click", async (e) => {
 
 // ==== Init ====
 renderBadges(endpointSel, endpointBadges, ENDPOINTS);
-updateVisibility(endpointSel, metaBlock, dryBtn, jobArea, ENDPOINTS);
+updateVisibility(endpointSel, metaBlock, jobArea, ENDPOINTS);
 if (!section.value) section.value = "CONTRACTS & AGREEMENTS";
 populateCaptionsFromSection(section, caption, otherWrap);
 updateFileNameUI(pdfFile, fileNameEl);
@@ -626,5 +599,10 @@ async function refreshScopeFromToken() {
   renderMeBanner(me);
   applyScopeToEndpointSelect(endpointSel, me, ENDPOINTS);
 }
+let scopeRefreshTimer = null;
+token.addEventListener("input", () => {
+  clearTimeout(scopeRefreshTimer);
+  scopeRefreshTimer = setTimeout(refreshScopeFromToken, 250);
+});
 token.addEventListener("change", refreshScopeFromToken);
 refreshScopeFromToken();

@@ -14,9 +14,9 @@
 
         <!-- Top bar: Back to Docs + Language -->
         <nav class="topnav">
-          <a id="" class="toplink" href="/docs/sandbox">Sandbox</a>
-          <span class="spacer"></span>
-          <a id="back-link" class="toplink" href="/docs">Go back to Docs</a>
+          <a id="back-link" class="toplink" href="/docs">Docs</a>
+          <a class="toplink" href="/docs/api" aria-current="page">API Reference</a>
+          <a class="toplink" href="/docs/sandbox">Sandbox</a>
           <span class="spacer"></span>
           <label for="lang-select" class="sr-only">Language</label>
           <div class="lang-switch">
@@ -39,13 +39,50 @@
 
     <main class="wrap">
       <p class="lead">
-        Minimal REST endpoints that back the Playwright automation. Submit a
-        file for processing, track job status, adjust concurrency at runtime,
-        and inspect locks & metrics.
+        Reference for nine Playwright automation bots, public job polling,
+        token scopes, and admin runtime controls.
         <br /><span class="muted small"
           >All routes are namespaced under <code>/forusbot</code>. A plain
           <code>/health</code> also exists.</span
         >
+      </p>
+
+      <h2 id="auth-scopes" class="tag">authentication &amp; scopes</h2>
+      <section class="op static">
+        <div class="op-body">
+          <p>
+            Protected routes accept <code>x-auth-token: YOUR_TOKEN</code> or
+            <code>Authorization: Bearer YOUR_TOKEN</code>. Tokens are loaded
+            from <code>tokens.json</code> (or <code>TOKENS_FILE</code>); a
+            deployment may materialize that file from the
+            <code>TOKENS_JSON</code> secret. There is no shared-token contract.
+          </p>
+          <p>
+            Roles: <code>admin</code>, <code>user</code>,
+            <code>pa_lead</code>, <code>rm_lead</code>,
+            <code>ops_lead</code>, and <code>imp_lead</code>. Effective scope
+            merges role defaults with token-level
+            <code>deniedFeatures</code>, <code>deniedEndpoints</code>, and
+            <code>allowedEndpoints</code>; an exact allow overrides denies.
+          </p>
+          <p class="muted">
+            <code>/locks</code>, <code>/settings</code>,
+            <code>/metrics</code>, <code>/version</code>, and
+            <code>/openapi</code> require an admin token. Update-plan and
+            users-management additionally enforce email allowlists; an admin
+            token outside the allowlist still receives 403.
+          </p>
+        </div>
+      </section>
+
+      <h2 id="bot-ids" class="tag">runtime bot IDs</h2>
+      <p class="muted">
+        Use these exact <code>botId</code> filter values:
+        <code>vault-file-upload</code>, <code>scrape-participant</code>,
+        <code>scrape-plan</code>, <code>search-participants</code>,
+        <code>forusall-mfa-reset</code>, <code>update-participant</code>,
+        <code>update-plan</code>, <code>forusall-emailtrigger</code>, and
+        <code>users-management</code>.
       </p>
 
       <!-- =================== TAG: health & status =================== -->
@@ -163,7 +200,7 @@
                 <td>header</td>
                 <td>string</td>
                 <td>yes</td>
-                <td>Must end with <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code>.</td>
+                <td>Must end with <code>.pdf</code>. This public dry-run is intentionally narrower than the real upload.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -465,7 +502,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
             <div class="code">400 <span class="muted">Bad Request</span></div>
             <pre><code class="json">{
   "ok": false,
-  "error": "planId es obligatorio"
+  "error": "planId is required"
 }</code></pre>
           </div>
 
@@ -473,7 +510,7 @@ er_match_plan_entry_frequency_second_month</code></pre>
             <div class="code">422 <span class="muted">Validation Failed</span></div>
             <pre><code class="json">{
   "ok": false,
-  "error": "modules contiene claves no soportadas",
+  "error": "modules contains unsupported keys",
   "invalid": ["invalid_module"],
   "allowed": ["basic_info", "plan_design", "onboarding", "communications", "extra_settings", "feature_flags"]
 }</code></pre>
@@ -875,14 +912,14 @@ er_match_plan_entry_frequency_second_month</code></pre>
             <div class="code">400 <span class="muted">Bad Request</span></div>
             <pre><code class="json">{
   "ok": false,
-  "error": "participantId es obligatorio"
+  "error": "participantId is required"
 }</code></pre>
           </div>
           <div class="resp">
             <div class="code">422 <span class="muted">Validation Error</span></div>
             <pre><code class="json">{
   "ok": false,
-  "error": "updates no contiene campos reconocidos del módulo Census",
+  "error": "updates contains no recognized Census labels",
   "warnings": []
 }</code></pre>
           </div>
@@ -1103,7 +1140,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
             <pre><code class="json">{
   "ok": false,
   "error": "validation",
-  "details": ["email es obligatorio.", "password y passwordConfirmation no coinciden."],
+  "details": ["email is required.", "password and passwordConfirmation do not match."],
   "warnings": []
 }</code></pre>
           </div>
@@ -1183,14 +1220,14 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           </div>
           <div class="resp">
             <div class="code">400 <span class="muted">Bad Request</span></div>
-            <pre><code class="json">{ "ok": false, "error": "userId es obligatorio y debe ser un entero positivo" }</code></pre>
+            <pre><code class="json">{ "ok": false, "error": "userId is required and must be a positive integer" }</code></pre>
           </div>
           <div class="resp">
             <div class="code">422 <span class="muted">Unprocessable Entity</span></div>
             <pre><code class="json">{
   "ok": false,
   "error": "validation",
-  "details": ["resetMfa debe ser uno de: employer, admin, both, none."],
+  "details": ["resetMfa must be one of: employer, admin, both, none."],
   "warnings": []
 }</code></pre>
           </div>
@@ -1265,7 +1302,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
   "ok": false,
   "mode": "dry-run",
   "error": "validation",
-  "details": ["email es obligatorio.", "note es obligatoria"]
+  "details": ["email is required.", "note is required."]
 }</code></pre>
           </div>
         </div>
@@ -1320,7 +1357,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
   "ok": false,
   "mode": "dry-run",
   "error": "validation",
-  "details": ["userId es obligatorio y debe ser un entero positivo"]
+  "details": ["userId is required and must be a positive integer"]
 }</code></pre>
           </div>
         </div>
@@ -1422,7 +1459,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
             <div class="code">400 <span class="muted">Bad Request</span></div>
             <pre><code class="json">{
   "ok": false,
-  "error": "Campos faltantes o inválidos",
+  "error": "Missing or invalid fields",
   "missing": ["planId (entero > 0)", "emailType"]
 }</code></pre>
           </div>
@@ -1496,7 +1533,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
       </details>
 
       <!-- GET /forusbot/whoami -->
-      <details class="op get">
+      <details class="op get" id="whoami">
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/whoami</span>
@@ -1504,8 +1541,8 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         </summary>
         <div class="op-body">
           <p class="muted">
-            Returns the role and user metadata associated with the provided API
-            token. Send the token via <code>x-auth-token</code> header.
+            Returns role, public user metadata, portal account alias, and the
+            complete effective scope. Credentials are never returned.
           </p>
 
           <h4>Responses</h4>
@@ -1520,6 +1557,13 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
     "name": "Ivan Alvis",
     "email": "ivan.alvis@forusall.com",
     "id": "u_ivan"
+  },
+  "accountAlias": "primary-employer",
+  "scope": {
+    "role": "admin",
+    "deniedFeatures": [],
+    "deniedEndpoints": [],
+    "allowedEndpoints": []
   }
 }</code></pre>
           </div>
@@ -1543,8 +1587,9 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         </summary>
         <div class="op-body">
           <p class="muted">
-            Accepts a raw binary body (PDF, Excel, or CSV) with headers carrying
-            metadata. Supported file types: <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>.
+            Accepts a raw binary body with headers carrying metadata. Supported
+            file types: <code>.pdf</code>, <code>.xlsx</code>,
+            <code>.xls</code>, <code>.csv</code>, and <code>.zip</code>.
             The server logs in (TOTP), fills the form, and processes
             the job asynchronously. Returns <strong>202</strong> with a
             <code>jobId</code> and ETA.
@@ -1567,14 +1612,14 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
                 <td>header</td>
                 <td>string</td>
                 <td>yes</td>
-                <td>Must match server env <code>SHARED_TOKEN</code>.</td>
+                <td>Token from the configured token registry.</td>
               </tr>
               <tr>
                 <td><code>x-filename</code></td>
                 <td>header</td>
                 <td>string</td>
                 <td>yes</td>
-                <td>Original filename. Must end with <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, or <code>.csv</code>.</td>
+                <td>Original filename. Must end with <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>, or <code>.zip</code>.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -1591,7 +1636,8 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
                 <td>
                   <code>application/octet-stream</code>, <code>application/pdf</code>, 
                   <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code> (.xlsx), 
-                  <code>application/vnd.ms-excel</code> (.xls), or <code>text/csv</code>.
+                  <code>application/vnd.ms-excel</code> (.xls),
+                  <code>text/csv</code>, or <code>application/zip</code>.
                 </td>
               </tr>
             </tbody>
@@ -1707,7 +1753,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
                 <td>query</td>
                 <td>string</td>
                 <td>no</td>
-                <td>Filter by bot id (e.g. <code>forusall</code>).</td>
+                <td>Filter by an exact <a href="#bot-ids">runtime bot ID</a>.</td>
               </tr>
               <tr>
                 <td><code>limit</code></td>
@@ -1736,18 +1782,18 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
   "offset": 0,
   "jobs": [
     {
-      "jobId": "uuid",
-      "botId": "forusall",
-      "meta": {...},
       "state": "succeeded",
-      "acceptedAt": "2025-08-20T00:00:00Z",
-      "startedAt": "2025-08-20T00:00:30Z",
-      "finishedAt": "2025-08-20T00:02:00Z",
-      "result": {...},
-      "error": null
+      "data": { "planId": "627", "modules": [] },
+      "warnings": [],
+      "errors": []
     }
   ]
 }</code></pre>
+            <p class="muted small">
+              Each array item uses the same public state-dependent shape as
+              <code>GET /forusbot/jobs/:id</code>. Job IDs, bot IDs, metadata,
+              timestamps, stages, and metrics are not exposed.
+            </p>
           </div>
           <div class="resp">
             <div class="code">401 <span class="muted">Unauthorized</span></div>
@@ -1767,21 +1813,18 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           <h4>Responses</h4>
           <div class="resp">
             <div class="code">200 <span class="muted">OK</span></div>
-            <pre><code class="json">{
-  "ok": true,
-  "jobId": "uuid",
-  "botId": "forusall",
-  "meta": {...},
-  "state": "running",
-  "acceptedAt": "...",
-  "startedAt": "...",
-  "finishedAt": null,
-  "result": null,
-  "error": null,
-  "elapsedSeconds": 18,
-  "stage": "upload-file",
-  "stageSince": "2025-08-20T00:01:18Z",
-  "stageSeconds": 3
+            <pre><code class="json">// queued / running / canceled
+{ "state": "running" }
+
+// failed
+{ "state": "failed", "error": { "code": "ERROR", "message": "Login failed" } }
+
+// succeeded
+{
+  "state": "succeeded",
+  "data": { /* bot-specific public data */ },
+  "warnings": [],
+  "errors": []
 }</code></pre>
           </div>
           <div class="resp">
@@ -1790,7 +1833,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           </div>
           <div class="resp">
             <div class="code">404 <span class="muted">Not Found</span></div>
-            <pre><code class="json">{"ok": false, "error": "Job no encontrado"}</code></pre>
+            <pre><code class="json">{"ok": false, "error": "Job not found"}</code></pre>
           </div>
         </div>
       </details>
@@ -1813,11 +1856,11 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           </div>
           <div class="resp">
             <div class="code">409 <span class="muted">Conflict</span></div>
-            <pre><code class="json">{"ok": false, "error": "No se puede cancelar: job en ejecución"}</code></pre>
+            <pre><code class="json">{"ok": false, "error": "Cannot cancel: job is running"}</code></pre>
           </div>
           <div class="resp">
             <div class="code">404 <span class="muted">Not Found</span></div>
-            <pre><code class="json">{"ok": false, "error": "Job no encontrado"}</code></pre>
+            <pre><code class="json">{"ok": false, "error": "Job not found"}</code></pre>
           </div>
         </div>
       </details>
@@ -1830,7 +1873,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/locks</span>
-          <span class="sum">Login/TOTP locks (auth)</span>
+          <span class="sum">Login/TOTP locks (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">Per-user mutex and TOTP step window info.</p>
@@ -1859,7 +1902,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/settings</span>
-          <span class="sum">Read settings (auth)</span>
+          <span class="sum">Read settings (admin)</span>
         </summary>
         <div class="op-body">
           <h4>Responses</h4>
@@ -1882,7 +1925,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method patch">PATCH</span>
           <span class="path">/forusbot/settings</span>
-          <span class="sum">Patch settings (auth)</span>
+          <span class="sum">Patch settings (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">Body example:</p>
@@ -1900,7 +1943,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           </div>
           <div class="resp">
             <div class="code">400 <span class="muted">Bad Request</span></div>
-            <pre><code class="json">{"ok": false, "error": "maxConcurrency debe ser un número >= 1"}</code></pre>
+            <pre><code class="json">{"ok": false, "error": "maxConcurrency must be a number >= 1"}</code></pre>
           </div>
         </div>
       </details>
@@ -1910,7 +1953,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/metrics</span>
-          <span class="sum">Metrics (auth)</span>
+          <span class="sum">Metrics (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">
@@ -1940,7 +1983,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/version</span>
-          <span class="sum">Package version (auth)</span>
+          <span class="sum">Package version (admin)</span>
         </summary>
         <div class="op-body">
           <div class="resp">
@@ -1955,7 +1998,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/openapi</span>
-          <span class="sum">OpenAPI YAML (auth)</span>
+          <span class="sum">OpenAPI YAML (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">
@@ -1963,6 +2006,20 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           </p>
         </div>
       </details>
+
+      <h2 id="errors" class="tag">errors</h2>
+      <table class="tbl">
+        <thead><tr><th>Status</th><th>Meaning</th><th>Typical shape</th></tr></thead>
+        <tbody>
+          <tr><td>400</td><td>Malformed or missing input</td><td><code>{ok:false,error:"..."}</code></td></tr>
+          <tr><td>401</td><td>Missing or unknown token</td><td><code>{ok:false,error:"unauthorized",warnings:[]}</code></td></tr>
+          <tr><td>403</td><td>Admin guard, scope, or email allowlist denied access</td><td><code>{ok:false,error:"forbidden",...}</code></td></tr>
+          <tr><td>404</td><td>Job or resource not found</td><td><code>{ok:false,error:"Job not found"}</code></td></tr>
+          <tr><td>409</td><td>A running job cannot be canceled</td><td><code>{ok:false,error:"Cannot cancel: job is running"}</code></td></tr>
+          <tr><td>422</td><td>Valid input shape rejected by a business rule</td><td><code>{ok:false,error:"validation",details:[...]}</code></td></tr>
+          <tr><td>500</td><td>Unexpected runtime failure</td><td><code>{ok:false,error:"..."}</code></td></tr>
+        </tbody>
+      </table>
 
       <!-- =================== TAG: Schemas =================== -->
       <h2 id="schemas" class="tag">schemas</h2>
@@ -2039,8 +2096,8 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
       </details>
 
       <footer class="foot muted small">
-        Last updated 2026-04-25 • Static reference docs. Set
-        <code>HEADFUL=0</code> in cloud.
+        Last updated 2026-07-16 • Static reference docs. Set
+        <code>HEADLESS=1</code> in cloud.
       </footer>
     </main>
 

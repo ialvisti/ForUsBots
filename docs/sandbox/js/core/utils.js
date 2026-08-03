@@ -10,9 +10,8 @@ export function showToast(toastEl, msg = "Copied ✅") {
 
 export function maskSecret(s) {
   if (!s) return "(empty)";
-  const len = s.length;
-  const dots = "•".repeat(Math.min(len, 24));
-  return len > 24 ? dots + "…" : dots;
+  const value = String(s);
+  return `****...${value.slice(-4)}`;
 }
 
 export function prettyResult(outEl, status, text) {

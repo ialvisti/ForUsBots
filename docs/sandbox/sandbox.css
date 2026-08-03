@@ -297,6 +297,13 @@ a:hover { color: var(--accent); }
     color: var(--text);
 }
 
+.nav-item:disabled,
+.nav-item[aria-disabled="true"] {
+    opacity: .45;
+    cursor: not-allowed;
+    background: transparent;
+}
+
 .nav-item[aria-current="true"] {
     background: var(--bg-elev-2);
     color: var(--text);
@@ -365,6 +372,25 @@ a:hover { color: var(--accent); }
     gap: 10px;
     padding: 4px 8px;
     flex-wrap: wrap;
+}
+
+.sidebar-user-details {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.sidebar-user-details #meNameMini {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ===== TOPBAR ===== */
@@ -952,6 +978,29 @@ html[data-theme="light"] .btn .kbd { background: rgba(0, 0, 0, .06); }
 }
 .kv .v::-webkit-scrollbar { height: 6px; }
 
+@media (max-width: 540px) {
+    .kvs {
+        display: block;
+    }
+    .kv {
+        display: block;
+    }
+    .kv div {
+        border-bottom: 0;
+    }
+    .kv .k {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .kv .v {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+    .kv:not(:empty) .kv:not(:last-child) .v {
+        border-bottom: 1px solid var(--border);
+    }
+}
+
 .code {
     position: relative;
     background: var(--bg-elev-2);
@@ -1432,7 +1481,6 @@ details > *:not(summary) { padding: 0 14px 14px; margin-top: 8px; }
     word-break: break-word;
 }
 
-#dryBtn { display: none !important; }
 #generator .actions { margin-top: 10px; }
 #genBtn {
     display: none;

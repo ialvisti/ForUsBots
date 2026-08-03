@@ -22,8 +22,6 @@ const TERMINAL_STATES = new Set([
   "CANCELLED",
 ]);
 
-const DONE_STAGE_RE = /^(done|finish|finished|final|finalize|completed)$/i;
-
 function isTerminalState(s) {
   return TERMINAL_STATES.has(
     String(s || "")
@@ -34,8 +32,8 @@ function isTerminalState(s) {
 
 /**
  * Polling en memoria:
- *  - Se detiene en terminal o si el stage coincide con "done/finish/...".
- *  - Si luego llega 404/Job not found, conserva el último snapshot visto.
+ *  - Se detiene sólo por estado terminal o cancelación explícita.
+ *  - Respuestas 404 o errores de red transitorios no terminan el polling.
  *  - Devuelve una función canceladora: cancel(wipeUI:boolean=false).
  *    - Si llamas cancel(true) borra el snapshot (y puedes limpiar tu UI).
  */
@@ -74,19 +72,13 @@ export function startPolling({
         http === 404 ||
         (body && body.ok === false && /not\s*found/i.test(body.error || ""))
       ) {
-        if (lastSnapshot) {
-          cancel(false);
+        if (!lastSnapshot) {
           try {
-            renderState?.(lastSnapshot);
+            renderState?.({ ok: false, error: "Trabajo no encontrado" });
           } catch {}
-          return;
-        } else {
-          cancel(false);
-          try {
-            renderState?.({ ok: false, error: "Job not found" });
-          } catch {}
-          return;
         }
+        if (!stopped) interval = setTimeout(poll, intervalMs);
+        return;
       }
 
       if (body && typeof body === "object") {
@@ -101,22 +93,15 @@ export function startPolling({
           return;
         }
 
-        const stageName = String(body.stage ?? body.stageName ?? "").trim();
-        if (stageName && DONE_STAGE_RE.test(stageName)) {
-          cancel(false);
-          return;
-        }
       }
     } catch {
       if (!lastSnapshot) {
-        cancel(false);
         try {
           renderState?.({
             ok: false,
-            error: "Network error while polling job",
+            error: "Error de red al consultar el trabajo",
           });
         } catch {}
-        return;
       }
     }
 

@@ -16,34 +16,37 @@
 
 import { $ } from "./utils.js";
 
+const IS_ES = document.documentElement.lang === "es";
+const text = (en, es) => (IS_ES ? es : en);
+
 // ============================================================================
 // FIELD_SPECS para el dropdown del EDIT
 // ============================================================================
 
 const FIELD_SPECS = [
   // Basic
-  { name: "firstName", label: "First name", group: "Basic", type: "text" },
-  { name: "lastName", label: "Last name", group: "Basic", type: "text" },
-  { name: "email", label: "Email", group: "Basic", type: "email" },
+  { name: "firstName", label: text("First name", "Nombre"), group: text("Basic", "Básico"), type: "text" },
+  { name: "lastName", label: text("Last name", "Apellido"), group: text("Basic", "Básico"), type: "text" },
+  { name: "email", label: "Email", group: text("Basic", "Básico"), type: "email" },
   {
     name: "password",
-    label: "Password",
-    group: "Basic",
+    label: text("Password", "Contraseña"),
+    group: text("Basic", "Básico"),
     type: "password",
     pairsWith: "passwordConfirmation",
   },
   {
     name: "passwordConfirmation",
-    label: "Password confirmation",
-    group: "Basic",
+    label: text("Password confirmation", "Confirmar contraseña"),
+    group: text("Basic", "Básico"),
     type: "password",
   },
 
   // Access
   {
     name: "role",
-    label: "Role",
-    group: "Access",
+    label: text("Role", "Rol"),
+    group: text("Access", "Acceso"),
     type: "select",
     options: [
       { value: "1", label: "1 — forus_admin" },
@@ -54,35 +57,35 @@ const FIELD_SPECS = [
       { value: "6", label: "6 — auditor" },
     ],
   },
-  { name: "sponsorIds", label: "Sponsor IDs", group: "Access", type: "chips" },
-  { name: "userGroupIds", label: "User group IDs", group: "Access", type: "chips" },
-  { name: "payrollSetupIds", label: "Payroll setup IDs", group: "Access", type: "chips" },
+  { name: "sponsorIds", label: "Sponsor IDs", group: text("Access", "Acceso"), type: "chips" },
+  { name: "userGroupIds", label: "User group IDs", group: text("Access", "Acceso"), type: "chips" },
+  { name: "payrollSetupIds", label: "Payroll setup IDs", group: text("Access", "Acceso"), type: "chips" },
 
   // Status
   {
     name: "active",
-    label: "Active",
-    group: "Status",
+    label: text("Active", "Activo"),
+    group: text("Status", "Estado"),
     type: "checkbox",
     options: [
-      { value: "true", label: "active" },
-      { value: "false", label: "inactive" },
+      { value: "true", label: text("active", "activo") },
+      { value: "false", label: text("inactive", "inactivo") },
     ],
   },
   {
     name: "isNewDashboardUser",
     label: "Dashboard",
-    group: "Status",
+    group: text("Status", "Estado"),
     type: "checkbox",
     options: [
-      { value: "true", label: "new" },
-      { value: "false", label: "old" },
+      { value: "true", label: text("new", "nuevo") },
+      { value: "false", label: text("old", "antiguo") },
     ],
   },
   {
     name: "notAnEmployee",
-    label: "Not an employee",
-    group: "Status",
+    label: text("Not an employee", "No es empleado"),
+    group: text("Status", "Estado"),
     type: "checkbox",
     options: [
       { value: "true", label: "true" },
@@ -91,7 +94,7 @@ const FIELD_SPECS = [
   },
 
   // Identification
-  { name: "participantId", label: "Participant ID", group: "Identification", type: "text" },
+  { name: "participantId", label: "Participant ID", group: text("Identification", "Identificación"), type: "text" },
 ];
 
 // ============================================================================
@@ -123,7 +126,7 @@ function chipEl(idStr, { onChange } = {}) {
   const x = document.createElement("button");
   x.type = "button";
   x.className = "um-chip-x";
-  x.setAttribute("aria-label", `Remove ${idStr}`);
+  x.setAttribute("aria-label", `${text("Remove", "Eliminar")} ${idStr}`);
   x.textContent = "×";
   x.addEventListener("click", (e) => {
     e.preventDefault();
@@ -308,7 +311,7 @@ function buildValueInput(spec, { onChange } = {}) {
     case "select": {
       const sel = document.createElement("select");
       sel.className = "ume-input";
-      sel.appendChild(optionEl("", "(choose a value)"));
+      sel.appendChild(optionEl("", text("(choose a value)", "(elige un valor)")));
       (spec.options || []).forEach((opt) =>
         sel.appendChild(optionEl(opt.value, opt.label))
       );
@@ -324,7 +327,7 @@ function buildValueInput(spec, { onChange } = {}) {
       if (spec.pairsWith) {
         const help = document.createElement("div");
         help.className = "help";
-        help.innerHTML = `Don't forget to also add <code>${spec.pairsWith}</code> with the same value.`;
+        help.innerHTML = `${text("Also add", "Agrega también")} <code>${spec.pairsWith}</code> ${text("with the same value", "con el mismo valor")}.`;
         box.appendChild(help);
       }
       break;
@@ -343,7 +346,10 @@ function buildValueInput(spec, { onChange } = {}) {
       input.type = "text";
       input.className = "um-chip-input ume-input-chipsinput";
       input.placeholder =
-        "Type ID and press Enter or comma (paste \"1, 2, 3\" supported)";
+        text(
+          "Type ID and press Enter or comma (paste \"1, 2, 3\" supported)",
+          "Escribe un ID y pulsa Enter o coma (puedes pegar \"1, 2, 3\")"
+        );
       box.appendChild(chipsBox);
       box.appendChild(input);
       // wire after DOM insertion (deferred)
@@ -383,7 +389,7 @@ function repopulateLabelSelects() {
     const used = usedNames(row);
 
     sel.innerHTML = "";
-    sel.appendChild(optionEl("", "(choose a field)"));
+    sel.appendChild(optionEl("", text("(choose a field)", "(elige un campo)")));
     Object.keys(groups).forEach((groupName) => {
       const optgroup = document.createElement("optgroup");
       optgroup.label = groupName;
@@ -420,7 +426,7 @@ function addEditRow({ onChange } = {}) {
   const fieldLeft = document.createElement("div");
   fieldLeft.className = "field";
   fieldLeft.innerHTML =
-    '<label>field</label><select class="ume-label"></select>';
+    `<label>${text("field", "campo")}</label><select class="ume-label"></select>`;
   controls.appendChild(fieldLeft);
 
   const actions = document.createElement("div");
@@ -428,7 +434,7 @@ function addEditRow({ onChange } = {}) {
   const removeBtn = document.createElement("button");
   removeBtn.type = "button";
   removeBtn.className = "btn ghost small";
-  removeBtn.textContent = "Remove";
+  removeBtn.textContent = text("Remove", "Eliminar");
   actions.appendChild(removeBtn);
   controls.appendChild(actions);
 

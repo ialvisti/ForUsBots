@@ -14,10 +14,9 @@
 
         <!-- NUEVO: barra superior con volver + idioma -->
         <nav class="topnav">
-          <a id="" class="toplink" href="/docs/sandbox/es">Sandbox</a>
-          <span class="spacer"></span>
-
-          <a id="back-link" class="toplink" href="/docs/es">Volver a Docs</a>
+          <a id="back-link" class="toplink" href="/docs/es">Docs</a>
+          <a class="toplink" href="/docs/api/es" aria-current="page">Referencia API</a>
+          <a class="toplink" href="/docs/sandbox/es">Sandbox</a>
           <span class="spacer"></span>
           <label for="lang-select" class="sr-only">Idioma</label>
           <div class="lang-switch">
@@ -40,13 +39,50 @@
 
     <main class="wrap">
       <p class="lead">
-        Endpoints REST mínimos que respaldan la automatización con Playwright.
-        Envía un archivo para procesar de forma asíncrona, consulta el estado de
-        los jobs, ajusta concurrencia y revisa locks y métricas.
+        Referencia de nueve bots de Playwright, consulta pública de jobs,
+        scopes de tokens y controles runtime de administración.
         <br /><span class="muted small"
           >Todas las rutas están bajo el namespace <code>/forusbot</code>.
           También existe <code>/health</code> plano.</span
         >
+      </p>
+
+      <h2 id="auth-scopes" class="tag">autenticación y scopes</h2>
+      <section class="op static">
+        <div class="op-body">
+          <p>
+            Las rutas protegidas aceptan <code>x-auth-token: TU_TOKEN</code> o
+            <code>Authorization: Bearer TU_TOKEN</code>. Los tokens se cargan
+            desde <code>tokens.json</code> (o <code>TOKENS_FILE</code>); un
+            despliegue puede materializar ese archivo desde el secreto
+            <code>TOKENS_JSON</code>. No existe un contrato de token compartido.
+          </p>
+          <p>
+            Roles: <code>admin</code>, <code>user</code>,
+            <code>pa_lead</code>, <code>rm_lead</code>,
+            <code>ops_lead</code> e <code>imp_lead</code>. El scope efectivo
+            combina los defaults del rol con <code>deniedFeatures</code>,
+            <code>deniedEndpoints</code> y <code>allowedEndpoints</code> del
+            token; un allow exacto prevalece.
+          </p>
+          <p class="muted">
+            <code>/locks</code>, <code>/settings</code>,
+            <code>/metrics</code>, <code>/version</code> y
+            <code>/openapi</code> requieren token admin. Update-plan y
+            users-management además aplican allowlists de email; un admin fuera
+            de la lista también recibe 403.
+          </p>
+        </div>
+      </section>
+
+      <h2 id="bot-ids" class="tag">IDs runtime de bots</h2>
+      <p class="muted">
+        Valores exactos para filtrar por <code>botId</code>:
+        <code>vault-file-upload</code>, <code>scrape-participant</code>,
+        <code>scrape-plan</code>, <code>search-participants</code>,
+        <code>forusall-mfa-reset</code>, <code>update-participant</code>,
+        <code>update-plan</code>, <code>forusall-emailtrigger</code> y
+        <code>users-management</code>.
       </p>
 
       <!-- =================== TAG: salud y estado =================== -->
@@ -105,7 +141,7 @@
       </details>
 
       <!-- GET /forusbot/whoami -->
-      <details class="op get">
+      <details class="op get" id="whoami">
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/whoami</span>
@@ -113,8 +149,8 @@
         </summary>
         <div class="op-body">
           <p class="muted">
-            Devuelve el rol y los metadatos de usuario asociados al token de API
-            enviado. Envía el token mediante el header <code>x-auth-token</code>.
+            Devuelve el rol, metadatos públicos del usuario, alias de la cuenta
+            del portal y el scope efectivo completo. Nunca expone credenciales.
           </p>
 
           <h4>Respuestas</h4>
@@ -129,6 +165,13 @@
     "name": "Ivan Alvis",
     "email": "ivan.alvis@forusall.com",
     "id": "u_ivan"
+  },
+  "accountAlias": "primary-employer",
+  "scope": {
+    "role": "admin",
+    "deniedFeatures": [],
+    "deniedEndpoints": [],
+    "allowedEndpoints": []
   }
 }</code></pre>
           </div>
@@ -152,8 +195,9 @@
         </summary>
         <div class="op-body">
           <p class="muted">
-            Recibe el cuerpo binario (PDF, Excel o CSV) con metadatos en
-            headers. Tipos de archivo soportados: <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>.
+            Recibe un cuerpo binario con metadatos en headers. Tipos soportados:
+            <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>,
+            <code>.csv</code> y <code>.zip</code>.
             El servidor inicia sesión (TOTP), completa el formulario y
             procesa el job de forma asíncrona. Devuelve <strong>202</strong> con
             <code>jobId</code> y ETA.
@@ -177,7 +221,7 @@
                 <td>string</td>
                 <td>sí</td>
                 <td>
-                  Debe coincidir con la variable <code>SHARED_TOKEN</code>.
+                  Token del registro configurado.
                 </td>
               </tr>
               <tr>
@@ -185,7 +229,7 @@
                 <td>header</td>
                 <td>string</td>
                 <td>sí</td>
-                <td>Nombre de archivo. Debe terminar en <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, o <code>.csv</code>.</td>
+                <td>Nombre de archivo. Debe terminar en <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code> o <code>.zip</code>.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -202,7 +246,8 @@
                 <td>
                   <code>application/octet-stream</code>, <code>application/pdf</code>, 
                   <code>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</code> (.xlsx), 
-                  <code>application/vnd.ms-excel</code> (.xls), o <code>text/csv</code>.
+                  <code>application/vnd.ms-excel</code> (.xls),
+                  <code>text/csv</code> o <code>application/zip</code>.
                 </td>
               </tr>
             </tbody>
@@ -256,7 +301,7 @@
           </div>
           <div class="resp">
             <div class="code">500 <span class="muted">Error interno</span></div>
-            <pre><code class="json">{"ok": false, "error": "Unexpected runtime error"}</code></pre>
+            <pre><code class="json">{"ok": false, "error": "Error inesperado de ejecución"}</code></pre>
           </div>
         </div>
       </details>
@@ -352,7 +397,7 @@
                 <td>header</td>
                 <td>string</td>
                 <td>sí</td>
-                <td>Debe terminar en <code>.pdf</code>, <code>.xlsx</code>, <code>.xls</code>, o <code>.csv</code>.</td>
+                <td>Debe terminar en <code>.pdf</code>. Este dry-run público es intencionalmente más limitado que el upload real.</td>
               </tr>
               <tr>
                 <td><code>x-meta</code></td>
@@ -396,7 +441,7 @@
             <pre><code class="json">{
   "ok": false,
   "errorType": "validation",
-  "error": "Missing fields in x-meta",
+  "error": "Faltan campos en x-meta",
   "missing": ["planId","formData.section","formData.caption","formData.status","formData.effectiveDate"],
   "warnings": []
 }</code></pre>
@@ -409,7 +454,7 @@
             <pre><code class="json">{
   "ok": false,
   "errorType": "validation",
-  "error": "Status 'Document Missing' is not valid when a file is attached"
+  "error": "El estado 'Document Missing' no es válido con un archivo adjunto"
 }</code></pre>
           </div>
         </div>
@@ -1671,7 +1716,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
                 <td>query</td>
                 <td>string</td>
                 <td>no</td>
-                <td>Filtra por bot (p. ej. <code>forusall</code>).</td>
+                <td>Filtra por un <a href="#bot-ids">ID runtime de bot</a> exacto.</td>
               </tr>
               <tr>
                 <td><code>limit</code></td>
@@ -1700,18 +1745,18 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
   "offset": 0,
   "jobs": [
     {
-      "jobId": "uuid",
-      "botId": "forusall",
-      "meta": {...},
       "state": "succeeded",
-      "acceptedAt": "2025-08-20T00:00:00Z",
-      "startedAt": "2025-08-20T00:00:30Z",
-      "finishedAt": "2025-08-20T00:02:00Z",
-      "result": {...},
-      "error": null
+      "data": { "planId": "627", "modules": [] },
+      "warnings": [],
+      "errors": []
     }
   ]
 }</code></pre>
+            <p class="muted small">
+              Cada ítem usa el mismo shape público dependiente del estado que
+              <code>GET /forusbot/jobs/:id</code>. No expone IDs de job o bot,
+              metadata, timestamps, stages ni métricas.
+            </p>
           </div>
           <div class="resp">
             <div class="code">401 <span class="muted">No autorizado</span></div>
@@ -1731,21 +1776,18 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           <h4>Respuestas</h4>
           <div class="resp">
             <div class="code">200 <span class="muted">OK</span></div>
-            <pre><code class="json">{
-  "ok": true,
-  "jobId": "uuid",
-  "botId": "forusall",
-  "meta": {...},
-  "state": "running",
-  "acceptedAt": "...",
-  "startedAt": "...",
-  "finishedAt": null,
-  "result": null,
-  "error": null,
-  "elapsedSeconds": 18,
-  "stage": "upload-file",
-  "stageSince": "2025-08-20T00:01:18Z",
-  "stageSeconds": 3
+            <pre><code class="json">// queued / running / canceled
+{ "state": "running" }
+
+// failed
+{ "state": "failed", "error": { "code": "ERROR", "message": "Falló el login" } }
+
+// succeeded
+{
+  "state": "succeeded",
+  "data": { /* datos públicos específicos del bot */ },
+  "warnings": [],
+  "errors": []
 }</code></pre>
           </div>
           <div class="resp">
@@ -1795,7 +1837,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/locks</span>
-          <span class="sum">Candados de Login/TOTP (auth)</span>
+          <span class="sum">Candados de Login/TOTP (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">Mutex por usuario y ventana TOTP.</p>
@@ -1824,7 +1866,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/settings</span>
-          <span class="sum">Leer settings (auth)</span>
+          <span class="sum">Leer settings (admin)</span>
         </summary>
         <div class="op-body">
           <div class="resp">
@@ -1843,7 +1885,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method patch">PATCH</span>
           <span class="path">/forusbot/settings</span>
-          <span class="sum">Actualizar settings (auth)</span>
+          <span class="sum">Actualizar settings (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">Ejemplo de body:</p>
@@ -1872,7 +1914,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/metrics</span>
-          <span class="sum">Métricas (auth)</span>
+          <span class="sum">Métricas (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">
@@ -1902,7 +1944,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/version</span>
-          <span class="sum">Versión del paquete (auth)</span>
+          <span class="sum">Versión del paquete (admin)</span>
         </summary>
         <div class="op-body">
           <div class="resp">
@@ -1917,7 +1959,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
         <summary>
           <span class="method get">GET</span>
           <span class="path">/forusbot/openapi</span>
-          <span class="sum">OpenAPI YAML (auth)</span>
+          <span class="sum">OpenAPI YAML (admin)</span>
         </summary>
         <div class="op-body">
           <p class="muted">
@@ -1925,6 +1967,20 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
           </p>
         </div>
       </details>
+
+      <h2 id="errors" class="tag">errores</h2>
+      <table class="tbl">
+        <thead><tr><th>Estado</th><th>Significado</th><th>Shape típico</th></tr></thead>
+        <tbody>
+          <tr><td>400</td><td>Input ausente o mal formado</td><td><code>{ok:false,error:"..."}</code></td></tr>
+          <tr><td>401</td><td>Token ausente o desconocido</td><td><code>{ok:false,error:"unauthorized",warnings:[]}</code></td></tr>
+          <tr><td>403</td><td>Guard admin, scope o allowlist de email denegó acceso</td><td><code>{ok:false,error:"forbidden",...}</code></td></tr>
+          <tr><td>404</td><td>Job o recurso no encontrado</td><td><code>{ok:false,error:"Job no encontrado"}</code></td></tr>
+          <tr><td>409</td><td>No se puede cancelar un job en ejecución</td><td><code>{ok:false,error:"No se puede cancelar: job en ejecución"}</code></td></tr>
+          <tr><td>422</td><td>El shape es válido, pero falla una regla de negocio</td><td><code>{ok:false,error:"validation",details:[...]}</code></td></tr>
+          <tr><td>500</td><td>Fallo runtime inesperado</td><td><code>{ok:false,error:"..."}</code></td></tr>
+        </tbody>
+      </table>
 
       <!-- =================== TAG: esquemas =================== -->
       <h2 id="schemas" class="tag">esquemas</h2>
@@ -1985,7 +2041,7 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
 // failed
 {
   "state": "failed",
-  "error": { "code": "ERROR", "message": "Login failed" }
+  "error": { "code": "ERROR", "message": "Falló el login" }
 }
 
 // succeeded — el shape de `data` depende de cada bot
@@ -2001,8 +2057,8 @@ alts_crypto, max_crypto_percent_balance, website_live_date</code></pre>
       </details>
 
       <footer class="foot muted small">
-        Última actualización 2026-04-25 • Docs estáticas. En nube usa
-        <code>HEADFUL=0</code>.
+        Última actualización 2026-07-16 • Docs estáticas. En nube usa
+        <code>HEADLESS=1</code>.
       </footer>
     </main>
 
