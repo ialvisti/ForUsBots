@@ -1579,7 +1579,11 @@ components:
         error:
           type: object
           nullable: true
-          description: Solo presente cuando state=failed.
+          description: |
+            Solo presente cuando state=failed. Los fallos del gate SAR conservan
+            únicamente un código de la lista cerrada implementada por el bot y el
+            mensaje fijo `SAR preview document verification failed`; nunca incluyen
+            nombres de plan, EIN, URLs, texto OCR ni detalles internos.
           properties:
             code: { type: string }
             message: { type: string }

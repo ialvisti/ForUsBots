@@ -11,6 +11,7 @@ const queue = require("../../src/engine/queue");
 const { toPublicJob } = require("../../src/middleware/public-response");
 const {
   assertFlowSucceeded,
+  normalizeFlowError,
 } = require("../../src/bots/forusall-emailtrigger/result");
 
 const ACCOUNT = Object.freeze({
@@ -34,6 +35,56 @@ async function waitForJob(jobId) {
   }
   assert.fail("email-trigger job did not reach a terminal state");
 }
+
+test("SAR gate failures expose only an allowlisted code and fixed message", async () => {
+  const source = new Error("FORUS 401(K), EIN 12-3456789, OCR text");
+  source.code = "SAR_DOCUMENT_VERIFIER_REJECTED";
+  source.details = {
+    planName: "FORUS 401(K)",
+    ein: "12-3456789",
+    ocrText: "private OCR text",
+  };
+
+  const accepted = queue.submit({
+    botId: "forusall-emailtrigger",
+    meta: {
+      planId: 74,
+      emailType: "summary_annual_notice",
+      reportYear: 2025,
+    },
+    account: ACCOUNT,
+    run: async () => {
+      throw normalizeFlowError(source);
+    },
+  });
+
+  const job = await waitForJob(accepted.jobId);
+  assert.equal(job.state, "failed");
+  assert.equal(job.result.code, "SAR_DOCUMENT_VERIFIER_REJECTED");
+  assert.equal(job.result.data, null);
+  assert.deepEqual(job.result.errors, [
+    "SAR preview document verification failed",
+  ]);
+  const publicJob = toPublicJob(job);
+  assert.deepEqual(publicJob, {
+    state: "failed",
+    error: {
+      code: "SAR_DOCUMENT_VERIFIER_REJECTED",
+      message: "SAR preview document verification failed",
+    },
+  });
+  assert.doesNotMatch(
+    JSON.stringify({ result: job.result, publicJob }),
+    /FORUS|123456789|private OCR/
+  );
+});
+
+test("unknown SAR-like codes are not promoted into the public code contract", () => {
+  const source = new Error("Internal failure");
+  source.code = "SAR_NEW_UNREVIEWED_FAILURE";
+  const normalized = normalizeFlowError(source);
+  assert.equal(normalized.code, "EMAILTRIGGER_FAILED");
+});
 
 for (const scenario of [
   {

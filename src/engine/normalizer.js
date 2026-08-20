@@ -24,6 +24,10 @@
 // Uso:
 //   normalizeResultEnvelope(botId, okBoolean, rawResult, { error?: string }?)
 //
+const {
+  isPublicSarFailureCode,
+} = require("../bots/forusall-emailtrigger/result");
+
 function asArray(a) {
   if (!a) return [];
   return Array.isArray(a) ? a : [a];
@@ -106,11 +110,11 @@ function normEmailTrigger(ok, raw, errCtx) {
   if (
     !ok &&
     errCtx &&
-    [
+    ([
       "EMAILTRIGGER_FAILED",
       "EMAILTRIGGER_EMPTY_PLAN",
       "EMAILTRIGGER_UNKNOWN_OUTCOME",
-    ].includes(errCtx.code)
+    ].includes(errCtx.code) || isPublicSarFailureCode(errCtx.code))
   ) {
     code = errCtx.code;
   }

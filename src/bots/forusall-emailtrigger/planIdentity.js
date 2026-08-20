@@ -13,6 +13,23 @@ function identityFailure() {
   return error;
 }
 
+function normalizePortalName(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function isStrongSymlink(value) {
+  const characters =
+    normalizePortalName(value).normalize("NFKC").match(/[\p{L}\p{N}]/gu) || [];
+  const normalizedCharacters = characters.map((character) =>
+    character.toLocaleLowerCase("en-US")
+  );
+  return (
+    normalizedCharacters.length >= 4 &&
+    normalizedCharacters.some((character) => /\p{L}/u.test(character)) &&
+    new Set(normalizedCharacters).size >= 3
+  );
+}
+
 function normalizePlanIdentity(data, expectedPlanId) {
   const extractedPlanId = Number(data?.plan_id);
   if (
@@ -23,25 +40,14 @@ function normalizePlanIdentity(data, expectedPlanId) {
     throw identityFailure();
   }
 
-  const officialName = String(data?.official_plan_name || "").trim();
-  const names = (officialName
-    ? [officialName]
-    : [data?.company_name, data?.symlink]
-  )
-    .map((value) => String(value || "").replace(/\s+/g, " ").trim())
-    .filter(Boolean);
-  const seen = new Set();
-  const planNames = names.filter((name) => {
-    const key = name.toLocaleLowerCase("en-US");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  const officialName = normalizePortalName(data?.official_plan_name);
+  const shortName = normalizePortalName(data?.symlink);
+  const planName = officialName || (isStrongSymlink(shortName) ? shortName : "");
   const ein = String(data?.ein || "").replace(/\D/g, "");
-  if (planNames.length === 0 || !/^\d{9}$/.test(ein)) {
+  if (!planName || !/^\d{9}$/.test(ein)) {
     throw identityFailure();
   }
-  return { planNames, ein };
+  return { planNames: [planName], ein };
 }
 
 async function extractPlanIdentity(
@@ -77,7 +83,6 @@ async function extractPlanIdentity(
       fields: [
         "plan_id",
         "official_plan_name",
-        "company_name",
         "symlink",
         "ein",
       ],

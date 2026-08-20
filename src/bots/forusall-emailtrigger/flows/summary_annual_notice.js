@@ -94,11 +94,15 @@ module.exports = async function runSummaryAnnualNotice({
     .map((entry, index) => {
       const validation = validateSummaryAnnualFileName(
         entry?.fileName,
-        reportYear
+        reportYear,
+        meta.planId
       );
       return { rowNumber: index + 1, ...validation };
     })
-    .filter(({ hasSar, hasReportYear }) => !(hasSar && hasReportYear));
+    .filter(
+      ({ hasSar, hasReportYear, hasPlanId }) =>
+        !(hasSar && hasReportYear && hasPlanId)
+    );
   const countMatches = manifest.length === expectedTotal;
   const hasMissingFileName = manifest.some((entry) => !entry?.fileName);
   const hasMissingReference = manifest.some((entry) => !entry?.fileUrl);
@@ -116,7 +120,7 @@ module.exports = async function runSummaryAnnualNotice({
           ? "Preview row count changed after selecting All"
           : hasMissingReference
           ? "One or more preview rows has no document reference"
-          : "One or more file names do not match the expected SAR report year",
+          : "One or more file names do not match the expected SAR plan and report year",
       details: {
         reportYear,
         expectedTotal,

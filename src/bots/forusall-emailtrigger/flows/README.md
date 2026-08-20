@@ -42,8 +42,8 @@ All flows must return an object with:
 2. Wait for DataTables table to load (with long timeout for slow plans)
 3. Check if table is empty (no participants)
 4. Select "All" rows and prove DataTables is unfiltered and fully rendered
-5. Capture every `File Name` + `File S3 Loc` reference and validate the SAR/year tokens
-6. Read Legal Plan Name (or company/short-name fallback) and EIN from `/plans/{id}/edit`
+5. Capture every `File Name` + `File S3 Loc` reference and validate delimited SAR, plan ID and report-year tokens
+6. Read Legal Plan Name, Short Name and EIN from `/plans/{id}/edit`; use only the legal name when present, otherwise a minimum-entropy portal Short Name (Company Name never authorizes)
 7. Download every unique allowlisted S3 URL with byte limits, PDF magic/parse checks and SHA-256
 8. Send the exact bytes to the private OCR verifier using an ADC identity token
 9. Re-read the complete manifest and re-HEAD ETag/version ID/length immediately before sending
@@ -52,7 +52,7 @@ All flows must return an object with:
 
 **Requirements**:
 - Plan must have at least one participant
-- Every row file name must contain both the `SAR` token and `reportYear`
+- Every row file name must contain delimited `SAR`, selected `planId` and `reportYear` tokens
 - `reportYear` defaults to the previous UTC year when omitted
 - `expectedDocument` must match plan ID/year and identify `summary_annual_report`
 - The private verifier must be enabled and configured; otherwise SAR jobs are rejected
@@ -68,6 +68,7 @@ All flows must return an object with:
   positive confirmation cannot be proven
 - Persists row numbers/counts and validation flags, never raw file names
 - Public document evidence contains only hashes, counts, stability flags and bounded non-text OCR facts
+- Public gate failures expose only an explicitly allowlisted `SAR_*` code and the fixed message `SAR preview document verification failed`; identity, URLs, verifier text and internal details remain private
 - The portal POST has no document/version ID. The final re-HEAD reduces but cannot eliminate the residual backend TOCTOU window.
 
 ---

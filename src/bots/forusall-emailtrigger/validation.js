@@ -145,15 +145,21 @@ function assertSummaryPreviewUrl(value, { planId } = {}) {
   }
 }
 
-function validateSummaryAnnualFileName(fileName, reportYear) {
+function validateSummaryAnnualFileName(fileName, reportYear, planId) {
   const value = String(fileName || "");
   const year = String(reportYear || "");
+  const normalizedPlanId = Number(planId);
+  const plan = String(normalizedPlanId);
   const hasSar = /(^|[^a-z0-9])sar([^a-z0-9]|$)/i.test(value);
   const hasReportYear =
     /^\d{4}$/.test(year) &&
     new RegExp(`(^|\\D)${year}(\\D|$)`).test(value);
+  const hasPlanId =
+    Number.isSafeInteger(normalizedPlanId) &&
+    normalizedPlanId > 0 &&
+    new RegExp(`(^|\\D)${plan}(\\D|$)`).test(value);
 
-  return { hasSar, hasReportYear };
+  return { hasSar, hasReportYear, hasPlanId };
 }
 
 module.exports = {

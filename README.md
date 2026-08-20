@@ -197,8 +197,12 @@ curl -sS -X POST "$BASE/forusbot/email-trigger" \
 ```
 
 `verify_only` performs the complete Preview, S3 byte, PDF parse, OCR, manifest
-and object-version checks but never clicks Trigger Email. Change `mode` to
-`send` only after a successful verification checkpoint. Production requires:
+and object-version checks but never clicks Trigger Email. The Legal Plan Name
+is read from the portal plan record; only when it is empty may a sufficiently
+distinct portal Short Name be used. Company Name and caller/Jira aliases never
+authorize a match. Every Preview filename must contain delimited SAR, plan ID
+and report-year tokens. Change `mode` to `send` only after a successful
+verification checkpoint. Production requires:
 
 ```text
 SAR_DOCUMENT_GATE_ENABLED=true

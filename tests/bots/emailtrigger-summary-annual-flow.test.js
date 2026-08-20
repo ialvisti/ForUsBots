@@ -10,7 +10,7 @@ const {
   previewAllRowsReady,
 } = require(commonPath);
 delete require.cache[commonPath];
-let previewFileNames = ["Acme_SAR_2025.pdf", "Beta_SAR_2025.pdf"];
+let previewFileNames = ["Acme_627_SAR_2025.pdf", "Beta_627_SAR_2025.pdf"];
 
 require.cache[commonPath] = {
   id: commonPath,
@@ -333,7 +333,7 @@ function fakePage({
 }
 
 test("summary annual validates the configured report year", async () => {
-  previewFileNames = ["Acme_SAR_2024.pdf"];
+  previewFileNames = ["Acme_627_SAR_2024.pdf"];
   const page = fakePage();
   const result = await runSummaryAnnualNotice({
     page,
@@ -343,13 +343,32 @@ test("summary annual validates the configured report year", async () => {
   });
 
   assert.equal(result.result, "Failed");
-  assert.match(result.reason, /expected SAR report year/);
+  assert.match(result.reason, /expected SAR plan and report year/);
   assert.equal(result.details.invalidFiles[0].hasReportYear, false);
+  assert.equal(result.details.invalidFiles[0].hasPlanId, true);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual rejects a filename bound to another plan id", async () => {
+  previewFileNames = ["Acme_628_SAR_2025.pdf"];
+  const page = fakePage();
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.details.invalidFiles[0].hasPlanId, false);
+  assert.equal(result.details.invalidFiles[0].hasSar, true);
+  assert.equal(result.details.invalidFiles[0].hasReportYear, true);
+  assert.doesNotMatch(JSON.stringify(result.details), /Acme_628/);
   assert.deepEqual(page.clicks, []);
 });
 
 test("summary annual rejects the batch when a later row is invalid", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf", "Unrelated_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf", "Unrelated_627_2025.pdf"];
   const page = fakePage();
   const result = await runSummaryAnnualNotice({
     page,
@@ -365,14 +384,15 @@ test("summary annual rejects the batch when a later row is invalid", async () =>
       rowNumber: 2,
       hasSar: false,
       hasReportYear: true,
+      hasPlanId: true,
     },
   ]);
-  assert.doesNotMatch(JSON.stringify(result.details), /Unrelated_2025\.pdf/);
+  assert.doesNotMatch(JSON.stringify(result.details), /Unrelated_627_2025\.pdf/);
   assert.deepEqual(page.clicks, []);
 });
 
 test("summary annual fails closed when selecting All fails", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({ selectError: new Error("All option unavailable") });
 
   await assert.rejects(
@@ -388,7 +408,7 @@ test("summary annual fails closed when selecting All fails", async () => {
 });
 
 test("summary annual fails closed when the All redraw does not finish", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({
     waitForAllRowsError: new Error("All redraw timed out"),
   });
@@ -406,7 +426,7 @@ test("summary annual fails closed when the All redraw does not finish", async ()
 });
 
 test("summary annual rejects a row-count race before clicking", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({ expectedTotal: 2 });
   const result = await runSummaryAnnualNotice({
     page,
@@ -424,7 +444,7 @@ test("summary annual rejects a row-count race before clicking", async () => {
 });
 
 test("summary annual rejects a row without a filename", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf", null];
+  previewFileNames = ["Acme_627_SAR_2025.pdf", null];
   const page = fakePage({ expectedTotal: 2 });
   const result = await runSummaryAnnualNotice({
     page,
@@ -440,7 +460,7 @@ test("summary annual rejects a row without a filename", async () => {
 });
 
 test("summary annual rejects an unchecked participant before OCR/click", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf", "Beta_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf", "Beta_627_SAR_2025.pdf"];
   const page = fakePage({
     selectionState: {
       count: 2,
@@ -462,7 +482,7 @@ test("summary annual rejects an unchecked participant before OCR/click", async (
 });
 
 test("summary annual rejects a disabled participant before OCR/click", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({
     selectionState: {
       count: 1,
@@ -484,7 +504,7 @@ test("summary annual rejects a disabled participant before OCR/click", async () 
 });
 
 test("summary annual rejects participant selection drift before click", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf", "Beta_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf", "Beta_627_SAR_2025.pdf"];
   const page = fakePage({
     selectionStates: [
       {
@@ -515,7 +535,7 @@ test("summary annual rejects participant selection drift before click", async ()
 });
 
 test("summary annual sends valid rows and accepts the confirmation dialog", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf", "Beta-SAR-2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf", "Beta-627-SAR-2025.pdf"];
   const page = fakePage();
   const result = await runSummaryAnnualNotice({
     page,
@@ -539,7 +559,7 @@ test("summary annual sends valid rows and accepts the confirmation dialog", asyn
 });
 
 test("summary annual verify_only verifies but never installs a dialog or clicks", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage();
   const result = await runSummaryAnnualNotice({
     page,
@@ -556,7 +576,7 @@ test("summary annual verify_only verifies but never installs a dialog or clicks"
 });
 
 test("summary annual rejects an explicit error alert after redirect", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({
     alertType: "error",
     alertMessage: "Email delivery rejected",
@@ -575,7 +595,7 @@ test("summary annual rejects an explicit error alert after redirect", async () =
 });
 
 test("summary annual rejects a redirect without a success confirmation", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({ alertType: "none" });
   const result = await runSummaryAnnualNotice({
     page,
@@ -592,7 +612,7 @@ test("summary annual rejects a redirect without a success confirmation", async (
 });
 
 test("summary annual treats a click exception as unknown outcome", async () => {
-  previewFileNames = ["Acme_SAR_2025.pdf"];
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({ clickError: new Error("trigger button disabled") });
 
   const result = await runSummaryAnnualNotice({

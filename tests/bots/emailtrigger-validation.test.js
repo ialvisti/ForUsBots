@@ -44,18 +44,22 @@ test("summary annual reportYear rejects malformed years", () => {
   }
 });
 
-test("SAR filename validation uses the requested report year as a token", () => {
+test("SAR filename validation binds numeric plan id and report year tokens", () => {
   assert.deepEqual(
-    validateSummaryAnnualFileName("Acme_401k_SAR_2025.pdf", 2025),
-    { hasSar: true, hasReportYear: true }
+    validateSummaryAnnualFileName("Acme_627_401k_SAR_2025.pdf", 2025, 627),
+    { hasSar: true, hasReportYear: true, hasPlanId: true }
   );
   assert.deepEqual(
-    validateSummaryAnnualFileName("Acme_SARAH_2025.pdf", 2025),
-    { hasSar: false, hasReportYear: true }
+    validateSummaryAnnualFileName("Acme_627_SARAH_2025.pdf", 2025, 627),
+    { hasSar: false, hasReportYear: true, hasPlanId: true }
   );
   assert.deepEqual(
-    validateSummaryAnnualFileName("Acme_SAR_2024.pdf", 2025),
-    { hasSar: true, hasReportYear: false }
+    validateSummaryAnnualFileName("Acme_627_SAR_2024.pdf", 2025, 627),
+    { hasSar: true, hasReportYear: false, hasPlanId: true }
+  );
+  assert.deepEqual(
+    validateSummaryAnnualFileName("Acme_1627_SAR_2025.pdf", 2025, 627),
+    { hasSar: true, hasReportYear: true, hasPlanId: false }
   );
 });
 
@@ -110,7 +114,7 @@ test("expected SAR document descriptor must match top-level plan and year", () =
   );
   assert.equal(
     normalizeExpectedDocument(
-      { ...value, unexpected: true },
+      { ...value, planNames: ["Caller or Jira alias"] },
       { planId: 627, planYear: 2025 }
     ),
     null

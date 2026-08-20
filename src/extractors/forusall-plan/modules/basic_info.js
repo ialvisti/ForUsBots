@@ -87,9 +87,12 @@ async function extractBasicInfo(page, opts = {}) {
             const type = (control.getAttribute('type') || '').toLowerCase();
 
             if (tag === 'select') {
-              const idx = control.selectedIndex;
-              const opt = control.options && control.options[idx];
-              val = tidy(opt ? opt.textContent : control.value);
+              const controlValue = tidy(control.value);
+              if (controlValue) {
+                const idx = control.selectedIndex;
+                const opt = control.options && control.options[idx];
+                val = tidy(opt ? opt.textContent : controlValue);
+              }
             } else if (type === 'checkbox' || type === 'radio') {
               val = control.checked ? 'true' : 'false';
             } else {
@@ -97,7 +100,11 @@ async function extractBasicInfo(page, opts = {}) {
             }
           }
 
-          if (!val) {
+          // An empty form control is an explicit empty value. Falling back to
+          // the row text in that case can turn the field label into data (for
+          // example, an empty Legal Plan Name becoming "Legal Plan Name").
+          // Text fallback is valid only for display-only rows with no control.
+          if (!control) {
             const valCol = row.querySelector('.left-align') || row.querySelector('.col-md-8, .col-md-4');
             if (valCol) {
               val = tidy(valCol.innerText || valCol.textContent || '');
@@ -178,4 +185,3 @@ async function extractBasicInfo(page, opts = {}) {
 }
 
 module.exports = Object.assign(extractBasicInfo, { SUPPORTED_FIELDS });
-
