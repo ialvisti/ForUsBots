@@ -1,0 +1,607 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+
+const commonPath = require.resolve(
+  "../../src/bots/forusall-emailtrigger/flows/_common"
+);
+const {
+  getPreviewFileNames: extractPreviewFileNames,
+  getPreviewManifest: extractPreviewManifest,
+  previewAllRowsReady,
+} = require(commonPath);
+delete require.cache[commonPath];
+let previewFileNames = ["Acme_SAR_2025.pdf", "Beta_SAR_2025.pdf"];
+
+require.cache[commonPath] = {
+  id: commonPath,
+  filename: commonPath,
+  loaded: true,
+  exports: {
+    getPreviewFileNames: async () => previewFileNames,
+    getPreviewManifest: async () =>
+      previewFileNames.map((fileName, index) => ({
+        rowNumber: index + 1,
+        fileName,
+        fileUrl: `https://employer-portal-production.s3.amazonaws.com/fv_documents/document-${
+          index + 1
+        }.pdf`,
+      })),
+    getPreviewParticipantSelections: async (page) =>
+      page.selectionStates?.shift?.() || page.selectionState || {
+        count: previewFileNames.length,
+        checkedCount: previewFileNames.length,
+        enabledCount: previewFileNames.length,
+        values: previewFileNames.map((_, index) => String(index + 1)),
+      },
+    waitForAllPreviewRows: async (page) => {
+      if (page.waitForAllRowsError) throw page.waitForAllRowsError;
+      const expectedTotal = page.expectedTotal ?? previewFileNames.length;
+      return { expectedTotal, rowCount: expectedTotal };
+    },
+    waitForUrl: async () => true,
+    ensurePreviewLongWait: async () => ({ ok: true, tookMs: 5 }),
+    waitTableOrEmpty: async () => ({ state: "rows", waitedMs: 5, rows: 2 }),
+  },
+};
+
+const documentGatePath = require.resolve(
+  "../../src/bots/forusall-emailtrigger/documentGate"
+);
+require.cache[documentGatePath] = {
+  id: documentGatePath,
+  filename: documentGatePath,
+  loaded: true,
+  exports: {
+    assertPreviewObjectsStable: async () => true,
+    fingerprintPreviewManifest: () => "manifest-fingerprint",
+    fingerprintPreviewParticipantSelections: (values) =>
+      `selection:${JSON.stringify(values)}`,
+    getDocumentGateConfig: () => ({ maxDocuments: 20, timeoutMs: 1000 }),
+    normalizePreviewManifest: (manifest) => manifest,
+    verifyPreviewDocuments: async () => ({
+      manifestFingerprint: "manifest-fingerprint",
+      objects: [{ opaque: true }],
+      documentGate: {
+        version: "v1",
+        verified: true,
+        documentCount: 1,
+        pdfSha256s: ["a".repeat(64)],
+        aggregateSha256: "b".repeat(64),
+      },
+    }),
+  },
+};
+
+const planIdentityPath = require.resolve(
+  "../../src/bots/forusall-emailtrigger/planIdentity"
+);
+require.cache[planIdentityPath] = {
+  id: planIdentityPath,
+  filename: planIdentityPath,
+  loaded: true,
+  exports: {
+    extractPlanIdentity: async () => ({
+      planNames: ["Fixture Plan"],
+      ein: "123456789",
+    }),
+  },
+};
+
+const runSummaryAnnualNotice = require("../../src/bots/forusall-emailtrigger/flows/summary_annual_notice");
+
+test("preview extraction preserves every row including a missing filename", async () => {
+  const headers = [{ textContent: "Participant" }, { textContent: "File Name" }];
+  const rows = [
+    {
+      querySelectorAll: () => [
+        { textContent: "Participant A" },
+        { textContent: "Acme_SAR_2025.pdf" },
+      ],
+    },
+    {
+      querySelectorAll: () => [
+        { textContent: "Participant B" },
+        { textContent: "" },
+      ],
+    },
+    {
+      querySelectorAll: () => [
+        { textContent: "Participant C" },
+        { textContent: "Beta_SAR_2025.pdf" },
+      ],
+    },
+  ];
+  const table = {
+    querySelectorAll(selector) {
+      if (selector === "thead th") return headers;
+      if (selector === 'tbody tr[role="row"]') return rows;
+      return [];
+    },
+  };
+  const page = {
+    async evaluate(callback) {
+      const originalDocument = global.document;
+      global.document = { querySelector: () => table };
+      try {
+        return callback();
+      } finally {
+        global.document = originalDocument;
+      }
+    },
+  };
+
+  assert.deepEqual(await extractPreviewFileNames(page), [
+    "Acme_SAR_2025.pdf",
+    null,
+    "Beta_SAR_2025.pdf",
+  ]);
+});
+
+test("preview manifest extracts File Name and File S3 Loc for every row", async () => {
+  const locationAnchor = {
+    href: "https://employer-portal-production.s3.amazonaws.com/fv_documents/acme.pdf",
+    getAttribute: () => "/ignored-relative-link",
+  };
+  const headers = [
+    { textContent: "Participant" },
+    { textContent: "File Name" },
+    { textContent: "File S3 Loc" },
+  ];
+  const cells = [
+    { textContent: "Participant A" },
+    { textContent: "Acme_SAR_2025.pdf" },
+    { textContent: "", querySelector: () => locationAnchor },
+  ];
+  const table = {
+    querySelectorAll(selector) {
+      if (selector === "thead th") return headers;
+      if (selector === 'tbody tr[role="row"]') {
+        return [{ querySelectorAll: () => cells }];
+      }
+      return [];
+    },
+  };
+  const page = {
+    async evaluate(callback) {
+      const originalDocument = global.document;
+      global.document = { querySelector: () => table };
+      try {
+        return callback();
+      } finally {
+        global.document = originalDocument;
+      }
+    },
+  };
+
+  assert.deepEqual(await extractPreviewManifest(page), [
+    {
+      rowNumber: 1,
+      fileName: "Acme_SAR_2025.pdf",
+      fileUrl:
+        "https://employer-portal-production.s3.amazonaws.com/fv_documents/acme.pdf",
+    },
+  ]);
+});
+
+test("All-rows predicate rejects a filtered DataTable", () => {
+  const originalDocument = global.document;
+  const originalWindow = global.window;
+  const jquery = () => ({
+    DataTable: () => ({
+      page: {
+        info: () => ({ recordsDisplay: 1, recordsTotal: 2 }),
+      },
+    }),
+  });
+  jquery.fn = {
+    dataTable: {
+      isDataTable: () => true,
+    },
+  };
+  global.document = {
+    querySelector(selector) {
+      if (selector === 'select[name="data_list_length"]') {
+        return { value: "-1" };
+      }
+      return null;
+    },
+    querySelectorAll: () => [{}],
+  };
+  global.window = { jQuery: jquery };
+
+  try {
+    assert.equal(previewAllRowsReady(), false);
+  } finally {
+    global.document = originalDocument;
+    global.window = originalWindow;
+  }
+});
+
+test("All-rows predicate captures the unfiltered total", () => {
+  const originalDocument = global.document;
+  const originalWindow = global.window;
+  const jquery = () => ({
+    DataTable: () => ({
+      page: {
+        info: () => ({ recordsDisplay: 2, recordsTotal: 2 }),
+      },
+    }),
+  });
+  jquery.fn = {
+    dataTable: {
+      isDataTable: () => true,
+    },
+  };
+  global.document = {
+    querySelector(selector) {
+      if (selector === 'select[name="data_list_length"]') {
+        return { value: "-1" };
+      }
+      return null;
+    },
+    querySelectorAll: () => [{}, {}],
+  };
+  global.window = { jQuery: jquery };
+
+  try {
+    assert.deepEqual(previewAllRowsReady(), {
+      expectedTotal: 2,
+      rowCount: 2,
+    });
+  } finally {
+    global.document = originalDocument;
+    global.window = originalWindow;
+  }
+});
+
+function fakePage({
+  alertType = "success",
+  alertMessage = "Emails queued successfully",
+  clickError = null,
+  selectError = null,
+  waitForAllRowsError = null,
+  expectedTotal = null,
+  selectionState = null,
+  selectionStates = null,
+} = {}) {
+  const clicks = [];
+  const dialogAccepts = [];
+  const registeredListeners = [];
+  const removedListeners = [];
+  let dialogHandler = null;
+  let triggerClicked = false;
+
+  return {
+    clicks,
+    dialogAccepts,
+    registeredListeners,
+    removedListeners,
+    expectedTotal,
+    selectionState,
+    selectionStates,
+    waitForAllRowsError,
+    async selectOption() {
+      if (selectError) throw selectError;
+    },
+    async waitForTimeout() {},
+    once(event, handler) {
+      registeredListeners.push(event);
+      if (event === "dialog") dialogHandler = handler;
+    },
+    off(event, handler) {
+      removedListeners.push(event);
+      if (event === "dialog" && dialogHandler === handler) dialogHandler = null;
+    },
+    async click(selector) {
+      clicks.push(selector);
+      if (selector === "#triggerEmail") triggerClicked = true;
+      if (clickError) throw clickError;
+      if (dialogHandler) {
+        dialogHandler({
+          accept: async () => {
+            dialogAccepts.push(selector);
+          },
+        });
+      }
+    },
+    url() {
+      return triggerClicked
+        ? "https://employer.forusall.com/trigger_emails"
+        : "https://employer.forusall.com/preview?plan=627&email_type=summary_annual_notice&participant_id=0&user_id=0&year=2026";
+    },
+    async waitForSelector(selector) {
+      if (selector.includes(".alert.alert-success")) {
+        if (alertType === "none") throw new Error("alert timeout");
+        return {};
+      }
+      return {};
+    },
+    async evaluate() {
+      return {
+        errorMessage: alertType === "error" ? alertMessage : null,
+        successMessage: alertType === "success" ? alertMessage : null,
+      };
+    },
+    async $eval() {
+      return {
+        tagName: "A",
+        origin: "https://employer.forusall.com",
+        pathname: "/preview",
+      };
+    },
+  };
+}
+
+test("summary annual validates the configured report year", async () => {
+  previewFileNames = ["Acme_SAR_2024.pdf"];
+  const page = fakePage();
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.match(result.reason, /expected SAR report year/);
+  assert.equal(result.details.invalidFiles[0].hasReportYear, false);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual rejects the batch when a later row is invalid", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf", "Unrelated_2025.pdf"];
+  const page = fakePage();
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.details.fileCount, 2);
+  assert.deepEqual(result.details.invalidFiles, [
+    {
+      rowNumber: 2,
+      hasSar: false,
+      hasReportYear: true,
+    },
+  ]);
+  assert.doesNotMatch(JSON.stringify(result.details), /Unrelated_2025\.pdf/);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual fails closed when selecting All fails", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage({ selectError: new Error("All option unavailable") });
+
+  await assert.rejects(
+    runSummaryAnnualNotice({
+      page,
+      selectors: {},
+      meta: { planId: 627, reportYear: 2025 },
+      jobCtx: null,
+    }),
+    /All option unavailable/
+  );
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual fails closed when the All redraw does not finish", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage({
+    waitForAllRowsError: new Error("All redraw timed out"),
+  });
+
+  await assert.rejects(
+    runSummaryAnnualNotice({
+      page,
+      selectors: {},
+      meta: { planId: 627, reportYear: 2025 },
+      jobCtx: null,
+    }),
+    /All redraw timed out/
+  );
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual rejects a row-count race before clicking", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage({ expectedTotal: 2 });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.reason, "Preview row count changed after selecting All");
+  assert.equal(result.details.expectedTotal, 2);
+  assert.equal(result.details.fileCount, 1);
+  assert.equal(result.details.countMatches, false);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual rejects a row without a filename", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf", null];
+  const page = fakePage({ expectedTotal: 2 });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.details.countMatches, true);
+  assert.equal(result.details.hasMissingFileName, true);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual rejects an unchecked participant before OCR/click", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf", "Beta_SAR_2025.pdf"];
+  const page = fakePage({
+    selectionState: {
+      count: 2,
+      checkedCount: 1,
+      enabledCount: 2,
+      values: ["participant-1", "participant-2"],
+    },
+  });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.details.checkedCount, 1);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual rejects a disabled participant before OCR/click", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage({
+    selectionState: {
+      count: 1,
+      checkedCount: 1,
+      enabledCount: 0,
+      values: ["participant-1"],
+    },
+  });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.details.enabledCount, 0);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual rejects participant selection drift before click", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf", "Beta_SAR_2025.pdf"];
+  const page = fakePage({
+    selectionStates: [
+      {
+        count: 2,
+        checkedCount: 2,
+        enabledCount: 2,
+        values: ["participant-1", "participant-2"],
+      },
+      {
+        count: 1,
+        checkedCount: 1,
+        enabledCount: 1,
+        values: ["participant-1"],
+      },
+    ],
+  });
+
+  await assert.rejects(
+    runSummaryAnnualNotice({
+      page,
+      selectors: {},
+      meta: { planId: 627, reportYear: 2025 },
+      jobCtx: null,
+    }),
+    { code: "SAR_PREVIEW_SELECTION_CHANGED" }
+  );
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual sends valid rows and accepts the confirmation dialog", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf", "Beta-SAR-2025.pdf"];
+  const page = fakePage();
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Succeeded");
+  assert.equal(result.details.reportYear, 2025);
+  assert.equal(result.details.fileCount, 2);
+  assert.equal(result.details.fileNames, undefined);
+  assert.equal(result.details.mode, "send");
+  assert.equal(result.details.emailTriggered, true);
+  assert.equal(result.details.documentGate.manifestStable, true);
+  assert.equal(result.details.documentGate.objectVersionStable, true);
+  assert.deepEqual(page.clicks, ["#triggerEmail"]);
+  assert.deepEqual(page.registeredListeners, ["dialog"]);
+  assert.deepEqual(page.dialogAccepts, ["#triggerEmail"]);
+  assert.deepEqual(page.removedListeners, ["dialog"]);
+});
+
+test("summary annual verify_only verifies but never installs a dialog or clicks", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage();
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025, mode: "verify_only" },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Succeeded");
+  assert.equal(result.details.mode, "verify_only");
+  assert.equal(result.details.emailTriggered, false);
+  assert.deepEqual(page.clicks, []);
+  assert.deepEqual(page.registeredListeners, []);
+});
+
+test("summary annual rejects an explicit error alert after redirect", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage({
+    alertType: "error",
+    alertMessage: "Email delivery rejected",
+  });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.reason, "Email trigger failed with error alert");
+  assert.deepEqual(result.details, { portalErrorDetected: true });
+  assert.doesNotMatch(JSON.stringify(result.details), /Email delivery rejected/);
+});
+
+test("summary annual rejects a redirect without a success confirmation", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage({ alertType: "none" });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Unknown Outcome");
+  assert.equal(
+    result.reason,
+    "No success confirmation alert found after redirect"
+  );
+});
+
+test("summary annual treats a click exception as unknown outcome", async () => {
+  previewFileNames = ["Acme_SAR_2025.pdf"];
+  const page = fakePage({ clickError: new Error("trigger button disabled") });
+
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+  assert.equal(result.result, "Unknown Outcome");
+  assert.deepEqual(result.details, { stage: "post-click-exception" });
+  assert.deepEqual(page.removedListeners, ["dialog"]);
+});

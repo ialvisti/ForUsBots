@@ -7,6 +7,7 @@ const { getSettings } = require("./engine/settings");
 const { resolveRole, listUsersPublic } = require("./middleware/auth");
 const logger = require("./engine/logger");
 const requestLog = require("./middleware/request-log");
+const { getHealthPayload } = require("./health");
 
 const app = express();
 
@@ -244,8 +245,8 @@ app.use("/forusbot", (req, _res, next) => {
 app.use("/forusbot", require("./routes"));
 
 // ===== Health =====
-app.get("/health", (_req, res) => res.json({ ok: true }));
-app.get("/forusbot/health", (_req, res) => res.json({ ok: true }));
+app.get("/health", (_req, res) => res.json(getHealthPayload()));
+app.get("/forusbot/health", (_req, res) => res.json(getHealthPayload()));
 
 // ===== Admin Console estática =====
 const ADMIN_DIR = path.join(DOCS_DIR, "admin");

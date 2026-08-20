@@ -9,7 +9,7 @@ Each flow module exports a single async function with the signature:
 ```javascript
 async function flowHandler({ page, selectors, meta, jobCtx }) {
   // Implementation
-  return { result: "Succeeded" | "Failed" | "Empty Plan", reason: "...", details: {...} };
+  return { result: "Succeeded" | "Failed" | "Empty Plan" | "Unknown Outcome", reason: "...", details: {...} };
 }
 ```
 
@@ -24,7 +24,8 @@ async function flowHandler({ page, selectors, meta, jobCtx }) {
 
 All flows must return an object with:
 
-- **`result`**: One of `"Succeeded"`, `"Failed"`, or `"Empty Plan"`
+- **`result`**: One of `"Succeeded"`, `"Failed"`, `"Empty Plan"`, or
+  `"Unknown Outcome"`
 - **`reason`**: Human-readable explanation
 - **`details`**: Optional object with additional information
 
@@ -40,24 +41,34 @@ All flows must return an object with:
 1. Click Preview button and wait for navigation to `/preview`
 2. Wait for DataTables table to load (with long timeout for slow plans)
 3. Check if table is empty (no participants)
-4. Validate first row file name contains "SAR" and "2024"
-5. Select "All" rows in DataTables
-6. Click "Trigger Email" button
-7. Accept confirmation dialog
-8. Wait for redirect back to `/trigger_emails`
+4. Select "All" rows and prove DataTables is unfiltered and fully rendered
+5. Capture every `File Name` + `File S3 Loc` reference and validate the SAR/year tokens
+6. Read Legal Plan Name (or company/short-name fallback) and EIN from `/plans/{id}/edit`
+7. Download every unique allowlisted S3 URL with byte limits, PDF magic/parse checks and SHA-256
+8. Send the exact bytes to the private OCR verifier using an ADC identity token
+9. Re-read the complete manifest and re-HEAD ETag/version ID/length immediately before sending
+10. In `verify_only`, return without installing a dialog handler or clicking anything
+11. In `send`, click "Trigger Email", accept confirmation and require an explicit success alert
 
 **Requirements**:
 - Plan must have at least one participant
-- First row file name must contain both "SAR" and "2024"
+- Every row file name must contain both the `SAR` token and `reportYear`
+- `reportYear` defaults to the previous UTC year when omitted
+- `expectedDocument` must match plan ID/year and identify `summary_annual_report`
+- The private verifier must be enabled and configured; otherwise SAR jobs are rejected
 
 **Success Criteria**:
 - Successfully redirected to `/trigger_emails` after triggering
-- No errors during the process
+- A `.alert.alert-success` confirmation is present and no error alert is present
 
 **Error Handling**:
 - Returns `"Empty Plan"` if no participants found
 - Returns `"Failed"` if file name validation fails
-- Returns `"Failed"` if navigation times out
+- Returns `"Unknown Outcome"` if the click completed but navigation or the
+  positive confirmation cannot be proven
+- Persists row numbers/counts and validation flags, never raw file names
+- Public document evidence contains only hashes, counts, stability flags and bounded non-text OCR facts
+- The portal POST has no document/version ID. The final re-HEAD reduces but cannot eliminate the residual backend TOCTOU window.
 
 ---
 
@@ -119,6 +130,7 @@ The `_common.js` module provides shared utilities for all flows:
 ### Preview Page Utilities
 
 - **`getPreviewFirstRowFileName(page)`**: Extract file name from first DataTables row
+- **`getPreviewFileNames(page)`**: Extract one file name (or `null`) for every displayed DataTables row
 - **`isPreviewTableEmpty(page)`**: Check if preview table is empty
 - **`waitTableOrEmpty(page, opts)`**: Wait for table to resolve to rows or empty state
 - **`ensurePreviewLongWait(page, selectors, jobCtx, opts)`**: Navigate to preview with long timeout
@@ -349,10 +361,10 @@ Stage tracking provides:
 
 ### Planned Features
 
-- [ ] Dry-run mode (validate without triggering)
+- [x] `verify_only` mode (full document gate without triggering)
 - [ ] Retry logic for transient failures
 - [ ] Evidence screenshots on errors
-- [ ] Email preview validation
+- [x] Exact Preview PDF OCR validation
 - [ ] Participant count verification
 - [ ] Integration tests with Playwright Test
 
@@ -372,4 +384,3 @@ When adding or modifying flows:
 ## License
 
 Copyright © ForUsBots Team. All rights reserved.
-

@@ -172,6 +172,44 @@ curl -sS -X POST "$BASE/forusbot/email-trigger" \
 # Docs: /docs/api#emailtrigger
 ```
 
+Summary Annual Report sends use an additional fail-closed Preview document
+gate. The request must include a caller-independent descriptor; plan names and
+EIN are read from the ForUsAll plan page by the bot:
+
+```bash
+curl -sS -X POST "$BASE/forusbot/email-trigger" \
+  -H 'x-auth-token: YOUR_TOKEN' \
+  -H 'Idempotency-Key: jira-ZT2025-123-2025' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "planId": 627,
+    "emailType": "summary_annual_notice",
+    "reportYear": 2025,
+    "mode": "verify_only",
+    "expectedDocument": {
+      "schemaVersion": 1,
+      "kind": "summary_annual_report",
+      "planId": 627,
+      "planYear": 2025,
+      "identitySource": "forusall_plan"
+    }
+  }'
+```
+
+`verify_only` performs the complete Preview, S3 byte, PDF parse, OCR, manifest
+and object-version checks but never clicks Trigger Email. Change `mode` to
+`send` only after a successful verification checkpoint. Production requires:
+
+```text
+SAR_DOCUMENT_GATE_ENABLED=true
+SAR_DOCUMENT_VERIFIER_URL=https://SERVICE.run.app
+SAR_DOCUMENT_VERIFIER_AUDIENCE=https://SERVICE.run.app
+```
+
+The VM service account needs `roles/run.invoker` on that private Cloud Run
+service. `/health` advertises `emailTriggerPreviewDocumentGate=v1` only when
+all three values form an enabled HTTPS configuration.
+
 ```bash
 # 8) Update plan (RESTRICTED to ivan.alvis@forusall.com)
 curl -sS -X POST "$BASE/forusbot/update-plan" \
@@ -244,6 +282,9 @@ curl -sS -X POST "$BASE/forusbot/sandbox/users-management/edit" \
 ---
 
 ## Changelog
+
+- Unreleased
+  - Email triggers accept `Idempotency-Key`; `summary_annual_notice` accepts `reportYear` and defaults it to the previous UTC year.
 
 - 2.6.0 (2026-08-03)
   - Added durable Firestore-backed idempotency for participant and plan scrape submissions using `Idempotency-Key`.

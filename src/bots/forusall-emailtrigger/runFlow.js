@@ -8,6 +8,7 @@ const {
   selectIfPresent,
 } = require("./flows/_common");
 const { getFlowHandler } = require("./flows");
+const { assertFlowSucceeded, normalizeFlowError } = require("./result");
 
 const PW_DEFAULT_TIMEOUT = Math.max(
   2000,
@@ -17,10 +18,9 @@ const PW_DEFAULT_TIMEOUT = Math.max(
 module.exports = async function runFlow({ meta, jobCtx }) {
   const account = jobCtx && jobCtx.account;
   if (!account || !account.siteUser || !account.sitePass || !account.totpSecret) {
-    return {
-      result: "Failed",
-      reason: "runFlow: jobCtx.account ausente o incompleto",
-    };
+    throw normalizeFlowError(
+      new Error("runFlow: jobCtx.account ausente o incompleto")
+    );
   }
 
   const {
@@ -63,16 +63,15 @@ module.exports = async function runFlow({ meta, jobCtx }) {
     const planOptions = await getSelectOptions(page, planSel);
     const hasPlan = planOptions.some((o) => o.value === String(planId));
     if (!hasPlan) {
-      return {
+      return assertFlowSucceeded({
         result: "Failed",
         reason: `PlanId '${planId}' not available in the plan selector`,
         details: {
           selector: planSel,
-          availablePlanValues: planOptions.map((o) => o.value),
-          availablePlanLabels: planOptions.map((o) => o.text),
           count: planOptions.length,
+          planAvailable: false,
         },
-      };
+      });
     }
 
     // Seleccionar plan y participants=All
@@ -81,9 +80,9 @@ module.exports = async function runFlow({ meta, jobCtx }) {
     await page.waitForLoadState("networkidle").catch(() => {});
 
     const partSel = s.participantSelect || "#participant_id";
-    await page.waitForSelector(partSel, { timeout: 6000 }).catch(() => {});
     if (participants === "all") {
-      await page.selectOption(partSel, "0").catch(() => {});
+      jobCtx?.setStage?.("select-participants-all");
+      await selectIfPresent(page, partSel, "0", { required: true });
     }
 
     // emailType
@@ -96,16 +95,17 @@ module.exports = async function runFlow({ meta, jobCtx }) {
     // Router -> flow específico
     const handler = getFlowHandler(emailType);
     if (!handler) {
-      return {
+      return assertFlowSucceeded({
         result: "Failed",
         reason: `Handler not implemented yet for emailType='${emailType}'`,
-      };
+      });
     }
 
     // Ejecutar flow
-    return await handler({ page, selectors: s, meta, jobCtx });
+    const result = await handler({ page, selectors: s, meta, jobCtx });
+    return assertFlowSucceeded(result);
   } catch (err) {
-    return { result: "Failed", reason: err?.message || String(err) };
+    throw normalizeFlowError(err);
   } finally {
     if (page) await releasePage(page);
   }

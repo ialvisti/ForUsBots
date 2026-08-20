@@ -81,8 +81,14 @@ function normScrape(ok, raw, _errCtx) {
   };
 }
 
-function normEmailTrigger(ok, raw, _errCtx) {
+function normEmailTrigger(ok, raw, errCtx) {
   const r = raw || {};
+  const details =
+    r.details !== undefined
+      ? r.details
+      : errCtx && errCtx.details !== undefined
+      ? errCtx.details
+      : null;
   const result = String(r.result || (ok ? "Succeeded" : "Failed"));
   const lc = result.toLowerCase();
   let code = "EMAILTRIGGER_FAILED";
@@ -93,14 +99,32 @@ function normEmailTrigger(ok, raw, _errCtx) {
   } else if (lc.includes("empty")) {
     code = "EMAILTRIGGER_EMPTY_PLAN";
     okFinal = false;
+  } else if (lc.includes("unknown")) {
+    code = "EMAILTRIGGER_UNKNOWN_OUTCOME";
+    okFinal = false;
+  }
+  if (
+    !ok &&
+    errCtx &&
+    [
+      "EMAILTRIGGER_FAILED",
+      "EMAILTRIGGER_EMPTY_PLAN",
+      "EMAILTRIGGER_UNKNOWN_OUTCOME",
+    ].includes(errCtx.code)
+  ) {
+    code = errCtx.code;
   }
   return {
     ok: okFinal,
     code,
-    message: tidy(r.reason) || null,
-    data: r.details ? shallowClone(r.details) : null,
+    message: tidy(r.reason) || tidy(errCtx && errCtx.error) || null,
+    data: details ? shallowClone(details) : null,
     warnings: [],
-    errors: okFinal ? [] : (r.details ? [r.details] : []),
+    errors: okFinal
+      ? []
+      : details
+      ? [details]
+      : asArray(errCtx && errCtx.error),
   };
 }
 

@@ -1,8 +1,18 @@
 // src/bots/forusall-emailtrigger/controller.js
 const { FIXED } = require("../../providers/forusall/config");
-const queue = require("../../engine/queue");
 const runFlow = require("./runFlow");
 const logger = require("../../engine/logger");
+const {
+  submitIdempotently,
+  toIdempotencyHttpError,
+} = require("../../engine/idempotency");
+const {
+  buildEmailFingerprintPayload,
+  normalizeEmailTriggerMode,
+  normalizeExpectedDocument,
+  normalizeReportYear,
+} = require("./validation");
+const { isDocumentGateConfigured } = require("./documentGate");
 
 const ALLOWED_TYPES = new Set([
   "monthly_balance",
@@ -30,6 +40,14 @@ function bad(msg, res, extra = {}) {
   return res.status(400).json({ ok: false, error: msg, ...extra });
 }
 
+function unavailable(msg, res) {
+  return res.status(503).json({ ok: false, error: msg });
+}
+
+function forbidden(msg, res) {
+  return res.status(403).json({ ok: false, error: msg });
+}
+
 module.exports = async function controller(req, res) {
   try {
     const body = req.body || {};
@@ -39,7 +57,7 @@ module.exports = async function controller(req, res) {
     const emailType = String(body.emailType || "").trim();
 
     const missing = [];
-    if (!Number.isFinite(planId) || planId <= 0)
+    if (!Number.isSafeInteger(planId) || planId <= 0)
       missing.push("planId (entero > 0)");
     if (!emailType) missing.push("emailType");
     if (missing.length)
@@ -49,7 +67,50 @@ module.exports = async function controller(req, res) {
       return bad(
         `emailType inválido. Permitidos: ${Array.from(ALLOWED_TYPES).join(
           ", "
-        )}`
+        )}`,
+        res
+      );
+    }
+
+    let reportYear = null;
+    const mode = normalizeEmailTriggerMode(body.mode);
+    if (mode === null) {
+      return bad("mode inválido. Permitidos: send, verify_only", res);
+    }
+    const allowedModes = req.auth?.tokenMeta?.allowedEmailTriggerModes;
+    if (Array.isArray(allowedModes) && !allowedModes.includes(mode)) {
+      return forbidden("email trigger mode is not allowed for this token", res);
+    }
+
+    let expectedDocument = null;
+    if (emailType === "summary_annual_notice") {
+      reportYear = normalizeReportYear(body.reportYear);
+      if (reportYear === null) {
+        return bad(
+          "summary_annual_notice requiere reportYear como año de 4 dígitos",
+          res
+        );
+      }
+      if (!isDocumentGateConfigured()) {
+        return unavailable(
+          "SAR preview document verification is not configured",
+          res
+        );
+      }
+      expectedDocument = normalizeExpectedDocument(body.expectedDocument, {
+        planId,
+        planYear: reportYear,
+      });
+      if (!expectedDocument) {
+        return bad(
+          "summary_annual_notice requiere expectedDocument válido",
+          res
+        );
+      }
+    } else if (mode !== "send" || body.expectedDocument !== undefined) {
+      return bad(
+        "mode=verify_only y expectedDocument sólo se permiten para summary_annual_notice",
+        res
       );
     }
 
@@ -194,6 +255,9 @@ module.exports = async function controller(req, res) {
       triggerEmails: FIXED.triggerEmails,
       planId,
       emailType,
+      reportYear,
+      mode,
+      expectedDocument,
       participants, // "all"
       statement,
       sponsorQuarterly,
@@ -204,14 +268,29 @@ module.exports = async function controller(req, res) {
     };
 
     // Encola con meta "pública" mínima
-    const accepted = queue.submit({
+    const accepted = await submitIdempotently({
+      idempotencyKey: req.get("Idempotency-Key"),
       botId: "forusall-emailtrigger",
-      meta: { planId, emailType, createdBy }, // lo que se expone
+      principalId: req.auth?.principalId || null,
+      fingerprintPayload: buildEmailFingerprintPayload({
+        planId,
+        emailType,
+        reportYear,
+        participants,
+        mode,
+        expectedDocument,
+        statement,
+        sponsorQuarterly,
+        onboardOrNewHire,
+        genericEmail,
+      }),
+      meta: { planId, emailType, reportYear, mode, createdBy }, // lo que se expone
       account: req.auth && req.auth.account,
       run: async (jobCtx) => runFlow({ meta, jobCtx }),
     });
 
     res.set("Location", `/forusbot/jobs/${accepted.jobId}`);
+    res.set("Idempotency-Replayed", String(accepted.replayed));
     return res.status(202).json({
       ok: true,
       jobId: accepted.jobId,
@@ -221,6 +300,8 @@ module.exports = async function controller(req, res) {
       capacitySnapshot: accepted.capacitySnapshot,
     });
   } catch (err) {
+    const httpError = toIdempotencyHttpError(err);
+    if (httpError) return res.status(httpError.status).json(httpError.body);
     logger.error({ type: "bot.emailtrigger.emailtrigger_controller_error", error: err });
     return res
       .status(500)

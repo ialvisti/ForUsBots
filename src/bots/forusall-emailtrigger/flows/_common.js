@@ -56,27 +56,46 @@ async function selectIfPresent(
   { required = false, firstIfMissing = false } = {}
 ) {
   await page.waitForSelector(selectSel, { state: "visible", timeout: 8000 });
-  await waitOptionsCount(page, selectSel, { timeout: 8000 });
+  const optionsReady = await waitOptionsCount(page, selectSel, {
+    timeout: 8000,
+  });
+  if (!optionsReady) {
+    throw new Error(`Select options did not load for ${selectSel}`);
+  }
   const has = await optionExists(page, selectSel, value);
   if (has) {
-    await page.selectOption(selectSel, String(value)).catch(() => {});
+    const selected = await page.selectOption(selectSel, String(value));
+    if (
+      !Array.isArray(selected) ||
+      selected.length !== 1 ||
+      String(selected[0]) !== String(value)
+    ) {
+      throw new Error(`Selection failed for ${selectSel}`);
+    }
   } else if (firstIfMissing) {
     await page.evaluate((sel) => {
       const el = document.querySelector(sel);
-      if (el && el.options && el.options.length) el.selectedIndex = 0;
-      el && el.dispatchEvent(new Event("change", { bubbles: true }));
+      if (!el || !el.options || !el.options.length) {
+        throw new Error("Select has no fallback option");
+      }
+      el.selectedIndex = 0;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
     }, selectSel);
   } else if (required) {
     throw new Error(`Required option '${value}' not found for ${selectSel}`);
+  } else {
+    return false;
   }
 
-  // fuerza eventos
-  await page.evaluate((sel) => {
-    const el = document.querySelector(sel);
-    if (!el) return;
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-  }, selectSel);
+  const readback = await page.inputValue(selectSel);
+  if (has && String(readback) !== String(value)) {
+    throw new Error(`Selection readback mismatch for ${selectSel}`);
+  }
+  if (firstIfMissing && !String(readback)) {
+    throw new Error(`Fallback selection readback failed for ${selectSel}`);
+  }
+  return true;
 }
 
 async function setText(page, sel, value, { visible = true } = {}) {
@@ -159,6 +178,186 @@ async function getPreviewFirstRowFileName(page) {
     .catch(() => null);
 }
 
+/**
+ * Devuelve un elemento por cada fila de datos actualmente visible en el
+ * preview. Los nombres ausentes se conservan como null para que el caller
+ * pueda fallar cerrado en vez de ignorar silenciosamente una fila.
+ */
+async function getPreviewFileNames(page) {
+  return await page.evaluate(() => {
+    const table = document.querySelector("#data_list");
+    if (!table) return [];
+
+    const ths = Array.from(table.querySelectorAll("thead th"));
+    const fileNameColIdx = ths.findIndex((th) => {
+      const txt = (th.textContent || "").trim().toLowerCase();
+      return txt === "file name";
+    });
+
+    return Array.from(table.querySelectorAll('tbody tr[role="row"]')).map(
+      (row) => {
+        const cells = Array.from(row.querySelectorAll("td"));
+
+        if (fileNameColIdx >= 0 && fileNameColIdx < cells.length) {
+          const txt = (cells[fileNameColIdx].textContent || "").trim();
+          if (txt) return txt;
+        }
+
+        const pdfCell = cells.find((td) =>
+          /\.pdf(\s*)$/i.test((td.textContent || "").trim())
+        );
+        return pdfCell ? (pdfCell.textContent || "").trim() : null;
+      }
+    );
+  });
+}
+
+/**
+ * Captura una referencia completa por cada fila visible. No intenta adivinar
+ * columnas: ambas cabeceras forman parte del contrato observado del portal y
+ * su ausencia debe detener el envío.
+ */
+async function getPreviewManifest(page) {
+  return await page.evaluate(() => {
+    const table = document.querySelector("#data_list");
+    if (!table) return [];
+
+    const headers = Array.from(table.querySelectorAll("thead th"));
+    const headerIndex = (expected) =>
+      headers.findIndex(
+        (th) =>
+          String(th.textContent || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase() === expected
+      );
+    const fileNameIndex = headerIndex("file name");
+    const fileS3Index = headerIndex("file s3 loc");
+    if (fileNameIndex < 0 || fileS3Index < 0) return [];
+
+    return Array.from(table.querySelectorAll('tbody tr[role="row"]')).map(
+      (row, index) => {
+        const cells = Array.from(row.querySelectorAll("td"));
+        const nameCell = cells[fileNameIndex] || null;
+        const locationCell = cells[fileS3Index] || null;
+        const anchor = locationCell?.querySelector?.("a[href]") || null;
+        const fileName = String(nameCell?.textContent || "").trim() || null;
+        const fileUrl =
+          String(
+            anchor?.href ||
+              anchor?.getAttribute?.("href") ||
+              locationCell?.textContent ||
+              ""
+          ).trim() || null;
+        return { rowNumber: index + 1, fileName, fileUrl };
+      }
+    );
+  });
+}
+
+async function getPreviewParticipantSelections(page) {
+  return await page.evaluate(() => {
+    const table = document.querySelector("#data_list");
+    if (!table) {
+      return { count: 0, checkedCount: 0, enabledCount: 0, values: [] };
+    }
+    const checkboxes = Array.from(
+      table.querySelectorAll('tbody input.participant_checks[type="checkbox"]')
+    );
+    return {
+      count: checkboxes.length,
+      checkedCount: checkboxes.filter((item) => item.checked).length,
+      enabledCount: checkboxes.filter((item) => !item.disabled).length,
+      values: checkboxes.map((item) => String(item.value || "").trim()),
+    };
+  });
+}
+
+/**
+ * Predicado ejecutado en el navegador para demostrar que DataTables muestra
+ * el dataset completo, sin paginación ni filtros activos.
+ *
+ * @returns {false|{expectedTotal:number,rowCount:number}}
+ */
+function previewAllRowsReady() {
+  const select = document.querySelector('select[name="data_list_length"]');
+  if (select?.value !== "-1") return false;
+
+  const processing = document.querySelector("#data_list_processing");
+  if (processing) {
+    const style = window.getComputedStyle(processing);
+    if (style.display !== "none" && style.visibility !== "hidden") {
+      return false;
+    }
+  }
+
+  const rowCount = document.querySelectorAll(
+    '#data_list tbody tr[role="row"]'
+  ).length;
+  const dataTablesApi = window.jQuery?.fn?.dataTable;
+  if (dataTablesApi?.isDataTable?.("#data_list")) {
+    const pageInfo = window.jQuery("#data_list").DataTable().page.info();
+    const displayed = Number(pageInfo?.recordsDisplay);
+    const total = Number(pageInfo?.recordsTotal);
+    if (
+      !Number.isInteger(displayed) ||
+      !Number.isInteger(total) ||
+      total <= 0 ||
+      displayed !== total ||
+      rowCount !== total
+    ) {
+      return false;
+    }
+    return { expectedTotal: total, rowCount };
+  }
+
+  const infoText = document.querySelector("#data_list_info")?.textContent || "";
+  const displayedMatch = infoText.match(/of\s+([\d,]+)\s+entries/i);
+  if (!displayedMatch) return false;
+
+  const displayed = Number(displayedMatch[1].replaceAll(",", ""));
+  const filteredMatch = infoText.match(
+    /filtered\s+from\s+([\d,]+)\s+total\s+entries/i
+  );
+  const total = filteredMatch
+    ? Number(filteredMatch[1].replaceAll(",", ""))
+    : displayed;
+
+  if (
+    !Number.isInteger(displayed) ||
+    !Number.isInteger(total) ||
+    total <= 0 ||
+    displayed !== total ||
+    rowCount !== total
+  ) {
+    return false;
+  }
+  return { expectedTotal: total, rowCount };
+}
+
+async function waitForAllPreviewRows(page, { timeout = 10000 } = {}) {
+  const handle = await page.waitForFunction(
+    previewAllRowsReady,
+    undefined,
+    { timeout }
+  );
+  try {
+    const state =
+      typeof handle?.jsonValue === "function" ? await handle.jsonValue() : handle;
+    if (
+      !state ||
+      !Number.isInteger(state.expectedTotal) ||
+      state.expectedTotal <= 0 ||
+      state.rowCount !== state.expectedTotal
+    ) {
+      throw new Error("Could not prove that all unfiltered preview rows loaded");
+    }
+    return state;
+  } finally {
+    await handle?.dispose?.();
+  }
+}
+
 // (legacy) aceptar siguiente dialog si lo hubiera
 function acceptNextDialog(page) {
   page.once("dialog", (d) => d.accept().catch(() => {}));
@@ -191,7 +390,7 @@ async function ensurePreviewLongWait(page, selectors = {}, jobCtx, opts = {}) {
   const t0 = Date.now();
 
   // Click una sola vez; no esperamos navegación aquí
-  await page.click(clickSel, { noWaitAfter: true }).catch(() => {});
+  await page.click(clickSel, { noWaitAfter: true });
 
   // Bucle de espera con múltiples señales
   while (Date.now() - t0 < maxMs) {
@@ -322,6 +521,11 @@ module.exports = {
   validateTime,
   validateDate,
   getPreviewFirstRowFileName,
+  getPreviewFileNames,
+  getPreviewManifest,
+  getPreviewParticipantSelections,
+  previewAllRowsReady,
+  waitForAllPreviewRows,
   acceptNextDialog,
   waitForUrl,
   ensurePreviewLongWait,

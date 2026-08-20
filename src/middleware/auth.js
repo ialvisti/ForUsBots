@@ -15,6 +15,18 @@ function safeParseJson(s, fallback) {
   }
 }
 
+function normalizeAllowedEmailTriggerModes(value) {
+  if (value === undefined || value === null) return null;
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .map((item) => String(item || "").trim().toLowerCase())
+        .filter((item) => item === "send" || item === "verify_only")
+    ),
+  ].sort();
+}
+
 function normRegistry(data) {
   const map = new Map();
   if (!data) return map;
@@ -33,6 +45,9 @@ function normRegistry(data) {
         deniedFeatures: Array.isArray(it.deniedFeatures) ? it.deniedFeatures : [],
         deniedEndpoints: Array.isArray(it.deniedEndpoints) ? it.deniedEndpoints : [],
         allowedEndpoints: Array.isArray(it.allowedEndpoints) ? it.allowedEndpoints : [],
+        allowedEmailTriggerModes: normalizeAllowedEmailTriggerModes(
+          it.allowedEmailTriggerModes
+        ),
       });
     }
   } else if (typeof data === "object") {
@@ -49,6 +64,9 @@ function normRegistry(data) {
         deniedFeatures: Array.isArray(meta.deniedFeatures) ? meta.deniedFeatures : [],
         deniedEndpoints: Array.isArray(meta.deniedEndpoints) ? meta.deniedEndpoints : [],
         allowedEndpoints: Array.isArray(meta.allowedEndpoints) ? meta.allowedEndpoints : [],
+        allowedEmailTriggerModes: normalizeAllowedEmailTriggerModes(
+          meta.allowedEmailTriggerModes
+        ),
       });
     }
   }
@@ -208,3 +226,5 @@ module.exports._getIdentity = getIdentity;
 module.exports._tokenMetaCount = () => TOKEN_META.size;
 module.exports._tokensPath = () => TOKENS_PATH_USED;
 module.exports._principalIdForToken = principalIdForToken;
+module.exports._normalizeAllowedEmailTriggerModes =
+  normalizeAllowedEmailTriggerModes;

@@ -18,14 +18,23 @@ function toPublicJob(record) {
 
   if (state === "failed") {
     const result = record.result || null;
-    const durableError =
-      result && result.code === "DURABLE_STATE_FAILED"
-        ? { code: result.code, message: result.message }
+    const shouldPreserveResultCode =
+      result &&
+      result.ok === false &&
+      result.code &&
+      (result.code === "DURABLE_STATE_FAILED" ||
+        record.botId === "forusall-emailtrigger");
+    const resultError =
+      shouldPreserveResultCode
+        ? {
+            code: result.code,
+            message: result.message || "Job failed",
+          }
         : null;
     return {
       state,
       error: normalizePublicError(
-        durableError ||
+        resultError ||
           record.error ||
           (result && result.errors && result.errors[0]) ||
           null

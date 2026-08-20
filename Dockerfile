@@ -1,5 +1,5 @@
 # Usa la imagen oficial de Playwright con navegadores preinstalados (incluye Node 20)
-FROM mcr.microsoft.com/playwright:v1.54.2-jammy
+FROM mcr.microsoft.com/playwright:v1.62.1-jammy
 
 # Crea el directorio de la app y ajusta permisos para el user por defecto (pwuser)
 USER root

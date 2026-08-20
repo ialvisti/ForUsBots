@@ -441,6 +441,8 @@ async function finalize(job, err, val) {
     try {
       terminalResult = normalizeResultEnvelope(job.botId, false, null, {
         error: terminalError,
+        code: err && err.code ? String(err.code) : null,
+        details: err && err.details !== undefined ? err.details : null,
       });
     } catch {
       terminalResult = {

@@ -46,6 +46,7 @@ test("Idempotency-Key documents the printable-ASCII rule enforced by the API", (
   for (const pathname of [
     "/forusbot/scrape-participant",
     "/forusbot/scrape-plan",
+    "/forusbot/email-trigger",
   ]) {
     const schema = idempotencyHeader(post(pathname)).schema;
     assert.equal(schema.minLength, 8);
@@ -54,10 +55,11 @@ test("Idempotency-Key documents the printable-ASCII rule enforced by the API", (
   }
 });
 
-test("scrape replay fields are nullable in every documented 202 response", () => {
+test("idempotent replay fields are nullable in every documented 202 response", () => {
   for (const pathname of [
     "/forusbot/scrape-participant",
     "/forusbot/scrape-plan",
+    "/forusbot/email-trigger",
   ]) {
     const schema = responseSchema(post(pathname), 202);
     for (const property of [
@@ -72,6 +74,13 @@ test("scrape replay fields are nullable in every documented 202 response", () =>
       );
     }
   }
+});
+
+test("summary annual email documents reportYear and its UTC default", () => {
+  const operation = post("/forusbot/email-trigger");
+  const schema = operation.requestBody.content["application/json"].schema;
+  assert.equal(schema.properties.reportYear.type, "integer");
+  assert.match(schema.properties.reportYear.description, /previous UTC year/);
 });
 
 test("scrape-participant documents its complete 202 JSON response", () => {
@@ -96,4 +105,16 @@ test("GET /jobs/{id} documents its Firestore-unavailable 503 response", () => {
   assert.deepEqual(schema.required, ["ok", "error"]);
   assert.equal(schema.properties.ok.type, "boolean");
   assert.equal(schema.properties.error.type, "string");
+});
+
+test("health documents the hardened email-trigger capabilities", () => {
+  for (const pathname of ["/health", "/forusbot/health"]) {
+    const schema = responseSchema(spec.paths[pathname].get, 200);
+    assert.deepEqual(schema.required, ["ok", "capabilities"]);
+    assert.deepEqual(schema.properties.capabilities.required, [
+      "emailTriggerIdempotency",
+      "emailTriggerTerminalSemantics",
+      "emailTriggerReportYear",
+    ]);
+  }
 });

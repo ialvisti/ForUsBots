@@ -11,6 +11,8 @@ pnpm-lock.yaml
 evidence/
 tmp/
 **/*.log
+tokens.json
+tokens*.json
 
 # Env locales: NO copiar al contenedor (Render usa env propios)
 .env

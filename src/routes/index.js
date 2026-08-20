@@ -28,6 +28,7 @@ const { scopeToJSON } = require("../auth/scopes");
 const { getSettings, patchSettings } = require("../engine/settings");
 const { _closeContextNow, getPoolStats } = require("../engine/sharedContext");
 const { toPublicJob } = require("../middleware/public-response");
+const { getHealthPayload } = require("../health");
 
 // 🆕 Rutas de artículos (FS)
 const articlesRoutes = require("./articles-files");
@@ -42,7 +43,7 @@ function maybeProtectStatus() {
 }
 
 // Health “global” del namespace /forusbot
-router.get("/health", (_req, res) => res.json({ ok: true }));
+router.get("/health", (_req, res) => res.json(getHealthPayload()));
 
 // Estado de la cola / ejecución + candados de login/OTP
 router.get("/status", ...maybeProtectStatus(), (_req, res) => {
