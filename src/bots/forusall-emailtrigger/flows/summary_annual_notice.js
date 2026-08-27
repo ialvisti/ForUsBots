@@ -399,7 +399,7 @@ async function validatePortalJavascriptTriggerResponse(
 
 // Esta función se serializa y ejecuta en el frame principal de Playwright.
 // Sólo devuelve señales allowlisted; nunca expone el source del handler.
-function inspectSummaryTriggerControl(element) {
+async function inspectSummaryTriggerControl(element) {
   let jqueryHandlerMatched = false;
   let directClickHandlerCount = 0;
   let jqueryHandlerSourceVersion = null;
@@ -408,40 +408,21 @@ function inspectSummaryTriggerControl(element) {
     const clickHandlers = Array.isArray(events.click) ? events.click : [];
     const directHandlers = clickHandlers.filter((entry) => !entry?.selector);
     directClickHandlerCount = directHandlers.length;
-    const canonicalizeSource = (rawSource) => {
-      let canonical = "";
-      let quote = null;
-      let escaped = false;
-      for (const character of String(rawSource || "")) {
-        if (quote) {
-          canonical += character;
-          if (escaped) escaped = false;
-          else if (character === "\\") escaped = true;
-          else if (character === quote) quote = null;
-          continue;
-        }
-        if (["'", '"', "`"].includes(character)) {
-          quote = character;
-          canonical += character;
-        } else if (!/\s/u.test(character)) {
-          canonical += character;
-        }
-      }
-      return quote || escaped ? null : canonical;
-    };
-    const trustedSource =
-      "function(){if(confirm('Are you sure you want to send this email?')){" +
-      "varparams=commTriggerParams()$.extend(params,);" +
-      "$.post('/trigger_email_process',params,'script');}" +
-      "else{returnfalse;}}";
-    jqueryHandlerMatched =
-      directHandlers.length === 1 &&
-      directHandlers.some((entry) => {
-        const source = canonicalizeSource(
-          Function.prototype.toString.call(entry.handler)
-        );
-        return source === trustedSource;
-      });
+    if (directHandlers.length === 1 && window.crypto?.subtle) {
+      const source = Function.prototype.toString.call(
+        directHandlers[0].handler
+      );
+      const digest = await window.crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(source)
+      );
+      const sourceSha256 = Array.from(new Uint8Array(digest), (byte) =>
+        byte.toString(16).padStart(2, "0")
+      ).join("");
+      jqueryHandlerMatched =
+        sourceSha256 ===
+        "e07143f923433949732f572fb892ddd6ebec2068e660c0a1f6e381293c39d118";
+    }
     if (jqueryHandlerMatched) {
       jqueryHandlerSourceVersion = "jquery_post_source_v1";
     }
@@ -462,7 +443,7 @@ function inspectSummaryTriggerControl(element) {
 
 // Esta función se serializa y ejecuta en el frame principal de Playwright.
 // Debe permanecer autocontenida: no puede cerrar sobre helpers de Node.
-function clickVerifiedSummaryTrigger(element, expected) {
+async function clickVerifiedSummaryTrigger(element, expected) {
   const triggerContractIsQuery =
     expected?.triggerContractVersion === "force_send_query_v1";
   const triggerContractIsJquery =
@@ -498,41 +479,22 @@ function clickVerifiedSummaryTrigger(element, expected) {
       if (directHandlers.length === 1) {
         verifiedJqueryHandler = directHandlers[0]?.handler || null;
       }
-      const canonicalizeSource = (rawSource) => {
-        let canonical = "";
-        let quote = null;
-        let escaped = false;
-        for (const character of String(rawSource || "")) {
-          if (quote) {
-            canonical += character;
-            if (escaped) escaped = false;
-            else if (character === "\\") escaped = true;
-            else if (character === quote) quote = null;
-            continue;
-          }
-          if (["'", '"', "`"].includes(character)) {
-            quote = character;
-            canonical += character;
-          } else if (!/\s/u.test(character)) {
-            canonical += character;
-          }
-        }
-        return quote || escaped ? null : canonical;
-      };
-      const trustedSource =
-        "function(){if(confirm('Are you sure you want to send this email?')){" +
-        "varparams=commTriggerParams()$.extend(params,);" +
-        "$.post('/trigger_email_process',params,'script');}" +
-        "else{returnfalse;}}";
+      let sourceSha256 = null;
+      if (verifiedJqueryHandler && window.crypto?.subtle) {
+        const source = Function.prototype.toString.call(verifiedJqueryHandler);
+        const digest = await window.crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(source)
+        );
+        sourceSha256 = Array.from(new Uint8Array(digest), (byte) =>
+          byte.toString(16).padStart(2, "0")
+        ).join("");
+      }
       jqueryHandlerMatched = Boolean(
         verifiedJqueryHandler &&
           expected.jqueryHandlerSourceVersion === "jquery_post_source_v1" &&
-          directHandlers.some((entry) => {
-            const source = canonicalizeSource(
-              Function.prototype.toString.call(entry.handler)
-            );
-            return source === trustedSource;
-          })
+          sourceSha256 ===
+            "e07143f923433949732f572fb892ddd6ebec2068e660c0a1f6e381293c39d118"
       );
       const planInputs = document.querySelectorAll("#plan");
       const emailTypeInputs = document.querySelectorAll("#email_type");

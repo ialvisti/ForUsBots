@@ -1,5 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { createHash, webcrypto } = require("node:crypto");
 
 const commonPath = require.resolve(
   "../../src/bots/forusall-emailtrigger/flows/_common"
@@ -275,6 +276,20 @@ const DEFAULT_TRIGGER_URL = DEFAULT_PREVIEW_URL.replace(
 const TRIGGER_SUCCESS_MESSAGE =
   "Background job has been scheduled. You will receive an email shortly with the logs once the job completes.";
 const DEFAULT_MAIN_FRAME = Object.freeze({ name: "main" });
+const OFFICIAL_JQUERY_HANDLER_SOURCE =
+  "function() {\n" +
+  "    if (confirm('Are you sure you want to send this email?')) {\n" +
+  "      var params = commTriggerParams()\n" +
+  "      $.extend(params, );\n" +
+  "\n" +
+  "      $.post('/trigger_email_process',\n" +
+  "        params,\n" +
+  "        'script'\n" +
+  "      );\n" +
+  "    } else {\n" +
+  "      return false;\n" +
+  "    }\n" +
+  "  }";
 const DEFAULT_TRIGGER_POST_DATA = new URLSearchParams({
   participants_list: "1",
   plan: "627",
@@ -735,19 +750,23 @@ function atomicClickFixture({
         return false;
       }
     };
-  } else {
-    jqueryHandler = function () {
+  } else if (jqueryHandlerMode === "merged-token") {
+    jqueryHandler = function() {
       if (confirm('Are you sure you want to send this email?')) {
-        var params = commTriggerParams()
+        varparams = commTriggerParams()
         $.extend(params, );
         $.post('/trigger_email_process',
           params,
           'script'
         );
       } else {
-        return false;
+        returnfalse;
       }
     };
+  } else {
+    jqueryHandler = Function(
+      `return (${OFFICIAL_JQUERY_HANDLER_SOURCE});`
+    )();
   }
   const jquery = {
     _data: () => ({
@@ -773,7 +792,7 @@ function atomicClickFixture({
   };
 }
 
-function runAtomicClickFixture(options) {
+async function runAtomicClickFixture(options) {
   const fixture = atomicClickFixture(options);
   const originalDocument = global.document;
   const originalWindow = global.window;
@@ -784,12 +803,13 @@ function runAtomicClickFixture(options) {
   global.window = {
     location: { href: DEFAULT_PREVIEW_URL },
     jQuery: fixture.jquery,
+    crypto: webcrypto,
   };
   global.confirm = () => true;
   global.commTriggerParams = () => ({});
   global.$ = { extend: () => {}, post: fixture.recordJqueryPost };
   try {
-    clickVerifiedSummaryTrigger(fixture.element, fixture.expected);
+    await clickVerifiedSummaryTrigger(fixture.element, fixture.expected);
     return options?.returnDetails
       ? {
           total: fixture.getClicks(),
@@ -807,7 +827,7 @@ function runAtomicClickFixture(options) {
 }
 
 test("atomic trigger click requires the exact verified manifest and selections", async (t) => {
-  assert.equal(runAtomicClickFixture(), 1);
+  assert.equal(await runAtomicClickFixture(), 1);
 
   const hostileStates = [
     {
@@ -832,81 +852,89 @@ test("atomic trigger click requires the exact verified manifest and selections",
     },
   ];
   for (const scenario of hostileStates) {
-    await t.test(scenario.name, () => {
-      assert.throws(() => runAtomicClickFixture(scenario.options), {
+    await t.test(scenario.name, async () => {
+      await assert.rejects(runAtomicClickFixture(scenario.options), {
         message: "SAR_PRE_CLICK_STATE_CHANGED",
       });
     });
   }
 
-  await t.test("duplicate trigger selector", () => {
-    assert.throws(
-      () => runAtomicClickFixture({ duplicateTrigger: true }),
+  await t.test("duplicate trigger selector", async () => {
+    await assert.rejects(
+      runAtomicClickFixture({ duplicateTrigger: true }),
       { message: "SAR_TRIGGER_BINDING_CHANGED" }
     );
   });
 });
 
-test("atomic trigger click accepts only the verified portal jQuery POST handler", () => {
+test("atomic trigger click accepts only the verified portal jQuery POST handler", async () => {
   assert.deepEqual(
-    runAtomicClickFixture({
+    await runAtomicClickFixture({
       triggerContractVersion: "jquery_post_v1",
       returnDetails: true,
     }),
     { total: 1, elementClicks: 0, jqueryPosts: 1 }
   );
-  assert.throws(
-    () =>
-      runAtomicClickFixture({
+  await assert.rejects(
+    runAtomicClickFixture({
         triggerContractVersion: "jquery_post_v1",
         jqueryHandlerMatched: false,
       }),
     { message: "SAR_TRIGGER_BINDING_CHANGED" }
   );
-  assert.throws(
-    () =>
-      runAtomicClickFixture({
+  await assert.rejects(
+    runAtomicClickFixture({
         triggerContractVersion: "jquery_post_v1",
         duplicateJqueryHandler: true,
       }),
     { message: "SAR_TRIGGER_BINDING_CHANGED" }
   );
-  assert.throws(
-    () =>
-      runAtomicClickFixture({
+  await assert.rejects(
+    runAtomicClickFixture({
         triggerContractVersion: "jquery_post_v1",
         jqueryHandlerMode: "paper",
       }),
     { message: "SAR_TRIGGER_BINDING_CHANGED" }
   );
-  assert.throws(
-    () =>
-      runAtomicClickFixture({
+  await assert.rejects(
+    runAtomicClickFixture({
         triggerContractVersion: "jquery_post_v1",
         jqueryHandlerMode: "alternate",
       }),
     { message: "SAR_TRIGGER_BINDING_CHANGED" }
   );
-  assert.throws(
-    () =>
-      runAtomicClickFixture({
+  await assert.rejects(
+    runAtomicClickFixture({
         triggerContractVersion: "jquery_post_v1",
         jqueryHandlerMode: "spaced-path",
       }),
     { message: "SAR_TRIGGER_BINDING_CHANGED" }
   );
+  await assert.rejects(
+    runAtomicClickFixture({
+      triggerContractVersion: "jquery_post_v1",
+      jqueryHandlerMode: "merged-token",
+    }),
+    { message: "SAR_TRIGGER_BINDING_CHANGED" }
+  );
 });
 
-test("trigger control inspection never exposes handler source", () => {
+test("trigger control inspection never exposes handler source", async () => {
   const fixture = atomicClickFixture({
     triggerContractVersion: "jquery_post_v1",
   });
   const originalDocument = global.document;
   const originalWindow = global.window;
   global.document = fixture.document;
-  global.window = { jQuery: fixture.jquery };
+  global.window = { jQuery: fixture.jquery, crypto: webcrypto };
   try {
-    const inspected = inspectSummaryTriggerControl(fixture.element);
+    assert.equal(
+      createHash("sha256")
+        .update(OFFICIAL_JQUERY_HANDLER_SOURCE, "utf8")
+        .digest("hex"),
+      "e07143f923433949732f572fb892ddd6ebec2068e660c0a1f6e381293c39d118"
+    );
+    const inspected = await inspectSummaryTriggerControl(fixture.element);
     assert.equal(inspected.jqueryHandlerMatched, true);
     assert.equal(
       inspected.jqueryHandlerSourceVersion,
@@ -923,8 +951,10 @@ test("trigger control inspection never exposes handler source", () => {
       jqueryHandlerMode: "paper",
     });
     global.document = paperFixture.document;
-    global.window = { jQuery: paperFixture.jquery };
-    const paperInspected = inspectSummaryTriggerControl(paperFixture.element);
+    global.window = { jQuery: paperFixture.jquery, crypto: webcrypto };
+    const paperInspected = await inspectSummaryTriggerControl(
+      paperFixture.element
+    );
     assert.equal(paperInspected.jqueryHandlerMatched, false);
     assert.equal(paperInspected.jqueryHandlerSourceVersion, null);
     assert.equal(paperInspected.directClickHandlerCount, 1);
