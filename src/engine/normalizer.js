@@ -48,6 +48,34 @@ function shallowClone(obj) {
   return { ...obj };
 }
 
+function isCanonicalEnvelope(raw) {
+  return (
+    raw &&
+    typeof raw === "object" &&
+    typeof raw.ok === "boolean" &&
+    typeof raw.code === "string" &&
+    Object.prototype.hasOwnProperty.call(raw, "data")
+  );
+}
+
+function normCanonical(ok, raw, errCtx) {
+  const okFinal = !!(ok && raw.ok !== false);
+  const errors = asArray(raw.errors);
+  return {
+    ok: okFinal,
+    code: tidy(raw.code) || (okFinal ? "OK" : "ERROR"),
+    message:
+      tidy(raw.message) ||
+      (okFinal ? null : tidy(errCtx && errCtx.error) || null),
+    data: raw.data ?? null,
+    warnings: asArray(raw.warnings),
+    errors:
+      okFinal || errors.length
+        ? errors
+        : asArray(errCtx && errCtx.error),
+  };
+}
+
 function normSearchParticipants(ok, raw, errCtx) {
   const r = raw || {};
   return {
@@ -233,6 +261,12 @@ function normGeneric(ok, raw, errCtx) {
 }
 
 function normalizeResultEnvelope(botId, ok, rawResult, errCtx) {
+  // Algunos flows ya devuelven el envelope canónico. Preservarlo evita
+  // degradar su code y volver a envolver data como data.data.
+  if (isCanonicalEnvelope(rawResult)) {
+    return normCanonical(ok, rawResult, errCtx);
+  }
+
   const id = String(botId || "").toLowerCase();
 
   if (id === "forusall-search-participants")

@@ -163,6 +163,24 @@ curl -sS -X POST "$BASE/forusbot/update-participant" \
 `"First Name"`, `"Hire Date"`, `"Primary Email"`, `"Zip Code"`). Internal
 camelCase names such as `hireDate` are not accepted.
 
+After polling the returned `jobId`, a successful update includes the stable
+result code and portal confirmation in the public payload:
+
+```json
+{
+  "state": "succeeded",
+  "data": {
+    "participantId": "12345",
+    "updateStatus": "UPDATE_OK",
+    "statusMessage": "Participant updated successfully.",
+    "applied": {},
+    "skipped": []
+  },
+  "warnings": [],
+  "errors": []
+}
+```
+
 ```bash
 # 7) Trigger email (auth)
 curl -sS -X POST "$BASE/forusbot/email-trigger" \

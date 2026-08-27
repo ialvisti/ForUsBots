@@ -1,12 +1,22 @@
 // Aplana update-participant al shape público.
 // Interno: result.data = { participantId, participantUrl, updatesApplied, confirmMode, confirmText }
 // `updatesApplied` puede traer { applied:{...}, skipped:[...] } o el objeto plano.
-// Público: { participantId, applied:{...}, skipped:[...] }
-module.exports = function formatPublic(result) {
+// Público: { participantId, updateStatus, statusMessage, applied:{...}, skipped:[...] }
+module.exports = function formatPublic(result, record) {
   if (!result || !result.data) return null;
 
-  const d = result.data;
+  const outerData = result.data;
+  const isLegacyNested =
+    outerData &&
+    typeof outerData === "object" &&
+    !Array.isArray(outerData) &&
+    typeof outerData.code === "string" &&
+    outerData.data &&
+    typeof outerData.data === "object" &&
+    !Array.isArray(outerData.data);
+  const d = isLegacyNested ? outerData.data : outerData;
   const ua = d.updatesApplied;
+  const meta = (record && record.meta) || {};
 
   let applied = {};
   let skipped = [];
@@ -21,7 +31,10 @@ module.exports = function formatPublic(result) {
   }
 
   return {
-    participantId: d.participantId || null,
+    participantId: d.participantId ?? meta.participantId ?? null,
+    updateStatus:
+      (isLegacyNested && outerData.code) || result.code || null,
+    statusMessage: result.message || d.confirmText || null,
     applied,
     skipped,
   };

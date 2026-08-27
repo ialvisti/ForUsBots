@@ -1095,6 +1095,10 @@ paths:
         are ignored and returned as warnings; at least one recognized label is
         required. The note is required. Success requires the exact portal
         confirmation `Participant updated successfully.`.
+
+        After the `202` response, poll `GET /forusbot/jobs/{id}`. A succeeded
+        job returns `data` using `UpdateParticipantPublicData`, including the
+        participant ID, stable update code, and portal confirmation message.
       parameters:
         - in: header
           name: x-auth-token
@@ -1159,7 +1163,8 @@ paths:
                 "State": "CA"
                 "Zip Code": "94102"
       responses:
-        '202': { description: Accepted (returns jobId) }
+        '202':
+          description: Accepted (returns jobId and Location for polling)
         '400': { description: Bad Request }
         '401': { description: Unauthorized }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -1557,6 +1562,33 @@ components:
             message: { type: string }
             stack: { type: string }
 
+    UpdateParticipantPublicData:
+      type: object
+      additionalProperties: false
+      required:
+        [ participantId, updateStatus, statusMessage, applied, skipped ]
+      properties:
+        participantId:
+          type: string
+          description: Portal participant ID that was updated
+          example: "12345"
+        updateStatus:
+          type: string
+          description: Stable machine-readable update result code
+          example: UPDATE_OK
+        statusMessage:
+          type: string
+          description: Validated confirmation message returned by the portal
+          example: Participant updated successfully.
+        applied:
+          type: object
+          additionalProperties: true
+          description: Public summary of fields applied by the update
+        skipped:
+          type: array
+          items: { type: string }
+          description: Fields skipped by the update
+
     JobPublicResponse:
       type: object
       required: [state]
@@ -1575,6 +1607,7 @@ components:
           description: |
             Solo presente cuando state=succeeded. El shape es específico por bot
             (ej. scrape-participant: `{participantId, census?, savings_rate?, ...}`;
+            update-participant: `{participantId, updateStatus, statusMessage, applied, skipped}`;
             update-plan: `{planId, applied, skipped}`; mfa-reset: `{participantId, reset}`).
         error:
           type: object

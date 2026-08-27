@@ -910,6 +910,21 @@ er_match_plan_entry_frequency_second_month</code></pre>
 }</code></pre>
           </div>
           <div class="resp">
+            <div class="code">200 <span class="muted">Polled job — succeeded</span></div>
+            <pre><code class="json">{
+  "state": "succeeded",
+  "data": {
+    "participantId": "12345",
+    "updateStatus": "UPDATE_OK",
+    "statusMessage": "Participant updated successfully.",
+    "applied": {},
+    "skipped": []
+  },
+  "warnings": [],
+  "errors": []
+}</code></pre>
+          </div>
+          <div class="resp">
             <div class="code">400 <span class="muted">Bad Request</span></div>
             <pre><code class="json">{
   "ok": false,
