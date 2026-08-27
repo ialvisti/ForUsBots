@@ -9,6 +9,7 @@ const {
 } = require("./flows/_common");
 const { getFlowHandler } = require("./flows");
 const { assertFlowSucceeded, normalizeFlowError } = require("./result");
+const { acquireEmailTriggerAccount } = require("./accountLock");
 
 const PW_DEFAULT_TIMEOUT = Math.max(
   2000,
@@ -39,7 +40,12 @@ module.exports = async function runFlow({ meta, jobCtx }) {
     FIXED.triggerEmails.selectors;
 
   let page = null;
+  let releaseAccount = null;
   try {
+    // Rails flash/cookies live at session scope. Serializing this bot per account
+    // prevents two email triggers in the shared browser context from consuming
+    // or certifying each other's redirect response.
+    releaseAccount = await acquireEmailTriggerAccount(account.siteUser);
     page = await getPageFromPool({ siteUserEmail: account.siteUser });
     page.setDefaultTimeout(PW_DEFAULT_TIMEOUT);
     page.setDefaultNavigationTimeout(PW_DEFAULT_TIMEOUT + 2000);
@@ -107,6 +113,10 @@ module.exports = async function runFlow({ meta, jobCtx }) {
   } catch (err) {
     throw normalizeFlowError(err);
   } finally {
-    if (page) await releasePage(page);
+    try {
+      if (page) await releasePage(page);
+    } finally {
+      releaseAccount?.();
+    }
   }
 };

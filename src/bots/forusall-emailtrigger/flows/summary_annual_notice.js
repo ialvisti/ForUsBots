@@ -19,17 +19,53 @@ const { extractPlanIdentity } = require("../planIdentity");
 const {
   normalizeReportYear,
   assertSummaryPreviewUrl,
+  assertSummaryJavascriptTriggerUrl,
   assertSummaryTriggerUrl,
   validateSummaryAnnualFileName,
 } = require("../validation");
 
 const TRUSTED_TRIGGER_EMAILS_ORIGIN = "https://employer.forusall.com";
 const TRUSTED_TRIGGER_EMAILS_PATH = "/trigger_emails";
+const TRUSTED_TRIGGER_PROCESS_PATH = "/trigger_email_process";
+const TRIGGER_PROCESS_ROUTE_PATTERN = "**/trigger_email_process*";
+const TRIGGER_CONTRACT_QUERY = "force_send_query_v1";
+const TRIGGER_CONTRACT_JQUERY = "jquery_post_v1";
+const TRIGGER_SUCCESS_MESSAGE =
+  "Background job has been scheduled. You will receive an email shortly with the logs once the job completes.";
+const MAX_TRIGGER_RESPONSE_BYTES = 2_000_000;
+const TRIGGER_POST_KEYS = [
+  "attachments",
+  "conversation_id",
+  "email_type",
+  "enrolled",
+  "generic_comm_type",
+  "not_enrolled",
+  "participants_list",
+  "plan",
+  "plan_snapshot",
+  "prior_date",
+  "quarter",
+  "terminated",
+  "year",
+];
+const TRIGGER_POST_PREVIEW_KEYS = [
+  "attachments",
+  "conversation_id",
+  "enrolled",
+  "generic_comm_type",
+  "not_enrolled",
+  "plan_snapshot",
+  "quarter",
+  "terminated",
+  "year",
+];
 
 function isTrustedTriggerEmailsUrl(value) {
   try {
     const url = value instanceof URL ? value : new URL(String(value || ""));
     return (
+      !url.username &&
+      !url.password &&
       url.origin === TRUSTED_TRIGGER_EMAILS_ORIGIN &&
       url.pathname === TRUSTED_TRIGGER_EMAILS_PATH
     );
@@ -38,9 +74,305 @@ function isTrustedTriggerEmailsUrl(value) {
   }
 }
 
+function isTrustedTriggerProcessRequest(request) {
+  try {
+    const url = new URL(request.url());
+    return (
+      request.method() === "POST" &&
+      !url.username &&
+      !url.password &&
+      url.origin === TRUSTED_TRIGGER_EMAILS_ORIGIN &&
+      url.pathname === TRUSTED_TRIGGER_PROCESS_PATH &&
+      url.search === "" &&
+      url.hash === ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isTrustedTriggerRedirectResponse(response) {
+  try {
+    const url = new URL(response.url());
+    const request = response.request();
+    const redirectedFrom = request.redirectedFrom();
+    return (
+      request.method() === "GET" &&
+      !url.username &&
+      !url.password &&
+      url.origin === TRUSTED_TRIGGER_EMAILS_ORIGIN &&
+      url.pathname === TRUSTED_TRIGGER_EMAILS_PATH &&
+      redirectedFrom &&
+      isTrustedTriggerProcessRequest(redirectedFrom)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function observePortalJavascriptTriggerResponses(page, { timeout = 60000 } = {}) {
+  let processResponse = null;
+  let settled = false;
+  let timeoutHandle = null;
+  let resolveWait;
+  let rejectWait;
+
+  const cleanup = () => {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+    timeoutHandle = null;
+    page.off?.("response", onResponse);
+  };
+  const settle = (callback, value) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    callback(value);
+  };
+  const onResponse = (response) => {
+    if (!processResponse && isTrustedTriggerProcessRequest(response.request())) {
+      processResponse = response;
+      return;
+    }
+    if (
+      processResponse &&
+      isTrustedTriggerRedirectResponse(response) &&
+      response.request().redirectedFrom() === processResponse.request()
+    ) {
+      settle(resolveWait, { processResponse, redirectResponse: response });
+    }
+  };
+  const promise = new Promise((resolve, reject) => {
+    resolveWait = resolve;
+    rejectWait = reject;
+  });
+
+  page.on("response", onResponse);
+  timeoutHandle = setTimeout(
+    () => settle(rejectWait, new Error("SAR_TRIGGER_RESPONSE_TIMEOUT")),
+    timeout
+  );
+
+  return {
+    promise,
+    cancel() {
+      settle(resolveWait, null);
+    },
+  };
+}
+
+function validatePortalJavascriptTriggerRequest(request, expected) {
+  try {
+    const expectedPostValues = expected?.expectedPostValues;
+    if (
+      !expected ||
+      !expectedPostValues ||
+      typeof expectedPostValues !== "object" ||
+      Object.keys(expectedPostValues).sort().some(
+        (key, index) => key !== TRIGGER_POST_KEYS[index]
+      ) ||
+      Object.keys(expectedPostValues).length !== TRIGGER_POST_KEYS.length ||
+      !isTrustedTriggerProcessRequest(request)
+    ) {
+      return { matched: false, failureCode: "trigger_request_contract_mismatch" };
+    }
+    const postData = request.postData();
+    if (typeof postData !== "string" || !postData) {
+      return { matched: false, failureCode: "trigger_request_body_missing" };
+    }
+    const params = new URLSearchParams(postData);
+    const postKeys = [...new Set(params.keys())].sort();
+    if (
+      postKeys.length !== TRIGGER_POST_KEYS.length ||
+      postKeys.some((key, index) => key !== TRIGGER_POST_KEYS[index]) ||
+      TRIGGER_POST_KEYS.some((key) => params.getAll(key).length !== 1)
+    ) {
+      return { matched: false, failureCode: "trigger_request_shape_mismatch" };
+    }
+    const exact = (key, value) => params.get(key) === String(value);
+    if (
+      !exact("plan", expected.expectedPlanId) ||
+      !exact("email_type", expected.expectedEmailType) ||
+      !exact("year", expected.expectedPreviewYear) ||
+      !exact("participants_list", expected.selectionValues.join(","))
+    ) {
+      return { matched: false, failureCode: "trigger_request_identity_mismatch" };
+    }
+    if (
+      TRIGGER_POST_KEYS.some(
+        (key) => !exact(key, expectedPostValues[key])
+      )
+    ) {
+      return { matched: false, failureCode: "trigger_request_value_mismatch" };
+    }
+    return { matched: true, failureCode: null };
+  } catch {
+    return { matched: false, failureCode: "trigger_request_validation_failed" };
+  }
+}
+
+async function installPortalJavascriptTriggerRequestGuard(page, expected) {
+  let allowedRequestCount = 0;
+  let blockedRequestCount = 0;
+  let removed = false;
+  let notifyBlocked;
+  const blocked = new Promise((resolve) => {
+    notifyBlocked = resolve;
+  });
+  const handler = async (route) => {
+    try {
+      const contract = validatePortalJavascriptTriggerRequest(
+        route.request(),
+        expected
+      );
+      if (
+        contract.matched &&
+        allowedRequestCount === 0 &&
+        blockedRequestCount === 0
+      ) {
+        allowedRequestCount += 1;
+        await route.continue();
+        return;
+      }
+      blockedRequestCount += 1;
+      await route.abort("blockedbyclient");
+      notifyBlocked(contract.failureCode || "trigger_request_duplicate");
+    } catch {
+      blockedRequestCount += 1;
+      await route.abort("blockedbyclient").catch(() => {});
+      notifyBlocked("trigger_request_guard_failed");
+    }
+  };
+
+  await page.route(TRIGGER_PROCESS_ROUTE_PATTERN, handler);
+  return {
+    blocked,
+    snapshot() {
+      return { allowedRequestCount, blockedRequestCount };
+    },
+    async remove() {
+      if (removed) return;
+      removed = true;
+      await page.unroute(TRIGGER_PROCESS_ROUTE_PATTERN, handler);
+    },
+  };
+}
+
+async function validatePortalJavascriptTriggerResponse(
+  processResponse,
+  redirectResponse,
+  expected
+) {
+  try {
+    if (
+      !processResponse ||
+      !redirectResponse ||
+      !expected ||
+      !isTrustedTriggerRedirectResponse(redirectResponse) ||
+      redirectResponse.request().redirectedFrom() !== processResponse.request() ||
+      ![302, 303].includes(processResponse.status()) ||
+      redirectResponse.status() !== 200
+    ) {
+      return { matched: false, failureCode: "trigger_response_contract_mismatch" };
+    }
+
+    const requestContract = validatePortalJavascriptTriggerRequest(
+      processResponse.request(),
+      expected
+    );
+    if (!requestContract.matched) return requestContract;
+
+    const headers = await processResponse.headers();
+    const location = new URL(
+      String(headers.location || ""),
+      processResponse.url()
+    );
+    if (
+      location.username ||
+      location.password ||
+      location.origin !== TRUSTED_TRIGGER_EMAILS_ORIGIN ||
+      location.pathname !== TRUSTED_TRIGGER_EMAILS_PATH
+    ) {
+      return { matched: false, failureCode: "trigger_redirect_location_mismatch" };
+    }
+
+    const body = await redirectResponse.text();
+    if (
+      typeof body !== "string" ||
+      Buffer.byteLength(body, "utf8") > MAX_TRIGGER_RESPONSE_BYTES
+    ) {
+      return { matched: false, failureCode: "trigger_success_not_confirmed" };
+    }
+    const escapedSuccessMessage = TRIGGER_SUCCESS_MESSAGE.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+    const exactSuccessFlash = new RegExp(
+      `<div\\s+id=["']flash_notice["']\\s*>\\s*${escapedSuccessMessage}\\s*</div>`,
+      "u"
+    );
+    const failureFlash = /id=["']flash_(?:error|warning)["']/u;
+    if (failureFlash.test(body)) {
+      return { matched: false, failureCode: "trigger_error_flash_present" };
+    }
+    if (!exactSuccessFlash.test(body)) {
+      return { matched: false, failureCode: "trigger_success_not_confirmed" };
+    }
+    return { matched: true, failureCode: null };
+  } catch {
+    return { matched: false, failureCode: "trigger_response_validation_failed" };
+  }
+}
+
+// Esta función se serializa y ejecuta en el frame principal de Playwright.
+// Sólo devuelve señales allowlisted; nunca expone el source del handler.
+function inspectSummaryTriggerControl(element) {
+  let jqueryHandlerMatched = false;
+  let directClickHandlerCount = 0;
+  try {
+    const events = window.jQuery?._data?.(element, "events") || {};
+    const clickHandlers = Array.isArray(events.click) ? events.click : [];
+    const directHandlers = clickHandlers.filter((entry) => !entry?.selector);
+    directClickHandlerCount = directHandlers.length;
+    jqueryHandlerMatched = directHandlers.length === 1 && directHandlers.some((entry) => {
+      const source = Function.prototype.toString
+        .call(entry.handler)
+        .replace(/\s+/g, "");
+      const occurrenceCount = (needle) => source.split(needle).length - 1;
+      const forbiddenSourceMarkers = [
+        "comm_method",
+        "is_preview",
+        "paper_only",
+        "triggerPaper",
+      ];
+      return (
+        occurrenceCount("commTriggerParams") === 1 &&
+        occurrenceCount("/trigger_email_process") === 1 &&
+        occurrenceCount("$.post(") === 1 &&
+        occurrenceCount("confirm(") === 1 &&
+        forbiddenSourceMarkers.every((marker) => !source.includes(marker))
+      );
+    });
+  } catch {}
+  return {
+    tagName: element.tagName,
+    href: element.getAttribute("href"),
+    jqueryHandlerMatched,
+    directClickHandlerCount,
+    planValue: document.querySelector("#plan")?.value ?? null,
+    emailTypeValue: document.querySelector("#email_type")?.value ?? null,
+    conversationIdValue:
+      document.querySelector("#conversation_id")?.value ?? null,
+    priorDateValue: document.querySelector("#prior_date")?.value ?? null,
+  };
+}
+
 // Esta función se serializa y ejecuta en el frame principal de Playwright.
 // Debe permanecer autocontenida: no puede cerrar sobre helpers de Node.
 function clickVerifiedSummaryTrigger(element, expected) {
+  const triggerContractIsQuery =
+    expected?.triggerContractVersion === "force_send_query_v1";
+  const triggerContractIsJquery =
+    expected?.triggerContractVersion === "jquery_post_v1";
   if (
     !expected ||
     !Number.isSafeInteger(expected.expectedTotal) ||
@@ -49,6 +381,7 @@ function clickVerifiedSummaryTrigger(element, expected) {
     expected.manifest.length !== expected.expectedTotal ||
     !Array.isArray(expected.selectionValues) ||
     expected.selectionValues.length !== expected.expectedTotal ||
+    (!triggerContractIsQuery && !triggerContractIsJquery) ||
     element.tagName !== "A" ||
     element.getAttribute("href") !== expected.href ||
     window.location.href !== expected.previewUrl ||
@@ -56,6 +389,71 @@ function clickVerifiedSummaryTrigger(element, expected) {
     document.querySelector("#triggerEmail") !== element
   ) {
     throw new Error("SAR_TRIGGER_BINDING_CHANGED");
+  }
+
+  let verifiedJqueryHandler = null;
+  if (triggerContractIsJquery) {
+    let jqueryHandlerMatched = false;
+    let triggerUrl;
+    try {
+      const previewUrl = new URL(expected.previewUrl);
+      triggerUrl = new URL(element.getAttribute("href"), previewUrl);
+      const events = window.jQuery?._data?.(element, "events") || {};
+      const clickHandlers = Array.isArray(events.click) ? events.click : [];
+      const directHandlers = clickHandlers.filter((entry) => !entry?.selector);
+      if (directHandlers.length === 1) {
+        verifiedJqueryHandler = directHandlers[0]?.handler || null;
+      }
+      jqueryHandlerMatched = Boolean(
+        verifiedJqueryHandler &&
+          directHandlers.some((entry) => {
+            const source = Function.prototype.toString
+              .call(entry.handler)
+              .replace(/\s+/g, "");
+            const occurrenceCount = (needle) => source.split(needle).length - 1;
+            const forbiddenSourceMarkers = [
+              "comm_method",
+              "is_preview",
+              "paper_only",
+              "triggerPaper",
+            ];
+            return (
+              occurrenceCount("commTriggerParams") === 1 &&
+              occurrenceCount("/trigger_email_process") === 1 &&
+              occurrenceCount("$.post(") === 1 &&
+              occurrenceCount("confirm(") === 1 &&
+              forbiddenSourceMarkers.every(
+                (marker) => !source.includes(marker)
+              )
+            );
+          })
+      );
+      const planInputs = document.querySelectorAll("#plan");
+      const emailTypeInputs = document.querySelectorAll("#email_type");
+      const conversationInputs = document.querySelectorAll("#conversation_id");
+      const priorDateInputs = document.querySelectorAll("#prior_date");
+      if (
+        triggerUrl.origin !== previewUrl.origin ||
+        triggerUrl.pathname !== previewUrl.pathname ||
+        triggerUrl.search !== "" ||
+        triggerUrl.hash !== "" ||
+        !jqueryHandlerMatched ||
+        planInputs.length !== 1 ||
+        emailTypeInputs.length !== 1 ||
+        conversationInputs.length !== 1 ||
+        priorDateInputs.length !== 1 ||
+        String(planInputs[0].value || "") !== String(expected.expectedPlanId) ||
+        String(emailTypeInputs[0].value || "") !== expected.expectedEmailType ||
+        String(conversationInputs[0].value || "") !==
+          expected.expectedPostValues?.conversation_id ||
+        String(priorDateInputs[0].value || "") !==
+          expected.expectedPostValues?.prior_date
+      ) {
+        throw new Error("SAR_TRIGGER_BINDING_CHANGED");
+      }
+    } catch {
+      throw new Error("SAR_TRIGGER_BINDING_CHANGED");
+    }
   }
 
   const table = document.querySelector("#data_list");
@@ -106,21 +504,29 @@ function clickVerifiedSummaryTrigger(element, expected) {
   const checkboxes = Array.from(
     table.querySelectorAll('tbody input.participant_checks[type="checkbox"]')
   );
+  const globalParticipantChecks = Array.from(
+    document.querySelectorAll(".participant_checks")
+  );
   const selectionValues = checkboxes.map((item) =>
     String(item.value || "").trim()
   );
   const selectionIsComplete =
     checkboxes.length === expected.expectedTotal &&
     checkboxes.every((item) => item.checked && !item.disabled);
+  const participantNodeSetIsExact =
+    globalParticipantChecks.length === checkboxes.length &&
+    globalParticipantChecks.every((item, index) => item === checkboxes[index]);
   if (
     JSON.stringify(manifest) !== JSON.stringify(expected.manifest) ||
     !selectionIsComplete ||
+    !participantNodeSetIsExact ||
     JSON.stringify(selectionValues) !== JSON.stringify(expected.selectionValues)
   ) {
     throw new Error("SAR_PRE_CLICK_STATE_CHANGED");
   }
 
-  element.click();
+  if (triggerContractIsJquery) verifiedJqueryHandler.call(element);
+  else element.click();
 }
 
 module.exports = async function runSummaryAnnualNotice({
@@ -322,8 +728,8 @@ module.exports = async function runSummaryAnnualNotice({
     objectVersionStable: true,
   };
 
-  // G) El enlace final debe seguir ligado exactamente a la Preview verificada.
-  // El portal activa el envío cambiando únicamente force_send=false a true.
+  // G) El control final debe seguir ligado exactamente a la Preview verificada.
+  // Se aceptan el contrato query legacy o el único handler jQuery oficial.
   // Esta barrera también se ejecuta en verify_only para que el dry-run pruebe
   // el mismo contrato que la rama de envío.
   jobCtx?.setStage?.("summary-annual:validate-trigger-contract");
@@ -334,10 +740,10 @@ module.exports = async function runSummaryAnnualNotice({
   };
   try {
     const previewUrl = page.url();
-    const triggerControl = await page.$eval("#triggerEmail", (element) => ({
-      tagName: element.tagName,
-      href: element.getAttribute("href"),
-    }));
+    const triggerControl = await page.$eval(
+      "#triggerEmail",
+      inspectSummaryTriggerControl
+    );
     if (triggerControl.tagName !== "A") {
       triggerContractDiagnostic = {
         matched: false,
@@ -352,6 +758,7 @@ module.exports = async function runSummaryAnnualNotice({
       };
       throw new Error("Trigger Email control has no href");
     }
+    let triggerContractVersion = TRIGGER_CONTRACT_QUERY;
     try {
       assertSummaryTriggerUrl(previewUrl, triggerControl.href, {
         planId: meta.planId,
@@ -361,14 +768,91 @@ module.exports = async function runSummaryAnnualNotice({
         matched: false,
         failureCode: "trigger_url_contract_mismatch",
       };
-      throw error;
+      if (
+        !triggerControl.jqueryHandlerMatched ||
+        triggerControl.directClickHandlerCount !== 1
+      ) {
+        throw error;
+      }
+      try {
+        assertSummaryJavascriptTriggerUrl(previewUrl, triggerControl.href, {
+          planId: meta.planId,
+        });
+      } catch {
+        triggerContractDiagnostic = {
+          matched: false,
+          failureCode: "javascript_trigger_location_mismatch",
+        };
+        throw error;
+      }
+      if (String(triggerControl.planValue || "") !== String(meta.planId)) {
+        triggerContractDiagnostic = {
+          matched: false,
+          failureCode: "javascript_trigger_plan_mismatch",
+        };
+        throw error;
+      }
+      if (triggerControl.emailTypeValue !== "summary_annual_notice") {
+        triggerContractDiagnostic = {
+          matched: false,
+          failureCode: "javascript_trigger_email_type_mismatch",
+        };
+        throw error;
+      }
+      triggerContractVersion = TRIGGER_CONTRACT_JQUERY;
+    }
+    const previewParams = new URL(previewUrl).searchParams;
+    const previewYearValues = previewParams.getAll("year");
+    if (previewYearValues.length !== 1 || !/^\d{4}$/.test(previewYearValues[0])) {
+      triggerContractDiagnostic = {
+        matched: false,
+        failureCode: "preview_trigger_year_ambiguous",
+      };
+      throw new Error("Preview trigger year is ambiguous");
+    }
+    let expectedPostValues = null;
+    if (triggerContractVersion === TRIGGER_CONTRACT_JQUERY) {
+      const previewPostValues = {};
+      for (const key of TRIGGER_POST_PREVIEW_KEYS) {
+        const values = previewParams.getAll(key);
+        if (values.length !== 1) {
+          triggerContractDiagnostic = {
+            matched: false,
+            failureCode: "preview_trigger_post_context_ambiguous",
+          };
+          throw new Error("Preview trigger POST context is ambiguous");
+        }
+        previewPostValues[key] = values[0];
+      }
+      if (
+        String(triggerControl.conversationIdValue ?? "") !==
+        previewPostValues.conversation_id
+      ) {
+        triggerContractDiagnostic = {
+          matched: false,
+          failureCode: "javascript_trigger_conversation_mismatch",
+        };
+        throw new Error("Preview conversation binding changed");
+      }
+      expectedPostValues = {
+        ...previewPostValues,
+        participants_list: finalSelection.values.join(","),
+        plan: String(meta.planId),
+        email_type: "summary_annual_notice",
+        prior_date: String(triggerControl.priorDateValue ?? ""),
+      };
     }
     triggerBinding = {
       previewUrl,
       href: triggerControl.href,
+      triggerContractVersion,
       expectedTotal,
       manifest: finalManifest,
       selectionValues: finalSelection.values,
+      expectedPlanId: meta.planId,
+      expectedEmailType: "summary_annual_notice",
+      expectedPreviewYear: previewYearValues[0],
+      expectedPostValues,
     };
   } catch {
     jobCtx?.setStage?.(
@@ -396,6 +880,7 @@ module.exports = async function runSummaryAnnualNotice({
         reportYear,
         fileCount: manifest.length,
         triggerContractMatched: true,
+        triggerContractVersion: triggerBinding.triggerContractVersion,
         documentGate,
       },
     };
@@ -408,7 +893,14 @@ module.exports = async function runSummaryAnnualNotice({
       .then(() => dialog.accept())
       .catch(() => {});
   page.once("dialog", acceptDialog); // confirm(...)
+  let triggerResponseObserver = null;
+  let triggerRequestGuard = null;
   try {
+    if (triggerBinding.triggerContractVersion === TRIGGER_CONTRACT_JQUERY) {
+      triggerRequestGuard =
+        await installPortalJavascriptTriggerRequestGuard(page, triggerBinding);
+      triggerResponseObserver = observePortalJavascriptTriggerResponses(page);
+    }
     // Comprobar y activar el mismo nodo dentro de una única tarea del browser
     // evita que el DOM cambie el href o la Preview entre la barrera y el click.
     await page.$eval(
@@ -416,6 +908,83 @@ module.exports = async function runSummaryAnnualNotice({
       clickVerifiedSummaryTrigger,
       triggerBinding
     );
+    if (triggerBinding.triggerContractVersion === TRIGGER_CONTRACT_JQUERY) {
+      const observed = await Promise.race([
+        triggerResponseObserver.promise.then((capturedResponses) => ({
+          kind: "responses",
+          capturedResponses,
+        })),
+        triggerRequestGuard.blocked.then((failureCode) => ({
+          kind: "blocked",
+          failureCode,
+        })),
+      ]);
+      if (observed.kind === "blocked") {
+        return {
+          result: "Unknown Outcome",
+          reason: "Portal trigger request was blocked before reaching the server",
+          details: {
+            stage: "pre-network-request-contract",
+            failureCode: observed.failureCode,
+          },
+        };
+      }
+      const { capturedResponses } = observed;
+      if (!capturedResponses) throw new Error("SAR_TRIGGER_RESPONSE_CANCELLED");
+      const { processResponse, redirectResponse } = capturedResponses;
+      const requestGuardState = triggerRequestGuard.snapshot();
+      if (
+        requestGuardState.allowedRequestCount !== 1 ||
+        requestGuardState.blockedRequestCount !== 0
+      ) {
+        return {
+          result: "Unknown Outcome",
+          reason: "Portal trigger emitted an unexpected number of requests",
+          details: {
+            stage: "post-click-request-count",
+            failureCode: "trigger_request_count_mismatch",
+          },
+        };
+      }
+      const responseContract = await validatePortalJavascriptTriggerResponse(
+        processResponse,
+        redirectResponse,
+        triggerBinding
+      );
+      jobCtx?.setStage?.(
+        "summary-annual:verify-trigger-response",
+        responseContract
+      );
+      if (!responseContract.matched) {
+        return {
+          result: "Unknown Outcome",
+          reason:
+            "Portal trigger response did not prove that the background job was scheduled",
+          details: {
+            stage: "post-click-response-contract",
+            failureCode: responseContract.failureCode,
+          },
+        };
+      }
+
+      jobCtx?.setStage?.("summary-annual:done");
+      const completedAt = new Date().toISOString();
+      return {
+        result: "Succeeded",
+        reason: `Succeeded on ${completedAt}`,
+        details: {
+          completedAt,
+          mode: "send",
+          emailTriggered: true,
+          reportYear,
+          fileCount: manifest.length,
+          successConfirmed: true,
+          triggerContractMatched: true,
+          triggerContractVersion: triggerBinding.triggerContractVersion,
+          documentGate,
+        },
+      };
+    }
     let redirected = await waitForUrl(page, isTrustedTriggerEmailsUrl, {
       timeout: 20000,
     });
@@ -518,6 +1087,7 @@ module.exports = async function runSummaryAnnualNotice({
         fileCount: manifest.length,
         successConfirmed: true,
         triggerContractMatched: true,
+        triggerContractVersion: triggerBinding.triggerContractVersion,
         documentGate,
       },
     };
@@ -546,6 +1116,10 @@ module.exports = async function runSummaryAnnualNotice({
       details: { stage: "post-click-exception" },
     };
   } finally {
+    triggerResponseObserver?.cancel();
+    if (triggerRequestGuard) {
+      await triggerRequestGuard.remove().catch(() => {});
+    }
     try {
       page.off?.("dialog", acceptDialog);
     } catch {}
@@ -553,4 +1127,15 @@ module.exports = async function runSummaryAnnualNotice({
 };
 
 module.exports.clickVerifiedSummaryTrigger = clickVerifiedSummaryTrigger;
+module.exports.inspectSummaryTriggerControl = inspectSummaryTriggerControl;
 module.exports.isTrustedTriggerEmailsUrl = isTrustedTriggerEmailsUrl;
+module.exports.isTrustedTriggerProcessRequest = isTrustedTriggerProcessRequest;
+module.exports.isTrustedTriggerRedirectResponse = isTrustedTriggerRedirectResponse;
+module.exports.observePortalJavascriptTriggerResponses =
+  observePortalJavascriptTriggerResponses;
+module.exports.validatePortalJavascriptTriggerRequest =
+  validatePortalJavascriptTriggerRequest;
+module.exports.installPortalJavascriptTriggerRequestGuard =
+  installPortalJavascriptTriggerRequestGuard;
+module.exports.validatePortalJavascriptTriggerResponse =
+  validatePortalJavascriptTriggerResponse;

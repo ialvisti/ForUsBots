@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   buildEmailFingerprintPayload,
   assertSummaryPreviewUrl,
+  assertSummaryJavascriptTriggerUrl,
   assertSummaryTriggerUrl,
   inspectSummaryTriggerUrl,
   normalizeEmailTriggerMode,
@@ -104,6 +105,32 @@ test("Trigger URL compares decoded multimaps while preserving duplicate value or
       }),
     { code: "SAR_TRIGGER_CONTRACT_MISMATCH" }
   );
+});
+
+test("JavaScript trigger anchor is a no-query link on the exact verified Preview", () => {
+  assert.equal(
+    assertSummaryJavascriptTriggerUrl(SUMMARY_PREVIEW_URL, "/preview", {
+      planId: 627,
+    }),
+    true
+  );
+  for (const value of [
+    "/preview?force_send=true",
+    "/trigger_email_process",
+    "https://evil.example/preview",
+    "https://employer.forusall.com:444/preview",
+    "/preview#changed",
+    null,
+    "",
+  ]) {
+    assert.throws(
+      () =>
+        assertSummaryJavascriptTriggerUrl(SUMMARY_PREVIEW_URL, value, {
+          planId: 627,
+        }),
+      { code: "SAR_TRIGGER_JAVASCRIPT_CONTRACT_MISMATCH" }
+    );
+  }
 });
 
 test("Trigger URL rejects context drift, missing, extra and duplicate parameters", () => {

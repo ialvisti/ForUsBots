@@ -305,6 +305,40 @@ function assertSummaryTriggerUrl(previewValue, triggerValue, options = {}) {
   throw error;
 }
 
+function assertSummaryJavascriptTriggerUrl(
+  previewValue,
+  triggerValue,
+  { planId } = {}
+) {
+  try {
+    assertSummaryPreviewUrl(previewValue, { planId });
+    const previewUrl = new URL(String(previewValue || ""));
+    if (typeof triggerValue !== "string" || !triggerValue.trim()) {
+      throw new Error("missing trigger URL");
+    }
+    const triggerUrl = new URL(triggerValue, previewUrl);
+    if (
+      previewUrl.username ||
+      previewUrl.password ||
+      triggerUrl.username ||
+      triggerUrl.password ||
+      triggerUrl.origin !== previewUrl.origin ||
+      triggerUrl.pathname !== previewUrl.pathname ||
+      triggerUrl.search !== "" ||
+      triggerUrl.hash !== ""
+    ) {
+      throw new Error("JavaScript trigger anchor location changed");
+    }
+    return true;
+  } catch {
+    const error = new Error(
+      "Trigger Email JavaScript anchor did not match the verified SAR Preview context"
+    );
+    error.code = "SAR_TRIGGER_JAVASCRIPT_CONTRACT_MISMATCH";
+    throw error;
+  }
+}
+
 function validateSummaryAnnualFileName(fileName, reportYear, planId) {
   const value = String(fileName || "");
   const year = String(reportYear || "");
@@ -327,6 +361,7 @@ module.exports = {
   SUMMARY_DOCUMENT_KIND,
   buildEmailFingerprintPayload,
   assertSummaryPreviewUrl,
+  assertSummaryJavascriptTriggerUrl,
   assertSummaryTriggerUrl,
   inspectSummaryTriggerUrl,
   normalizeEmailTriggerMode,
