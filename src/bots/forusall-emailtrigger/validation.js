@@ -145,6 +145,76 @@ function assertSummaryPreviewUrl(value, { planId } = {}) {
   }
 }
 
+function getSearchParamMultimap(url) {
+  const values = new Map();
+  for (const [key, value] of url.searchParams) {
+    const entries = values.get(key) || [];
+    entries.push(value);
+    values.set(key, entries);
+  }
+  return values;
+}
+
+function searchParamValuesMatch(expected, actual) {
+  return (
+    Array.isArray(expected) &&
+    Array.isArray(actual) &&
+    expected.length === actual.length &&
+    expected.every((value, index) => value === actual[index])
+  );
+}
+
+function assertSummaryTriggerUrl(previewValue, triggerValue, { planId } = {}) {
+  try {
+    assertSummaryPreviewUrl(previewValue, { planId });
+
+    const previewUrl = new URL(String(previewValue || ""));
+    const triggerUrl = new URL(String(triggerValue || ""), previewUrl);
+    if (
+      previewUrl.username ||
+      previewUrl.password ||
+      triggerUrl.username ||
+      triggerUrl.password ||
+      triggerUrl.origin !== previewUrl.origin ||
+      triggerUrl.pathname !== previewUrl.pathname ||
+      triggerUrl.hash !== previewUrl.hash
+    ) {
+      throw new Error("trigger URL location changed");
+    }
+
+    const previewParams = getSearchParamMultimap(previewUrl);
+    const triggerParams = getSearchParamMultimap(triggerUrl);
+    const previewForceSend = previewParams.get("force_send");
+    const triggerForceSend = triggerParams.get("force_send");
+    if (
+      previewForceSend?.length !== 1 ||
+      previewForceSend[0] !== "false" ||
+      triggerForceSend?.length !== 1 ||
+      triggerForceSend[0] !== "true" ||
+      triggerParams.size !== previewParams.size
+    ) {
+      throw new Error("force_send mutation did not match");
+    }
+
+    for (const [key, expectedValues] of previewParams) {
+      if (key === "force_send") continue;
+      if (
+        !searchParamValuesMatch(expectedValues, triggerParams.get(key))
+      ) {
+        throw new Error("trigger URL query changed");
+      }
+    }
+
+    return true;
+  } catch {
+    const error = new Error(
+      "Trigger Email URL did not match the verified SAR Preview context"
+    );
+    error.code = "SAR_TRIGGER_CONTRACT_MISMATCH";
+    throw error;
+  }
+}
+
 function validateSummaryAnnualFileName(fileName, reportYear, planId) {
   const value = String(fileName || "");
   const year = String(reportYear || "");
@@ -167,6 +237,7 @@ module.exports = {
   SUMMARY_DOCUMENT_KIND,
   buildEmailFingerprintPayload,
   assertSummaryPreviewUrl,
+  assertSummaryTriggerUrl,
   normalizeEmailTriggerMode,
   normalizeExpectedDocument,
   normalizeReportYear,

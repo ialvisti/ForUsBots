@@ -11,6 +11,8 @@ const DEFAULT_MAX_PDF_BYTES = 20 * 1024 * 1024;
 const DEFAULT_MAX_DOCUMENTS = 20;
 const DEFAULT_MAX_ROWS = 5000;
 const DEFAULT_TIMEOUT_MS = 30000;
+const DEFAULT_PLAN_NAME_MIN_SCORE = 0.82;
+const VISUAL_OCR_PROVIDERS = new Set(["document_ai", "vision"]);
 const VERIFY_PATH = "/v1/verify-sar";
 
 class DocumentGateError extends Error {
@@ -24,6 +26,17 @@ class DocumentGateError extends Error {
 function positiveEnvInt(env, name, fallback) {
   const value = Number.parseInt(String(env[name] || ""), 10);
   return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+function securePlanNameMinScore(env) {
+  const raw = String(env.SAR_DOCUMENT_PLAN_NAME_MIN_SCORE || "").trim();
+  if (!raw) return DEFAULT_PLAN_NAME_MIN_SCORE;
+  const value = Number(raw);
+  return Number.isFinite(value) &&
+    value >= DEFAULT_PLAN_NAME_MIN_SCORE &&
+    value <= 1
+    ? value
+    : null;
 }
 
 function parseVerifierBaseUrl(value) {
@@ -57,8 +70,11 @@ function getDocumentGateConfig(env = process.env) {
       .trim()
       .toLowerCase()
   );
+  const planNameMinScore = securePlanNameMinScore(env);
   return Object.freeze({
-    configured: Boolean(enabled && baseUrl && audience),
+    configured: Boolean(
+      enabled && baseUrl && audience && planNameMinScore !== null
+    ),
     enabled,
     baseUrl,
     audience,
@@ -78,6 +94,7 @@ function getDocumentGateConfig(env = process.env) {
       "SAR_DOCUMENT_VERIFIER_TIMEOUT_MS",
       DEFAULT_TIMEOUT_MS
     ),
+    planNameMinScore,
   });
 }
 
@@ -291,13 +308,15 @@ async function downloadPreviewPdf(
     throw documentGateFailure("SAR_PREVIEW_PDF_INVALID");
   }
 
+  let pageCount;
   try {
     const pdf = await pdfLoader(bytes, {
       ignoreEncryption: false,
       throwOnInvalidObject: true,
       updateMetadata: false,
     });
-    if (!Number.isSafeInteger(pdf.getPageCount()) || pdf.getPageCount() <= 0) {
+    pageCount = pdf.getPageCount();
+    if (!Number.isSafeInteger(pageCount) || pageCount <= 0) {
       throw documentGateFailure("SAR_PREVIEW_PDF_INVALID");
     }
   } catch (error) {
@@ -309,6 +328,7 @@ async function downloadPreviewPdf(
     fileUrl: normalizedUrl,
     bytes,
     pdfSha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+    pageCount,
     ...object,
   };
 }
@@ -355,30 +375,37 @@ function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
-function sanitizeVerifierEvidence(value, pdfSha256) {
-  const visualProviders = new Set(["document_ai", "vision"]);
+function sanitizeVerifierEvidence(
+  value,
+  pdfSha256,
+  {
+    planNameMinScore = DEFAULT_PLAN_NAME_MIN_SCORE,
+    expectedTotalPages,
+  } = {}
+) {
   if (
+    !Number.isFinite(planNameMinScore) ||
+    planNameMinScore < DEFAULT_PLAN_NAME_MIN_SCORE ||
+    planNameMinScore > 1 ||
+    !Number.isSafeInteger(expectedTotalPages) ||
+    expectedTotalPages <= 0 ||
     !value ||
     value.schemaVersion !== 1 ||
-    !visualProviders.has(value.provider) ||
+    !VISUAL_OCR_PROVIDERS.has(value.provider) ||
     !Number.isSafeInteger(value.pagesInspected) ||
     value.pagesInspected <= 0 ||
-    !(
-      value.totalPages === null ||
-      (Number.isSafeInteger(value.totalPages) && value.totalPages > 0)
-    ) ||
-    typeof value.truncated !== "boolean" ||
-    typeof value.documentMarkerMatch !== "boolean" ||
+    !Number.isSafeInteger(value.totalPages) ||
+    value.totalPages <= 0 ||
+    value.totalPages !== expectedTotalPages ||
+    value.pagesInspected !== value.totalPages ||
+    value.truncated !== false ||
+    value.documentMarkerMatch !== true ||
     typeof value.planNameScore !== "number" ||
     !Number.isFinite(value.planNameScore) ||
-    value.planNameScore < 0 ||
+    value.planNameScore < planNameMinScore ||
     value.planNameScore > 1 ||
-    !(
-      value.einMatch === null || typeof value.einMatch === "boolean"
-    ) ||
-    !(
-      value.yearMatch === null || typeof value.yearMatch === "boolean"
-    )
+    value.einMatch !== true ||
+    value.yearMatch !== true
   ) {
     throw documentGateFailure("SAR_DOCUMENT_VERIFIER_RESPONSE_INVALID");
   }
@@ -445,11 +472,14 @@ async function verifyPdfWithService(
   if (
     payload?.schemaVersion !== 1 ||
     payload?.verified !== true ||
-    String(payload?.pdfSha256 || "").toLowerCase() !== downloaded.pdfSha256
+    String(payload?.pdfSha256 || "") !== downloaded.pdfSha256
   ) {
     throw documentGateFailure("SAR_DOCUMENT_VERIFIER_REJECTED");
   }
-  return sanitizeVerifierEvidence(payload.evidence, downloaded.pdfSha256);
+  return sanitizeVerifierEvidence(payload.evidence, downloaded.pdfSha256, {
+    planNameMinScore: config.planNameMinScore,
+    expectedTotalPages: downloaded.pageCount,
+  });
 }
 
 async function verifyPreviewDocuments(
@@ -502,6 +532,14 @@ async function verifyPreviewDocuments(
     objects.map((item) => [item.pdfSha256, item.evidence])
   );
   const evidence = pdfSha256s.map((hash) => evidenceByHash.get(hash));
+  if (
+    evidence.length !== pdfSha256s.length ||
+    evidence.some(
+      (item, index) => !item || item.pdfSha256 !== pdfSha256s[index]
+    )
+  ) {
+    throw documentGateFailure("SAR_DOCUMENT_VERIFIER_RESPONSE_INVALID");
+  }
 
   return {
     normalizedManifest,

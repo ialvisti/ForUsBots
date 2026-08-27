@@ -3,11 +3,13 @@ const assert = require("node:assert/strict");
 
 const {
   IdempotencyConflictError,
+  IdempotencyReplayRequiredError,
   IdempotencyReceiptInconsistentError,
   InvalidIdempotencyKeyError,
   createIdempotencyStore,
   createIdempotentSubmitter,
   getJobWithDurableFallback,
+  toIdempotencyHttpError,
 } = require("../../src/engine/idempotency");
 
 class FakeFirestore {
@@ -140,6 +142,40 @@ test("misma clave y payload devuelve el mismo jobId durable", async () => {
   assert.equal(receipts.length, 1);
   assert.equal(jobs.length, 1);
   assert.equal(JSON.stringify(receipts[0][1]).includes(baseSubmission.key), false);
+});
+
+test("replay-only nunca crea recibo ni job cuando la clave no existe", async () => {
+  const { firestore, store } = fixture();
+
+  await assert.rejects(
+    store.reserveSubmission({ ...baseSubmission, replayOnly: true }),
+    IdempotencyReplayRequiredError
+  );
+
+  assert.equal(firestore.documents.size, 0);
+  assert.deepEqual(
+    toIdempotencyHttpError(new IdempotencyReplayRequiredError()),
+    {
+      status: 409,
+      body: { ok: false, error: "idempotency_replay_required" },
+    }
+  );
+});
+
+test("replay-only devuelve el job durable existente sin volver a encolarlo", async () => {
+  const { firestore, store } = fixture();
+  const first = await store.reserveSubmission(baseSubmission);
+  const replay = await store.reserveSubmission({
+    ...baseSubmission,
+    replayOnly: true,
+  });
+
+  assert.equal(replay.replayed, true);
+  assert.equal(replay.jobId, first.jobId);
+  const jobs = [...firestore.documents.keys()].filter((path) =>
+    path.startsWith("jobs/")
+  );
+  assert.equal(jobs.length, 1);
 });
 
 test("misma clave con payload distinto falla con conflicto y no crea otro job", async () => {

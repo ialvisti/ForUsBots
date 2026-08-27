@@ -4,11 +4,22 @@ const assert = require("node:assert/strict");
 const {
   buildEmailFingerprintPayload,
   assertSummaryPreviewUrl,
+  assertSummaryTriggerUrl,
   normalizeEmailTriggerMode,
   normalizeExpectedDocument,
   normalizeReportYear,
   validateSummaryAnnualFileName,
 } = require("../../src/bots/forusall-emailtrigger/validation");
+
+const SUMMARY_PREVIEW_URL =
+  "https://employer.forusall.com/preview?plan=627&email_type=summary_annual_notice&participant_id=0&user_id=0&conversation_id=&attachments=null&year=2026&divisions=0&force_send=false";
+
+function summaryTriggerUrl(mutator = () => {}) {
+  const url = new URL(SUMMARY_PREVIEW_URL);
+  url.searchParams.set("force_send", "true");
+  mutator(url);
+  return url.toString();
+}
 
 test("summary annual reportYear defaults to the previous UTC year", () => {
   const now = new Date("2026-01-01T00:00:00.000Z");
@@ -34,6 +45,135 @@ test("Preview URL is bound to plan, email type and All participant/user context"
     assert.throws(
       () => assertSummaryPreviewUrl(value, { planId: 627 }),
       { code: "SAR_PREVIEW_CONTEXT_MISMATCH" }
+    );
+  }
+});
+
+test("Trigger URL is the canonical Preview query with only force_send enabled", () => {
+  const trigger = new URL(summaryTriggerUrl());
+  trigger.search = new URLSearchParams(
+    [...trigger.searchParams.entries()].reverse()
+  ).toString();
+
+  assert.equal(
+    assertSummaryTriggerUrl(SUMMARY_PREVIEW_URL, trigger.toString(), {
+      planId: 627,
+    }),
+    true
+  );
+  assert.equal(
+    assertSummaryTriggerUrl(
+      SUMMARY_PREVIEW_URL,
+      `${trigger.pathname}?${trigger.searchParams.toString()}`,
+      { planId: 627 }
+    ),
+    true
+  );
+  assert.equal(
+    assertSummaryTriggerUrl(
+      SUMMARY_PREVIEW_URL,
+      `//employer.forusall.com:443${trigger.pathname}?${trigger.searchParams.toString()}`,
+      { planId: 627 }
+    ),
+    true
+  );
+});
+
+test("Trigger URL compares decoded multimaps while preserving duplicate value order", () => {
+  const preview =
+    "https://employer.forusall.com/preview?plan=627&email_type=summary_annual_notice&participant_id=0&user_id=0&division=west&division=east&note=Acme+Plan&object=a%2Fb&force_send=false#review";
+  const equivalentRelativeTrigger =
+    "/preview?division=west&division=east&object=a%2fb&%66orce_send=%74rue&user_id=0&participant_id=0&email_type=summary_annual_notice&plan=627&note=Acme%20Plan#review";
+
+  assert.equal(
+    assertSummaryTriggerUrl(preview, equivalentRelativeTrigger, {
+      planId: 627,
+    }),
+    true
+  );
+
+  const reorderedDuplicateValues = equivalentRelativeTrigger.replace(
+    "division=west&division=east",
+    "division=east&division=west"
+  );
+  assert.throws(
+    () =>
+      assertSummaryTriggerUrl(preview, reorderedDuplicateValues, {
+        planId: 627,
+      }),
+    { code: "SAR_TRIGGER_CONTRACT_MISMATCH" }
+  );
+});
+
+test("Trigger URL rejects context drift, missing, extra and duplicate parameters", () => {
+  const invalidTriggers = [
+    summaryTriggerUrl((url) => url.searchParams.set("plan", "628")),
+    summaryTriggerUrl((url) =>
+      url.searchParams.set("email_type", "year_end_notice")
+    ),
+    summaryTriggerUrl((url) => url.searchParams.set("participant_id", "1")),
+    summaryTriggerUrl((url) => url.searchParams.set("user_id", "1")),
+    summaryTriggerUrl((url) => url.searchParams.delete("year")),
+    summaryTriggerUrl((url) => url.searchParams.set("unexpected", "value")),
+    `${summaryTriggerUrl()}&plan=627`,
+    `${summaryTriggerUrl()}&year=2026`,
+    summaryTriggerUrl((url) => url.searchParams.set("conversation_id", "changed")),
+    summaryTriggerUrl((url) => url.searchParams.set("force_send", "false")),
+    summaryTriggerUrl((url) => url.searchParams.set("force_send", "TRUE")),
+    summaryTriggerUrl((url) => {
+      url.searchParams.delete("force_send");
+      url.searchParams.set("Force_Send", "true");
+    }),
+    summaryTriggerUrl((url) => {
+      url.searchParams.delete("plan");
+      url.searchParams.set("Plan", "627");
+    }),
+    summaryTriggerUrl((url) => url.searchParams.delete("force_send")),
+    `${summaryTriggerUrl()}&force_send=true`,
+    summaryTriggerUrl((url) => {
+      url.hostname = "evil.example";
+    }),
+    summaryTriggerUrl((url) => {
+      url.protocol = "http:";
+    }),
+    summaryTriggerUrl((url) => {
+      url.port = "444";
+    }),
+    summaryTriggerUrl((url) => {
+      url.pathname = "/trigger_emails";
+    }),
+    summaryTriggerUrl((url) => {
+      url.username = "attacker";
+    }),
+    summaryTriggerUrl().replace(
+      "https://employer.forusall.com",
+      "//evil.example"
+    ),
+    `${summaryTriggerUrl()}#changed`,
+    null,
+    "",
+    "javascript:alert(1)",
+  ];
+
+  for (const trigger of invalidTriggers) {
+    assert.throws(
+      () =>
+        assertSummaryTriggerUrl(SUMMARY_PREVIEW_URL, trigger, { planId: 627 }),
+      { code: "SAR_TRIGGER_CONTRACT_MISMATCH" }
+    );
+  }
+});
+
+test("Trigger URL rejects an ambiguous or already-enabled Preview context", () => {
+  for (const preview of [
+    SUMMARY_PREVIEW_URL.replace("&force_send=false", ""),
+    SUMMARY_PREVIEW_URL.replace("force_send=false", "force_send=true"),
+    `${SUMMARY_PREVIEW_URL}&force_send=false`,
+    `${SUMMARY_PREVIEW_URL}&year=2026`,
+  ]) {
+    assert.throws(
+      () => assertSummaryTriggerUrl(preview, summaryTriggerUrl(), { planId: 627 }),
+      { code: "SAR_TRIGGER_CONTRACT_MISMATCH" }
     );
   }
 });

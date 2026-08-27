@@ -88,6 +88,10 @@ require.cache[planIdentityPath] = {
 };
 
 const runSummaryAnnualNotice = require("../../src/bots/forusall-emailtrigger/flows/summary_annual_notice");
+const {
+  clickVerifiedSummaryTrigger,
+  isTrustedTriggerEmailsUrl,
+} = runSummaryAnnualNotice;
 
 test("preview extraction preserves every row including a missing filename", async () => {
   const headers = [{ textContent: "Participant" }, { textContent: "File Name" }];
@@ -254,6 +258,13 @@ test("All-rows predicate captures the unfiltered total", () => {
   }
 });
 
+const DEFAULT_PREVIEW_URL =
+  "https://employer.forusall.com/preview?plan=627&email_type=summary_annual_notice&participant_id=0&user_id=0&conversation_id=&attachments=null&year=2026&divisions=0&force_send=false";
+const DEFAULT_TRIGGER_URL = DEFAULT_PREVIEW_URL.replace(
+  "force_send=false",
+  "force_send=true"
+);
+
 function fakePage({
   alertType = "success",
   alertMessage = "Emails queued successfully",
@@ -263,11 +274,21 @@ function fakePage({
   expectedTotal = null,
   selectionState = null,
   selectionStates = null,
+  previewUrl = DEFAULT_PREVIEW_URL,
+  triggerHref = DEFAULT_TRIGGER_URL,
+  triggerTagName = "A",
+  triggerHrefAtClick = triggerHref,
+  triggerTagNameAtClick = triggerTagName,
+  previewUrlAtClick = previewUrl,
+  triggerLookupError = null,
+  preClickStateChanged = false,
+  postClickUrl = "https://employer.forusall.com/trigger_emails",
 } = {}) {
   const clicks = [];
   const dialogAccepts = [];
   const registeredListeners = [];
   const removedListeners = [];
+  const triggerContractReads = [];
   let dialogHandler = null;
   let triggerClicked = false;
 
@@ -276,6 +297,7 @@ function fakePage({
     dialogAccepts,
     registeredListeners,
     removedListeners,
+    triggerContractReads,
     expectedTotal,
     selectionState,
     selectionStates,
@@ -305,9 +327,7 @@ function fakePage({
       }
     },
     url() {
-      return triggerClicked
-        ? "https://employer.forusall.com/trigger_emails"
-        : "https://employer.forusall.com/preview?plan=627&email_type=summary_annual_notice&participant_id=0&user_id=0&year=2026";
+      return triggerClicked ? postClickUrl : previewUrl;
     },
     async waitForSelector(selector) {
       if (selector.includes(".alert.alert-success")) {
@@ -322,15 +342,198 @@ function fakePage({
         successMessage: alertType === "success" ? alertMessage : null,
       };
     },
-    async $eval() {
+    async $eval(selector, _pageFunction, expectedBinding) {
+      triggerContractReads.push(selector);
+      if (triggerLookupError) throw triggerLookupError;
+      if (expectedBinding) {
+        if (preClickStateChanged) {
+          throw new Error("SAR_PRE_CLICK_STATE_CHANGED");
+        }
+        if (
+          triggerTagNameAtClick !== "A" ||
+          triggerHrefAtClick !== expectedBinding.href ||
+          previewUrlAtClick !== expectedBinding.previewUrl ||
+          !Number.isSafeInteger(expectedBinding.expectedTotal) ||
+          !Array.isArray(expectedBinding.manifest) ||
+          !Array.isArray(expectedBinding.selectionValues)
+        ) {
+          throw new Error("SAR_TRIGGER_BINDING_CHANGED");
+        }
+        clicks.push(selector);
+        triggerClicked = true;
+        if (clickError) throw clickError;
+        if (dialogHandler) {
+          dialogHandler({
+            accept: async () => {
+              dialogAccepts.push(selector);
+            },
+          });
+        }
+        return undefined;
+      }
       return {
-        tagName: "A",
-        origin: "https://employer.forusall.com",
-        pathname: "/preview",
+        tagName: triggerTagName,
+        href: triggerHref,
       };
     },
   };
 }
+
+function atomicClickFixture({
+  currentFileName = "Acme_627_SAR_2025.pdf",
+  expectedFileName = "Acme_627_SAR_2025.pdf",
+  currentParticipant = "participant-1",
+  expectedParticipant = "participant-1",
+  checked = true,
+  disabled = false,
+  duplicateTrigger = false,
+} = {}) {
+  const fileUrl =
+    "https://employer-portal-production.s3.amazonaws.com/fv_documents/document-1.pdf";
+  let clicks = 0;
+  const element = {
+    tagName: "A",
+    getAttribute: (name) => (name === "href" ? DEFAULT_TRIGGER_URL : null),
+    click: () => {
+      clicks += 1;
+    },
+  };
+  const headers = [
+    { textContent: "Participant" },
+    { textContent: "File Name" },
+    { textContent: "File S3 Loc" },
+  ];
+  const anchor = {
+    href: fileUrl,
+    getAttribute: () => fileUrl,
+  };
+  const row = {
+    querySelectorAll: (selector) =>
+      selector === "td"
+        ? [
+            { textContent: currentParticipant },
+            { textContent: currentFileName },
+            { textContent: "", querySelector: () => anchor },
+          ]
+        : [],
+  };
+  const checkbox = {
+    value: currentParticipant,
+    checked,
+    disabled,
+  };
+  const table = {
+    querySelectorAll(selector) {
+      if (selector === "thead th") return headers;
+      if (selector === 'tbody tr[role="row"]') return [row];
+      if (
+        selector ===
+        'tbody input.participant_checks[type="checkbox"]'
+      ) {
+        return [checkbox];
+      }
+      return [];
+    },
+  };
+  const document = {
+    querySelector(selector) {
+      if (selector === "#triggerEmail") return element;
+      if (selector === "#data_list") return table;
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector === "#triggerEmail") {
+        return duplicateTrigger ? [element, {}] : [element];
+      }
+      return [];
+    },
+  };
+  const expected = {
+    previewUrl: DEFAULT_PREVIEW_URL,
+    href: DEFAULT_TRIGGER_URL,
+    expectedTotal: 1,
+    manifest: [
+      {
+        rowNumber: 1,
+        fileName: expectedFileName,
+        fileUrl,
+      },
+    ],
+    selectionValues: [expectedParticipant],
+  };
+  return { document, element, expected, getClicks: () => clicks };
+}
+
+function runAtomicClickFixture(options) {
+  const fixture = atomicClickFixture(options);
+  const originalDocument = global.document;
+  const originalWindow = global.window;
+  global.document = fixture.document;
+  global.window = { location: { href: DEFAULT_PREVIEW_URL } };
+  try {
+    clickVerifiedSummaryTrigger(fixture.element, fixture.expected);
+    return fixture.getClicks();
+  } finally {
+    global.document = originalDocument;
+    global.window = originalWindow;
+  }
+}
+
+test("atomic trigger click requires the exact verified manifest and selections", async (t) => {
+  assert.equal(runAtomicClickFixture(), 1);
+
+  const hostileStates = [
+    {
+      name: "document changed",
+      options: { currentFileName: "Other_627_SAR_2025.pdf" },
+    },
+    {
+      name: "participant changed",
+      options: { currentParticipant: "participant-2" },
+    },
+    {
+      name: "participant unchecked",
+      options: { checked: false },
+    },
+    {
+      name: "participant disabled",
+      options: { disabled: true },
+    },
+  ];
+  for (const scenario of hostileStates) {
+    await t.test(scenario.name, () => {
+      assert.throws(() => runAtomicClickFixture(scenario.options), {
+        message: "SAR_PRE_CLICK_STATE_CHANGED",
+      });
+    });
+  }
+
+  await t.test("duplicate trigger selector", () => {
+    assert.throws(
+      () => runAtomicClickFixture({ duplicateTrigger: true }),
+      { message: "SAR_TRIGGER_BINDING_CHANGED" }
+    );
+  });
+});
+
+test("post-click URL trust requires the exact employer origin and path", () => {
+  assert.equal(
+    isTrustedTriggerEmailsUrl(
+      "https://employer.forusall.com/trigger_emails?queued=true"
+    ),
+    true
+  );
+  for (const value of [
+    "https://evil.example/trigger_emails",
+    "https://employer.forusall.com.evil.example/trigger_emails",
+    "http://employer.forusall.com/trigger_emails",
+    "https://employer.forusall.com/trigger_emails/other",
+    "https://employer.forusall.com/preview",
+    "not-a-url",
+  ]) {
+    assert.equal(isTrustedTriggerEmailsUrl(value), false);
+  }
+});
 
 test("summary annual validates the configured report year", async () => {
   previewFileNames = ["Acme_627_SAR_2024.pdf"];
@@ -550,15 +753,20 @@ test("summary annual sends valid rows and accepts the confirmation dialog", asyn
   assert.equal(result.details.fileNames, undefined);
   assert.equal(result.details.mode, "send");
   assert.equal(result.details.emailTriggered, true);
+  assert.equal(result.details.triggerContractMatched, true);
   assert.equal(result.details.documentGate.manifestStable, true);
   assert.equal(result.details.documentGate.objectVersionStable, true);
   assert.deepEqual(page.clicks, ["#triggerEmail"]);
   assert.deepEqual(page.registeredListeners, ["dialog"]);
   assert.deepEqual(page.dialogAccepts, ["#triggerEmail"]);
   assert.deepEqual(page.removedListeners, ["dialog"]);
+  assert.deepEqual(page.triggerContractReads, [
+    "#triggerEmail",
+    "#triggerEmail",
+  ]);
 });
 
-test("summary annual verify_only verifies but never installs a dialog or clicks", async () => {
+test("summary annual verify_only validates the trigger contract but never clicks", async () => {
   previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage();
   const result = await runSummaryAnnualNotice({
@@ -571,8 +779,199 @@ test("summary annual verify_only verifies but never installs a dialog or clicks"
   assert.equal(result.result, "Succeeded");
   assert.equal(result.details.mode, "verify_only");
   assert.equal(result.details.emailTriggered, false);
+  assert.equal(result.details.triggerContractMatched, true);
   assert.deepEqual(page.clicks, []);
   assert.deepEqual(page.registeredListeners, []);
+  assert.deepEqual(page.triggerContractReads, ["#triggerEmail"]);
+});
+
+test("summary annual rejects hostile trigger URLs before verify_only or send", async (t) => {
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
+  const cases = [
+    {
+      name: "other plan",
+      triggerHref: DEFAULT_TRIGGER_URL.replace("plan=627", "plan=628"),
+      mode: "verify_only",
+    },
+    {
+      name: "other email type",
+      triggerHref: DEFAULT_TRIGGER_URL.replace(
+        "email_type=summary_annual_notice",
+        "email_type=year_end_notice"
+      ),
+      mode: "send",
+    },
+    {
+      name: "other participant",
+      triggerHref: DEFAULT_TRIGGER_URL.replace(
+        "participant_id=0",
+        "participant_id=1"
+      ),
+      mode: "send",
+    },
+    {
+      name: "other user",
+      triggerHref: DEFAULT_TRIGGER_URL.replace("user_id=0", "user_id=1"),
+      mode: "verify_only",
+    },
+    {
+      name: "duplicate critical parameter",
+      triggerHref: `${DEFAULT_TRIGGER_URL}&plan=627`,
+      mode: "send",
+    },
+    {
+      name: "duplicate noncritical parameter",
+      triggerHref: `${DEFAULT_TRIGGER_URL}&year=2026`,
+      mode: "verify_only",
+    },
+    {
+      name: "unexpected parameter",
+      triggerHref: `${DEFAULT_TRIGGER_URL}&unexpected=value`,
+      mode: "send",
+    },
+    {
+      name: "missing parameter",
+      triggerHref: DEFAULT_TRIGGER_URL.replace("&year=2026", ""),
+      mode: "verify_only",
+    },
+    {
+      name: "non-anchor control",
+      pageOptions: { triggerTagName: "BUTTON" },
+      mode: "send",
+    },
+    {
+      name: "null href",
+      pageOptions: { triggerHref: null },
+      mode: "verify_only",
+    },
+    {
+      name: "missing control",
+      pageOptions: {
+        triggerLookupError: new Error("No element found for selector"),
+      },
+      mode: "send",
+    },
+  ];
+
+  for (const scenario of cases) {
+    await t.test(scenario.name, async () => {
+      const page = fakePage({
+        ...(scenario.pageOptions || {}),
+        ...(scenario.triggerHref === undefined
+          ? {}
+          : { triggerHref: scenario.triggerHref }),
+      });
+      const result = await runSummaryAnnualNotice({
+        page,
+        selectors: {},
+        meta: {
+          planId: 627,
+          reportYear: 2025,
+          mode: scenario.mode,
+        },
+        jobCtx: null,
+      });
+
+      assert.equal(result.result, "Failed");
+      assert.equal(
+        result.reason,
+        "Trigger Email control did not match the verified portal contract"
+      );
+      assert.deepEqual(result.details, { triggerContractMatched: false });
+      assert.deepEqual(page.clicks, []);
+      assert.deepEqual(page.registeredListeners, []);
+      assert.deepEqual(page.triggerContractReads, ["#triggerEmail"]);
+    });
+  }
+});
+
+test("summary annual refuses a trigger binding that changes before the atomic click", async (t) => {
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
+  const cases = [
+    {
+      name: "href changed",
+      pageOptions: {
+        triggerHrefAtClick: DEFAULT_TRIGGER_URL.replace("plan=627", "plan=628"),
+      },
+    },
+    {
+      name: "page changed",
+      pageOptions: {
+        previewUrlAtClick: DEFAULT_PREVIEW_URL.replace("plan=627", "plan=628"),
+      },
+    },
+    {
+      name: "element type changed",
+      pageOptions: { triggerTagNameAtClick: "BUTTON" },
+    },
+  ];
+
+  for (const scenario of cases) {
+    await t.test(scenario.name, async () => {
+      const page = fakePage(scenario.pageOptions);
+      const result = await runSummaryAnnualNotice({
+        page,
+        selectors: {},
+        meta: { planId: 627, reportYear: 2025, mode: "send" },
+        jobCtx: null,
+      });
+
+      assert.equal(result.result, "Failed");
+      assert.equal(
+        result.reason,
+        "Trigger Email control changed after portal validation"
+      );
+      assert.deepEqual(result.details, { triggerContractMatched: false });
+      assert.deepEqual(page.clicks, []);
+      assert.deepEqual(page.triggerContractReads, [
+        "#triggerEmail",
+        "#triggerEmail",
+      ]);
+      assert.deepEqual(page.removedListeners, ["dialog"]);
+    });
+  }
+});
+
+test("summary annual refuses manifest or selection drift at the atomic click", async () => {
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
+  const page = fakePage({ preClickStateChanged: true });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025, mode: "send" },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(
+    result.reason,
+    "Preview state changed after document verification"
+  );
+  assert.deepEqual(result.details, {
+    manifestStable: false,
+    selectionStable: false,
+    emailTriggered: false,
+  });
+  assert.deepEqual(page.clicks, []);
+  assert.deepEqual(page.removedListeners, ["dialog"]);
+});
+
+test("summary annual never accepts a success alert from another origin", async () => {
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
+  const page = fakePage({
+    postClickUrl: "https://evil.example/trigger_emails",
+    alertType: "success",
+  });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025, mode: "send" },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Unknown Outcome");
+  assert.equal(result.details.stage, "post-click-navigation");
+  assert.doesNotMatch(JSON.stringify(result), /Succeeded/);
 });
 
 test("summary annual rejects an explicit error alert after redirect", async () => {

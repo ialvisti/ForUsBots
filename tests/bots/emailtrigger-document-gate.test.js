@@ -48,9 +48,11 @@ const IDENTITY = Object.freeze({
   ein: "123456789",
 });
 
-async function makePdf() {
+async function makePdf(pageCount = 1) {
   const pdf = await PDFDocument.create();
-  pdf.addPage([200, 200]);
+  for (let index = 0; index < pageCount; index += 1) {
+    pdf.addPage([200, 200]);
+  }
   return Buffer.from(await pdf.save({ useObjectStreams: false }));
 }
 
@@ -67,7 +69,7 @@ function pdfResponse(bytes, overrides = {}) {
   });
 }
 
-function verifierResponse(hash, evidence = {}) {
+function verifierResponse(hash, evidence = {}, payloadOverrides = {}) {
   return new Response(
     JSON.stringify({
       schemaVersion: 1,
@@ -88,6 +90,7 @@ function verifierResponse(hash, evidence = {}) {
         verifiedAt: "2026-08-20T00:00:00Z",
         ...evidence,
       },
+      ...payloadOverrides,
     }),
     { status: 200, headers: { "content-type": "application/json" } }
   );
@@ -129,6 +132,31 @@ test("gate configuration requires enablement and valid HTTPS URLs", () => {
     }).configured,
     false
   );
+  assert.equal(
+    getDocumentGateConfig({
+      SAR_DOCUMENT_GATE_ENABLED: "true",
+      SAR_DOCUMENT_VERIFIER_URL: BASE,
+    }).planNameMinScore,
+    0.82
+  );
+  assert.equal(
+    getDocumentGateConfig({
+      SAR_DOCUMENT_GATE_ENABLED: "true",
+      SAR_DOCUMENT_VERIFIER_URL: BASE,
+      SAR_DOCUMENT_PLAN_NAME_MIN_SCORE: "0.95",
+    }).planNameMinScore,
+    0.95
+  );
+  for (const unsafeThreshold of ["0", "0.81", "1.01", "NaN"]) {
+    assert.equal(
+      getDocumentGateConfig({
+        SAR_DOCUMENT_GATE_ENABLED: "true",
+        SAR_DOCUMENT_VERIFIER_URL: BASE,
+        SAR_DOCUMENT_PLAN_NAME_MIN_SCORE: unsafeThreshold,
+      }).configured,
+      false
+    );
+  }
 });
 
 test("preview URL allowlist rejects alternate hosts and paths", () => {
@@ -151,6 +179,7 @@ test("PDF download validates bytes, parsing, size and immutable S3 metadata", as
   });
   assert.match(downloaded.pdfSha256, /^[a-f0-9]{64}$/);
   assert.equal(downloaded.length, pdf.length);
+  assert.equal(downloaded.pageCount, 1);
   assert.equal(downloaded.versionId, "fixture-version");
 
   await assert.rejects(
@@ -228,6 +257,139 @@ test("verifies each unique Preview URL and returns only compact OCR evidence", a
   assert.doesNotMatch(
     JSON.stringify(result.documentGate),
     /Acme|123456789|fv_documents|reasons|verifiedAt|textChars/
+  );
+});
+
+test("rejects verified=true when any per-document OCR evidence is weak or partial", async (t) => {
+  const pdf = await makePdf();
+  const hostileEvidence = [
+    ["non-visual provider", { provider: "text_extraction" }],
+    ["missing provider", { provider: undefined }],
+    ["marker mismatch", { documentMarkerMatch: false }],
+    ["marker not boolean", { documentMarkerMatch: "true" }],
+    ["plan score below safe default", { planNameScore: 0.8199 }],
+    ["plan score not finite", { planNameScore: "1" }],
+    ["EIN mismatch", { einMatch: false }],
+    ["EIN missing", { einMatch: null }],
+    ["year mismatch", { yearMatch: false }],
+    ["year missing", { yearMatch: null }],
+    ["truncated", { truncated: true }],
+    ["truncated missing", { truncated: undefined }],
+    ["total pages unknown", { totalPages: null }],
+    ["total pages not integral", { totalPages: 1.5 }],
+    ["pages inspected not integral", { pagesInspected: 1.5 }],
+    ["partial inspection", { pagesInspected: 1, totalPages: 2 }],
+    ["impossible over-inspection", { pagesInspected: 2, totalPages: 1 }],
+  ];
+
+  for (const [name, evidence] of hostileEvidence) {
+    await t.test(name, async () => {
+      const fetchImpl = async (_url, options) => {
+        if (options.method === "GET") return pdfResponse(pdf);
+        return verifierResponse(
+          options.headers.get("x-sar-pdf-sha256"),
+          evidence
+        );
+      };
+
+      await assert.rejects(
+        verifyPreviewDocuments(
+          {
+            manifest: [
+              {
+                rowNumber: 1,
+                fileName: "Acme-627-SAR-2025.pdf",
+                fileUrl: PDF_URL,
+              },
+            ],
+            expectedDocument: EXPECTED,
+            planIdentity: IDENTITY,
+          },
+          {
+            config: config(),
+            fetchImpl,
+            getAuthHeaders: async () => ({ authorization: "Bearer test-token" }),
+          }
+        ),
+        { code: "SAR_DOCUMENT_VERIFIER_RESPONSE_INVALID" }
+      );
+    });
+  }
+});
+
+test("binds verifier page totals to the independently parsed PDF page count", async () => {
+  const pdf = await makePdf(2);
+  const fetchImpl = async (_url, options) => {
+    if (options.method === "GET") return pdfResponse(pdf);
+    return verifierResponse(options.headers.get("x-sar-pdf-sha256"), {
+      pagesInspected: 1,
+      totalPages: 1,
+      truncated: false,
+    });
+  };
+
+  await assert.rejects(
+    verifyPreviewDocuments(
+      {
+        manifest: [
+          {
+            rowNumber: 1,
+            fileName: "Acme-627-SAR-2025.pdf",
+            fileUrl: PDF_URL,
+          },
+        ],
+        expectedDocument: EXPECTED,
+        planIdentity: IDENTITY,
+      },
+      {
+        config: config(),
+        fetchImpl,
+        getAuthHeaders: async () => ({ authorization: "Bearer test-token" }),
+      }
+    ),
+    { code: "SAR_DOCUMENT_VERIFIER_RESPONSE_INVALID" }
+  );
+});
+
+test("enforces a configured plan-name threshold and exact one-to-one hash", async () => {
+  const pdf = await makePdf();
+  const run = (responseFactory, overrides = {}) =>
+    verifyPreviewDocuments(
+      {
+        manifest: [
+          {
+            rowNumber: 1,
+            fileName: "Acme-627-SAR-2025.pdf",
+            fileUrl: PDF_URL,
+          },
+        ],
+        expectedDocument: EXPECTED,
+        planIdentity: IDENTITY,
+      },
+      {
+        config: config(overrides),
+        fetchImpl: async (_url, options) => {
+          if (options.method === "GET") return pdfResponse(pdf);
+          return responseFactory(options.headers.get("x-sar-pdf-sha256"));
+        },
+        getAuthHeaders: async () => ({ authorization: "Bearer test-token" }),
+      }
+    );
+
+  await assert.rejects(
+    run(
+      (hash) => verifierResponse(hash, { planNameScore: 0.94 }),
+      { planNameMinScore: 0.95 }
+    ),
+    { code: "SAR_DOCUMENT_VERIFIER_RESPONSE_INVALID" }
+  );
+  await assert.rejects(
+    run((hash) => verifierResponse(hash.toUpperCase())),
+    { code: "SAR_DOCUMENT_VERIFIER_REJECTED" }
+  );
+  await assert.rejects(
+    run((hash) => verifierResponse(hash, {}, { evidence: null })),
+    { code: "SAR_DOCUMENT_VERIFIER_RESPONSE_INVALID" }
   );
 });
 

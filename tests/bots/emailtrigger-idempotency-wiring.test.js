@@ -30,7 +30,7 @@ const EXPECTED_DOCUMENT = Object.freeze({
   identitySource: "forusall_plan",
 });
 
-function request(body, idempotencyKey) {
+function request(body, idempotencyKey, { replayOnly } = {}) {
   return {
     body,
     auth: {
@@ -43,9 +43,9 @@ function request(body, idempotencyKey) {
       },
     },
     get(name) {
-      return name.toLowerCase() === "idempotency-key"
-        ? idempotencyKey
-        : undefined;
+      if (name.toLowerCase() === "idempotency-key") return idempotencyKey;
+      if (name.toLowerCase() === "idempotency-replay-only") return replayOnly;
+      return undefined;
     },
   };
 }
@@ -148,6 +148,55 @@ test("email-trigger reports durable replay without a second identity", async () 
     "/forusbot/jobs/00000000-0000-4000-8000-000000000200"
   );
   assert.equal(res.output.body.queuePosition, null);
+});
+
+test("SAR recovery passes replay-only into the atomic durable reservation", async () => {
+  nextResult = {
+    ...nextResult,
+    replayed: true,
+    queuePosition: null,
+    estimate: null,
+    capacitySnapshot: null,
+  };
+  const res = response();
+  await controller(
+    request(
+      {
+        planId: 627,
+        emailType: "summary_annual_notice",
+        reportYear: 2025,
+        expectedDocument: EXPECTED_DOCUMENT,
+      },
+      "jira-sar-replay-only-2025",
+      { replayOnly: "true" }
+    ),
+    res
+  );
+
+  assert.equal(res.output.status, 202);
+  assert.equal(submissions.length, 1);
+  assert.equal(submissions[0].replayOnly, true);
+  assert.equal(res.output.headers["Idempotency-Replayed"], "true");
+});
+
+test("malformed replay-only header is rejected before durable reservation", async () => {
+  const res = response();
+  await controller(
+    request(
+      {
+        planId: 627,
+        emailType: "summary_annual_notice",
+        reportYear: 2025,
+        expectedDocument: EXPECTED_DOCUMENT,
+      },
+      "jira-sar-bad-replay-only",
+      { replayOnly: "yes" }
+    ),
+    res
+  );
+
+  assert.equal(res.output.status, 400);
+  assert.equal(submissions.length, 0);
 });
 
 test("email-trigger maps a durable conflict to 409", async () => {

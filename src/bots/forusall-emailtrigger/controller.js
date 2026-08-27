@@ -77,6 +77,23 @@ module.exports = async function controller(req, res) {
     if (mode === null) {
       return bad("mode inválido. Permitidos: send, verify_only", res);
     }
+    const replayOnlyHeader = req.get("Idempotency-Replay-Only");
+    const normalizedReplayOnly = String(replayOnlyHeader || "")
+      .trim()
+      .toLowerCase();
+    if (
+      replayOnlyHeader !== undefined &&
+      !["true", "false"].includes(normalizedReplayOnly)
+    ) {
+      return bad("Idempotency-Replay-Only debe ser true o false", res);
+    }
+    const replayOnly = normalizedReplayOnly === "true";
+    if (replayOnly && (emailType !== "summary_annual_notice" || mode !== "send")) {
+      return bad(
+        "Idempotency-Replay-Only sólo se permite para summary_annual_notice en mode=send",
+        res
+      );
+    }
     const allowedModes = req.auth?.tokenMeta?.allowedEmailTriggerModes;
     if (Array.isArray(allowedModes) && !allowedModes.includes(mode)) {
       return forbidden("email trigger mode is not allowed for this token", res);
@@ -272,6 +289,7 @@ module.exports = async function controller(req, res) {
       idempotencyKey: req.get("Idempotency-Key"),
       botId: "forusall-emailtrigger",
       principalId: req.auth?.principalId || null,
+      replayOnly,
       fingerprintPayload: buildEmailFingerprintPayload({
         planId,
         emailType,

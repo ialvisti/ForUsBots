@@ -6,6 +6,7 @@ npm-debug.log*
 yarn*.log
 pnpm-lock.yaml
 .DS_Store
+.git/
 .env
 .env.*
 !.env.example
@@ -14,3 +15,13 @@ tokens*.json
 evidence/
 tmp/
 **/*.log
+.sessions/
+.user-data/
+forusall-portal-html-data/
+.gcp-config.local
+.envv
+payload.json
+presentation.pdf
+.claude/
+.cursor/
+.firebase/

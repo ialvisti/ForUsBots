@@ -8,6 +8,7 @@ src/bots/forusall-update-participant/html/
 tokens.json
 .sessions
 .user-data
+payload.json
 .env.production
 .gcp-config.local
 .envv

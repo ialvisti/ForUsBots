@@ -10,6 +10,7 @@ test("health advertises the hardened email-trigger contract", () => {
     ok: true,
     capabilities: {
       emailTriggerIdempotency: "v1",
+      emailTriggerReplayOnly: "v1",
       emailTriggerTerminalSemantics: "v1",
       emailTriggerReportYear: "v1",
     },
@@ -26,6 +27,7 @@ test("health advertises Preview document gate only when fully configured", () =>
     }).capabilities,
     {
       emailTriggerIdempotency: "v1",
+      emailTriggerReplayOnly: "v1",
       emailTriggerTerminalSemantics: "v1",
       emailTriggerReportYear: "v1",
       emailTriggerPreviewDocumentGate: "v1",

@@ -4,6 +4,7 @@ const { isDocumentGateConfigured } = require("./bots/forusall-emailtrigger/docum
 
 const BASE_CAPABILITIES = Object.freeze({
   emailTriggerIdempotency: "v1",
+  emailTriggerReplayOnly: "v1",
   emailTriggerTerminalSemantics: "v1",
   emailTriggerReportYear: "v1",
 });

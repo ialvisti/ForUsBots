@@ -23,6 +23,14 @@ class IdempotencyConflictError extends Error {
   }
 }
 
+class IdempotencyReplayRequiredError extends Error {
+  constructor() {
+    super("Idempotency replay-only request has no existing durable receipt");
+    this.name = "IdempotencyReplayRequiredError";
+    this.code = "IDEMPOTENCY_REPLAY_REQUIRED";
+  }
+}
+
 class IdempotencyUnavailableError extends Error {
   constructor(cause) {
     super("Durable idempotency is unavailable");
@@ -185,6 +193,7 @@ function createIdempotencyStore({
     accountAlias,
     principalId,
     ownerId,
+    replayOnly = false,
   }) {
     const normalizedKey = normalizeIdempotencyKey(key);
     if (typeof principalId !== "string" || !principalId) {
@@ -239,6 +248,13 @@ function createIdempotencyStore({
           };
         }
 
+        // Recovery callers use this mode when an earlier accepted POST is
+        // already recorded in their own durable checkpoint. Missing state must
+        // fail inside the same transaction before any receipt/job is created.
+        if (replayOnly === true) {
+          throw new IdempotencyReplayRequiredError();
+        }
+
         const jobId = randomUUID();
         const acceptedAt = acceptedDate.toISOString();
         const expiresAt = new Date(
@@ -286,6 +302,7 @@ function createIdempotencyStore({
       if (
         error instanceof InvalidIdempotencyKeyError ||
         error instanceof IdempotencyConflictError ||
+        error instanceof IdempotencyReplayRequiredError ||
         error instanceof IdempotencyReceiptInconsistentError ||
         error instanceof IdempotencyPrincipalUnavailableError
       ) {
@@ -470,6 +487,7 @@ function createIdempotentSubmitter({
     account,
     run,
     principalId,
+    replayOnly = false,
   }) {
     if (typeof run !== "function") {
       throw new Error("submit requiere un run() function");
@@ -483,6 +501,9 @@ function createIdempotentSubmitter({
       throw new Error(
         "submit: account requerido (siteUser, sitePass, totpSecret). Token sin credenciales y .env legacy vacío."
       );
+    }
+    if (replayOnly === true && (idempotencyKey === null || idempotencyKey === undefined)) {
+      throw new InvalidIdempotencyKeyError();
     }
     if (idempotencyKey === null || idempotencyKey === undefined) {
       return {
@@ -509,6 +530,7 @@ function createIdempotentSubmitter({
       accountAlias: account && account.alias ? account.alias : null,
       principalId,
       ownerId,
+      replayOnly: replayOnly === true,
     });
 
     if (reservation.replayed) {
@@ -629,6 +651,12 @@ function toIdempotencyHttpError(error) {
   if (error instanceof IdempotencyConflictError) {
     return { status: 409, body: { ok: false, error: "idempotency_conflict" } };
   }
+  if (error instanceof IdempotencyReplayRequiredError) {
+    return {
+      status: 409,
+      body: { ok: false, error: "idempotency_replay_required" },
+    };
+  }
   if (error instanceof IdempotencyReceiptInconsistentError) {
     return {
       status: 503,
@@ -650,6 +678,7 @@ function toIdempotencyHttpError(error) {
 module.exports = {
   IdempotencyConflictError,
   IdempotencyPrincipalUnavailableError,
+  IdempotencyReplayRequiredError,
   IdempotencyReceiptInconsistentError,
   IdempotencyUnavailableError,
   InvalidIdempotencyKeyError,

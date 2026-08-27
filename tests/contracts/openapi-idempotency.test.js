@@ -83,6 +83,18 @@ test("summary annual email documents reportYear and its UTC default", () => {
   assert.match(schema.properties.reportYear.description, /previous UTC year/);
 });
 
+test("summary annual recovery documents atomic replay-only mode", () => {
+  const operation = post("/forusbot/email-trigger");
+  const header = operation.parameters.find(
+    (parameter) =>
+      parameter.in === "header" &&
+      parameter.name === "Idempotency-Replay-Only"
+  );
+  assert.ok(header);
+  assert.deepEqual(header.schema.enum, ["true", "false"]);
+  assert.match(header.description, /never create a new job/i);
+});
+
 test("scrape-participant documents its complete 202 JSON response", () => {
   const schema = responseSchema(post("/forusbot/scrape-participant"), 202);
   assert.equal(schema.type, "object");
@@ -113,6 +125,7 @@ test("health documents the hardened email-trigger capabilities", () => {
     assert.deepEqual(schema.required, ["ok", "capabilities"]);
     assert.deepEqual(schema.properties.capabilities.required, [
       "emailTriggerIdempotency",
+      "emailTriggerReplayOnly",
       "emailTriggerTerminalSemantics",
       "emailTriggerReportYear",
     ]);

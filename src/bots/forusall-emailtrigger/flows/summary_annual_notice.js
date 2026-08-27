@@ -19,8 +19,109 @@ const { extractPlanIdentity } = require("../planIdentity");
 const {
   normalizeReportYear,
   assertSummaryPreviewUrl,
+  assertSummaryTriggerUrl,
   validateSummaryAnnualFileName,
 } = require("../validation");
+
+const TRUSTED_TRIGGER_EMAILS_ORIGIN = "https://employer.forusall.com";
+const TRUSTED_TRIGGER_EMAILS_PATH = "/trigger_emails";
+
+function isTrustedTriggerEmailsUrl(value) {
+  try {
+    const url = value instanceof URL ? value : new URL(String(value || ""));
+    return (
+      url.origin === TRUSTED_TRIGGER_EMAILS_ORIGIN &&
+      url.pathname === TRUSTED_TRIGGER_EMAILS_PATH
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Esta función se serializa y ejecuta en el frame principal de Playwright.
+// Debe permanecer autocontenida: no puede cerrar sobre helpers de Node.
+function clickVerifiedSummaryTrigger(element, expected) {
+  if (
+    !expected ||
+    !Number.isSafeInteger(expected.expectedTotal) ||
+    expected.expectedTotal <= 0 ||
+    !Array.isArray(expected.manifest) ||
+    expected.manifest.length !== expected.expectedTotal ||
+    !Array.isArray(expected.selectionValues) ||
+    expected.selectionValues.length !== expected.expectedTotal ||
+    element.tagName !== "A" ||
+    element.getAttribute("href") !== expected.href ||
+    window.location.href !== expected.previewUrl ||
+    document.querySelectorAll("#triggerEmail").length !== 1 ||
+    document.querySelector("#triggerEmail") !== element
+  ) {
+    throw new Error("SAR_TRIGGER_BINDING_CHANGED");
+  }
+
+  const table = document.querySelector("#data_list");
+  const headers = Array.from(table?.querySelectorAll("thead th") || []);
+  const headerIndex = (name) =>
+    headers.findIndex(
+      (header) =>
+        String(header.textContent || "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase() === name
+    );
+  const fileNameIndex = headerIndex("file name");
+  const fileS3Index = headerIndex("file s3 loc");
+  const rows = Array.from(
+    table?.querySelectorAll('tbody tr[role="row"]') || []
+  );
+  if (
+    !table ||
+    fileNameIndex < 0 ||
+    fileS3Index < 0 ||
+    rows.length !== expected.expectedTotal
+  ) {
+    throw new Error("SAR_PRE_CLICK_STATE_CHANGED");
+  }
+
+  let manifest;
+  try {
+    manifest = rows.map((row, index) => {
+      const cells = Array.from(row.querySelectorAll("td"));
+      const nameCell = cells[fileNameIndex] || null;
+      const locationCell = cells[fileS3Index] || null;
+      const anchor = locationCell?.querySelector?.("a[href]") || null;
+      const fileName = String(nameCell?.textContent || "").trim();
+      const rawFileUrl = String(
+        anchor?.href ||
+          anchor?.getAttribute?.("href") ||
+          locationCell?.textContent ||
+          ""
+      ).trim();
+      const fileUrl = new URL(rawFileUrl.replaceAll("&amp;", "&")).href;
+      return { rowNumber: index + 1, fileName, fileUrl };
+    });
+  } catch {
+    throw new Error("SAR_PRE_CLICK_STATE_CHANGED");
+  }
+
+  const checkboxes = Array.from(
+    table.querySelectorAll('tbody input.participant_checks[type="checkbox"]')
+  );
+  const selectionValues = checkboxes.map((item) =>
+    String(item.value || "").trim()
+  );
+  const selectionIsComplete =
+    checkboxes.length === expected.expectedTotal &&
+    checkboxes.every((item) => item.checked && !item.disabled);
+  if (
+    JSON.stringify(manifest) !== JSON.stringify(expected.manifest) ||
+    !selectionIsComplete ||
+    JSON.stringify(selectionValues) !== JSON.stringify(expected.selectionValues)
+  ) {
+    throw new Error("SAR_PRE_CLICK_STATE_CHANGED");
+  }
+
+  element.click();
+}
 
 module.exports = async function runSummaryAnnualNotice({
   page,
@@ -221,6 +322,39 @@ module.exports = async function runSummaryAnnualNotice({
     objectVersionStable: true,
   };
 
+  // G) El enlace final debe seguir ligado exactamente a la Preview verificada.
+  // El portal activa el envío cambiando únicamente force_send=false a true.
+  // Esta barrera también se ejecuta en verify_only para que el dry-run pruebe
+  // el mismo contrato que la rama de envío.
+  jobCtx?.setStage?.("summary-annual:validate-trigger-contract");
+  let triggerBinding;
+  try {
+    const previewUrl = page.url();
+    const triggerControl = await page.$eval("#triggerEmail", (element) => ({
+      tagName: element.tagName,
+      href: element.getAttribute("href"),
+    }));
+    if (triggerControl.tagName !== "A") {
+      throw new Error("Trigger Email control is not an anchor");
+    }
+    assertSummaryTriggerUrl(previewUrl, triggerControl.href, {
+      planId: meta.planId,
+    });
+    triggerBinding = {
+      previewUrl,
+      href: triggerControl.href,
+      expectedTotal,
+      manifest: finalManifest,
+      selectionValues: finalSelection.values,
+    };
+  } catch {
+    return {
+      result: "Failed",
+      reason: "Trigger Email control did not match the verified portal contract",
+      details: { triggerContractMatched: false },
+    };
+  }
+
   if (meta.mode === "verify_only") {
     jobCtx?.setStage?.("summary-annual:verified-only");
     return {
@@ -231,34 +365,13 @@ module.exports = async function runSummaryAnnualNotice({
         emailTriggered: false,
         reportYear,
         fileCount: manifest.length,
+        triggerContractMatched: true,
         documentGate,
       },
     };
   }
 
-  // G) Validar el elemento observado y sólo entonces instalar el handler de
-  // confirmación. La rama verify_only anterior nunca llega a este punto.
-  const triggerContract = await page.$eval("#triggerEmail", (element) => {
-    const href = new URL(element.getAttribute("href") || "", location.origin);
-    return {
-      tagName: element.tagName,
-      origin: href.origin,
-      pathname: href.pathname,
-    };
-  });
-  if (
-    triggerContract.tagName !== "A" ||
-    triggerContract.origin !== "https://employer.forusall.com" ||
-    triggerContract.pathname !== "/preview"
-  ) {
-    return {
-      result: "Failed",
-      reason: "Trigger Email control did not match the verified portal contract",
-      details: { triggerContractMatched: false },
-    };
-  }
-
-  // H) Trigger Email + confirmar y esperar regresar a /trigger_emails
+  // H) Trigger Email + confirmar y esperar regresar a /trigger_emails.
   jobCtx?.setStage?.("summary-annual:trigger-email", { reportYear });
   const acceptDialog = (dialog) =>
     Promise.resolve()
@@ -266,27 +379,43 @@ module.exports = async function runSummaryAnnualNotice({
       .catch(() => {});
   page.once("dialog", acceptDialog); // confirm(...)
   try {
-    await page.click("#triggerEmail", { noWaitAfter: true });
-    let redirected = await waitForUrl(page, /\/trigger_emails(\?|$)/, {
+    // Comprobar y activar el mismo nodo dentro de una única tarea del browser
+    // evita que el DOM cambie el href o la Preview entre la barrera y el click.
+    await page.$eval(
+      "#triggerEmail",
+      clickVerifiedSummaryTrigger,
+      triggerBinding
+    );
+    let redirected = await waitForUrl(page, isTrustedTriggerEmailsUrl, {
       timeout: 20000,
     });
 
     if (!redirected) {
-      redirected = await waitForUrl(page, /\/trigger_emails(\?|$)/, {
+      redirected = await waitForUrl(page, isTrustedTriggerEmailsUrl, {
         timeout: 15000,
       });
       if (!redirected) {
         const shell = await page
           .waitForSelector("#trigger-emails", { timeout: 8000 })
           .catch(() => null);
-        if (!shell && !/\/trigger_emails/.test(page.url())) {
+        if (!shell && !isTrustedTriggerEmailsUrl(page.url())) {
           return {
             result: "Unknown Outcome",
-            reason: "Did not return to /trigger_emails after Trigger Email",
+            reason:
+              "Did not return to the trusted /trigger_emails page after Trigger Email",
             details: { stage: "post-click-navigation" },
           };
         }
       }
+    }
+
+    if (!isTrustedTriggerEmailsUrl(page.url())) {
+      return {
+        result: "Unknown Outcome",
+        reason:
+          "Did not return to the trusted /trigger_emails page after Trigger Email",
+        details: { stage: "post-click-navigation" },
+      };
     }
 
     // I) El redirect no prueba que el servidor haya enviado los correos.
@@ -321,6 +450,15 @@ module.exports = async function runSummaryAnnualNotice({
           .catch(() => ({ errorMessage: null, successMessage: null }))
       : { errorMessage: null, successMessage: null };
 
+    if (!isTrustedTriggerEmailsUrl(page.url())) {
+      return {
+        result: "Unknown Outcome",
+        reason:
+          "Post-click confirmation was not on the trusted /trigger_emails page",
+        details: { stage: "post-click-confirmation-origin" },
+      };
+    }
+
     if (alertState.errorMessage) {
       return {
         result: "Failed",
@@ -349,10 +487,29 @@ module.exports = async function runSummaryAnnualNotice({
         reportYear,
         fileCount: manifest.length,
         successConfirmed: true,
+        triggerContractMatched: true,
         documentGate,
       },
     };
-  } catch {
+  } catch (error) {
+    if (String(error?.message || "").includes("SAR_PRE_CLICK_STATE_CHANGED")) {
+      return {
+        result: "Failed",
+        reason: "Preview state changed after document verification",
+        details: {
+          manifestStable: false,
+          selectionStable: false,
+          emailTriggered: false,
+        },
+      };
+    }
+    if (String(error?.message || "").includes("SAR_TRIGGER_BINDING_CHANGED")) {
+      return {
+        result: "Failed",
+        reason: "Trigger Email control changed after portal validation",
+        details: { triggerContractMatched: false },
+      };
+    }
     return {
       result: "Unknown Outcome",
       reason: "An exception occurred after Trigger Email was initiated",
@@ -364,3 +521,6 @@ module.exports = async function runSummaryAnnualNotice({
     } catch {}
   }
 };
+
+module.exports.clickVerifiedSummaryTrigger = clickVerifiedSummaryTrigger;
+module.exports.isTrustedTriggerEmailsUrl = isTrustedTriggerEmailsUrl;

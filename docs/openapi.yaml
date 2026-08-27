@@ -1185,6 +1185,9 @@ paths:
         performs the full Preview/PDF/OCR gate without clicking Trigger Email.
         When `Idempotency-Key` is supplied, retries with the same normalized request
         reuse the original durable job; a different request with the same key returns 409.
+        `Idempotency-Replay-Only: true` is reserved for SAR send recovery: the
+        server atomically returns the existing receipt or responds 409 before
+        creating any receipt or job.
       parameters:
         - in: header
           name: x-auth-token
@@ -1199,6 +1202,13 @@ paths:
             pattern: '^[!-~]{8,200}$'
           required: false
           description: Opaque printable-ASCII retry key. Recommended for send operations.
+        - in: header
+          name: Idempotency-Replay-Only
+          schema: { type: string, enum: ['true', 'false'] }
+          required: false
+          description: |
+            For `summary_annual_notice` with `mode=send`, require an existing
+            durable receipt and never create a new job when it is absent.
       requestBody:
         required: true
         content:
@@ -1398,7 +1408,7 @@ paths:
         '401':
           description: Missing or invalid authentication token
         '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { description: Idempotency-Key conflict }
+        '409': { description: Idempotency-Key conflict or replay-only receipt absent }
         '500':
           description: Internal server error
         '503': { description: Durable idempotency or job state temporarily unavailable }
@@ -1425,10 +1435,12 @@ components:
           type: object
           required:
             - emailTriggerIdempotency
+            - emailTriggerReplayOnly
             - emailTriggerTerminalSemantics
             - emailTriggerReportYear
           properties:
             emailTriggerIdempotency: { type: string, enum: [v1] }
+            emailTriggerReplayOnly: { type: string, enum: [v1] }
             emailTriggerTerminalSemantics: { type: string, enum: [v1] }
             emailTriggerReportYear: { type: string, enum: [v1] }
             emailTriggerPreviewDocumentGate:
