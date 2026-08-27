@@ -31,3 +31,13 @@ for (const ignoreFile of [".dockerignore", ".gcloudignore"]) {
     }
   });
 }
+
+test(".gcloudignore keeps its own contract available to Cloud Build tests", () => {
+  const patterns = fs
+    .readFileSync(path.join(root, ".gcloudignore"), "utf8")
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+
+  assert.equal(patterns.includes(".gcloudignore"), false);
+});
