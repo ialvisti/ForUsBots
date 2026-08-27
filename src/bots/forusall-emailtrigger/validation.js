@@ -5,6 +5,34 @@ const MAX_REPORT_YEAR = 9999;
 const SUMMARY_DOCUMENT_KIND = "summary_annual_report";
 const FORUSALL_IDENTITY_SOURCE = "forusall_plan";
 const EMAIL_TRIGGER_MODES = new Set(["send", "verify_only"]);
+const SAFE_SUMMARY_QUERY_KEYS = new Set([
+  "plan",
+  "email_type",
+  "participant_id",
+  "user_id",
+  "conversation_id",
+  "attachments",
+  "year",
+  "quarter",
+  "season",
+  "divisions",
+  "sponsor_qe_year",
+  "sponsor_qe_quarter",
+  "ca_note_subject",
+  "ca_note_details",
+  "ca_url",
+  "quarterly_investment_review_url",
+  "next_quarterly_investment_review_date",
+  "next_quarterly_investment_review_time",
+  "plan_snapshot",
+  "enrolled",
+  "not_enrolled",
+  "ineligible",
+  "terminated",
+  "terminated_participants",
+  "generic_comm_type",
+  "force_send",
+]);
 
 function previousUtcYear(now = new Date()) {
   const year = now instanceof Date ? now.getUTCFullYear() : NaN;
@@ -164,55 +192,117 @@ function searchParamValuesMatch(expected, actual) {
   );
 }
 
-function assertSummaryTriggerUrl(previewValue, triggerValue, { planId } = {}) {
+function safeSummaryQueryDiff(previewParams, triggerParams) {
+  const missingKeys = [];
+  const extraKeys = [];
+  const changedKeys = [];
+  for (const key of SAFE_SUMMARY_QUERY_KEYS) {
+    const previewValues = previewParams.get(key);
+    const triggerValues = triggerParams.get(key);
+    if (previewValues && !triggerValues) missingKeys.push(key);
+    else if (!previewValues && triggerValues) extraKeys.push(key);
+    else if (
+      key !== "force_send" &&
+      previewValues &&
+      triggerValues &&
+      !searchParamValuesMatch(previewValues, triggerValues)
+    ) {
+      changedKeys.push(key);
+    }
+  }
+  return {
+    previewParameterCount: previewParams.size,
+    triggerParameterCount: triggerParams.size,
+    missingKeys,
+    extraKeys,
+    changedKeys,
+  };
+}
+
+function inspectSummaryTriggerUrl(previewValue, triggerValue, { planId } = {}) {
+  let previewUrl;
+  let triggerUrl;
   try {
     assertSummaryPreviewUrl(previewValue, { planId });
-
-    const previewUrl = new URL(String(previewValue || ""));
-    const triggerUrl = new URL(String(triggerValue || ""), previewUrl);
-    if (
-      previewUrl.username ||
-      previewUrl.password ||
-      triggerUrl.username ||
-      triggerUrl.password ||
-      triggerUrl.origin !== previewUrl.origin ||
-      triggerUrl.pathname !== previewUrl.pathname ||
-      triggerUrl.hash !== previewUrl.hash
-    ) {
-      throw new Error("trigger URL location changed");
-    }
-
-    const previewParams = getSearchParamMultimap(previewUrl);
-    const triggerParams = getSearchParamMultimap(triggerUrl);
-    const previewForceSend = previewParams.get("force_send");
-    const triggerForceSend = triggerParams.get("force_send");
-    if (
-      previewForceSend?.length !== 1 ||
-      previewForceSend[0] !== "false" ||
-      triggerForceSend?.length !== 1 ||
-      triggerForceSend[0] !== "true" ||
-      triggerParams.size !== previewParams.size
-    ) {
-      throw new Error("force_send mutation did not match");
-    }
-
-    for (const [key, expectedValues] of previewParams) {
-      if (key === "force_send") continue;
-      if (
-        !searchParamValuesMatch(expectedValues, triggerParams.get(key))
-      ) {
-        throw new Error("trigger URL query changed");
-      }
-    }
-
-    return true;
+    previewUrl = new URL(String(previewValue || ""));
   } catch {
-    const error = new Error(
-      "Trigger Email URL did not match the verified SAR Preview context"
-    );
-    error.code = "SAR_TRIGGER_CONTRACT_MISMATCH";
-    throw error;
+    return { matched: false, failureCode: "preview_context_invalid" };
   }
+  try {
+    if (
+      !(
+        triggerValue instanceof URL ||
+        (typeof triggerValue === "string" && triggerValue.trim())
+      )
+    ) {
+      throw new Error("missing trigger URL");
+    }
+    triggerUrl = new URL(String(triggerValue), previewUrl);
+  } catch {
+    return { matched: false, failureCode: "trigger_url_invalid" };
+  }
+  if (
+    previewUrl.username ||
+    previewUrl.password ||
+    triggerUrl.username ||
+    triggerUrl.password ||
+    triggerUrl.origin !== previewUrl.origin ||
+    triggerUrl.pathname !== previewUrl.pathname ||
+    triggerUrl.hash !== previewUrl.hash
+  ) {
+    return { matched: false, failureCode: "trigger_location_changed" };
+  }
+
+  const previewParams = getSearchParamMultimap(previewUrl);
+  const triggerParams = getSearchParamMultimap(triggerUrl);
+  const safeDiff = safeSummaryQueryDiff(previewParams, triggerParams);
+  const previewForceSend = previewParams.get("force_send");
+  const triggerForceSend = triggerParams.get("force_send");
+  if (
+    previewForceSend?.length !== 1 ||
+    previewForceSend[0] !== "false" ||
+    triggerForceSend?.length !== 1 ||
+    triggerForceSend[0] !== "true"
+  ) {
+    return {
+      matched: false,
+      failureCode: "force_send_mismatch",
+      ...safeDiff,
+    };
+  }
+  if (triggerParams.size !== previewParams.size) {
+    return {
+      matched: false,
+      failureCode: "query_shape_changed",
+      ...safeDiff,
+    };
+  }
+  for (const [key, expectedValues] of previewParams) {
+    if (key === "force_send") continue;
+    if (!searchParamValuesMatch(expectedValues, triggerParams.get(key))) {
+      return {
+        matched: false,
+        failureCode: "query_value_changed",
+        ...safeDiff,
+      };
+    }
+  }
+  return { matched: true, failureCode: null };
+}
+
+function assertSummaryTriggerUrl(previewValue, triggerValue, options = {}) {
+  const diagnostic = inspectSummaryTriggerUrl(
+    previewValue,
+    triggerValue,
+    options
+  );
+  if (diagnostic.matched) return true;
+  const error = new Error(
+    "Trigger Email URL did not match the verified SAR Preview context"
+  );
+  error.code = "SAR_TRIGGER_CONTRACT_MISMATCH";
+  error.safeDiagnostic = diagnostic;
+  throw error;
 }
 
 function validateSummaryAnnualFileName(fileName, reportYear, planId) {
@@ -238,6 +328,7 @@ module.exports = {
   buildEmailFingerprintPayload,
   assertSummaryPreviewUrl,
   assertSummaryTriggerUrl,
+  inspectSummaryTriggerUrl,
   normalizeEmailTriggerMode,
   normalizeExpectedDocument,
   normalizeReportYear,

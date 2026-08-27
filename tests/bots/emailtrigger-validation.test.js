@@ -5,6 +5,7 @@ const {
   buildEmailFingerprintPayload,
   assertSummaryPreviewUrl,
   assertSummaryTriggerUrl,
+  inspectSummaryTriggerUrl,
   normalizeEmailTriggerMode,
   normalizeExpectedDocument,
   normalizeReportYear,
@@ -176,6 +177,24 @@ test("Trigger URL rejects an ambiguous or already-enabled Preview context", () =
       { code: "SAR_TRIGGER_CONTRACT_MISMATCH" }
     );
   }
+});
+
+test("Trigger URL diagnostics expose only fixed codes, counts and allowlisted keys", () => {
+  const trigger = summaryTriggerUrl((url) => {
+    url.searchParams.delete("conversation_id");
+    url.searchParams.set("ca_note_subject", "sensitive value must not escape");
+    url.searchParams.set("unexpected_secret_name", "secret value");
+  });
+  const diagnostic = inspectSummaryTriggerUrl(SUMMARY_PREVIEW_URL, trigger, {
+    planId: 627,
+  });
+
+  assert.equal(diagnostic.matched, false);
+  assert.equal(diagnostic.failureCode, "query_shape_changed");
+  assert.deepEqual(diagnostic.missingKeys, ["conversation_id"]);
+  assert.deepEqual(diagnostic.changedKeys, []);
+  assert.equal(diagnostic.extraKeys.includes("unexpected_secret_name"), false);
+  assert.doesNotMatch(JSON.stringify(diagnostic), /sensitive|secret value/);
 });
 
 test("summary annual reportYear rejects malformed years", () => {

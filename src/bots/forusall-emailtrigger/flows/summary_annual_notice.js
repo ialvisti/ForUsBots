@@ -328,6 +328,10 @@ module.exports = async function runSummaryAnnualNotice({
   // el mismo contrato que la rama de envío.
   jobCtx?.setStage?.("summary-annual:validate-trigger-contract");
   let triggerBinding;
+  let triggerContractDiagnostic = {
+    matched: false,
+    failureCode: "trigger_control_lookup_failed",
+  };
   try {
     const previewUrl = page.url();
     const triggerControl = await page.$eval("#triggerEmail", (element) => ({
@@ -335,11 +339,30 @@ module.exports = async function runSummaryAnnualNotice({
       href: element.getAttribute("href"),
     }));
     if (triggerControl.tagName !== "A") {
+      triggerContractDiagnostic = {
+        matched: false,
+        failureCode: "trigger_control_not_anchor",
+      };
       throw new Error("Trigger Email control is not an anchor");
     }
-    assertSummaryTriggerUrl(previewUrl, triggerControl.href, {
-      planId: meta.planId,
-    });
+    if (typeof triggerControl.href !== "string" || !triggerControl.href.trim()) {
+      triggerContractDiagnostic = {
+        matched: false,
+        failureCode: "trigger_control_href_missing",
+      };
+      throw new Error("Trigger Email control has no href");
+    }
+    try {
+      assertSummaryTriggerUrl(previewUrl, triggerControl.href, {
+        planId: meta.planId,
+      });
+    } catch (error) {
+      triggerContractDiagnostic = error?.safeDiagnostic || {
+        matched: false,
+        failureCode: "trigger_url_contract_mismatch",
+      };
+      throw error;
+    }
     triggerBinding = {
       previewUrl,
       href: triggerControl.href,
@@ -348,10 +371,17 @@ module.exports = async function runSummaryAnnualNotice({
       selectionValues: finalSelection.values,
     };
   } catch {
+    jobCtx?.setStage?.(
+      "summary-annual:trigger-contract-rejected",
+      triggerContractDiagnostic
+    );
     return {
       result: "Failed",
-      reason: "Trigger Email control did not match the verified portal contract",
-      details: { triggerContractMatched: false },
+      reason: `Trigger Email control did not match the verified portal contract (${triggerContractDiagnostic.failureCode})`,
+      details: {
+        triggerContractMatched: false,
+        triggerContractDiagnostic,
+      },
     };
   }
 

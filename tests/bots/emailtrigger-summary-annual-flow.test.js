@@ -873,11 +873,17 @@ test("summary annual rejects hostile trigger URLs before verify_only or send", a
       });
 
       assert.equal(result.result, "Failed");
-      assert.equal(
+      assert.match(
         result.reason,
-        "Trigger Email control did not match the verified portal contract"
+        /^Trigger Email control did not match the verified portal contract \([a-z_]+\)$/
       );
-      assert.deepEqual(result.details, { triggerContractMatched: false });
+      assert.equal(result.details.triggerContractMatched, false);
+      assert.equal(result.details.triggerContractDiagnostic.matched, false);
+      assert.match(
+        result.details.triggerContractDiagnostic.failureCode,
+        /^[a-z_]+$/
+      );
+      assert.doesNotMatch(JSON.stringify(result.details), /evil\.example|unexpected=value/);
       assert.deepEqual(page.clicks, []);
       assert.deepEqual(page.registeredListeners, []);
       assert.deepEqual(page.triggerContractReads, ["#triggerEmail"]);
