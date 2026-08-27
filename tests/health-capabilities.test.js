@@ -13,6 +13,7 @@ test("health advertises the hardened email-trigger contract", () => {
       emailTriggerReplayOnly: "v1",
       emailTriggerTerminalSemantics: "v1",
       emailTriggerReportYear: "v1",
+      emailTriggerPortalPostGuard: "v1",
     },
   });
 });
@@ -30,6 +31,7 @@ test("health advertises Preview document gate only when fully configured", () =>
       emailTriggerReplayOnly: "v1",
       emailTriggerTerminalSemantics: "v1",
       emailTriggerReportYear: "v1",
+      emailTriggerPortalPostGuard: "v1",
       emailTriggerPreviewDocumentGate: "v1",
     }
   );

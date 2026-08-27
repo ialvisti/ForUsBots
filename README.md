@@ -230,7 +230,10 @@ SAR_DOCUMENT_VERIFIER_AUDIENCE=https://SERVICE.run.app
 
 The VM service account needs `roles/run.invoker` on that private Cloud Run
 service. `/health` advertises `emailTriggerPreviewDocumentGate=v1` only when
-all three values form an enabled HTTPS configuration.
+all three values form an enabled HTTPS configuration. It also advertises
+`emailTriggerPortalPostGuard=v1` when the exact source allowlist and whole-click
+network guard are present; SAR callers should require both capabilities before
+submitting work.
 
 ```bash
 # 8) Update plan (RESTRICTED to ivan.alvis@forusall.com)

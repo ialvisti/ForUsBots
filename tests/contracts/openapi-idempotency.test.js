@@ -128,6 +128,7 @@ test("health documents the hardened email-trigger capabilities", () => {
       "emailTriggerReplayOnly",
       "emailTriggerTerminalSemantics",
       "emailTriggerReportYear",
+      "emailTriggerPortalPostGuard",
     ]);
   }
 });

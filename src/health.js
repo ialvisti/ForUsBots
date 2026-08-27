@@ -7,6 +7,7 @@ const BASE_CAPABILITIES = Object.freeze({
   emailTriggerReplayOnly: "v1",
   emailTriggerTerminalSemantics: "v1",
   emailTriggerReportYear: "v1",
+  emailTriggerPortalPostGuard: "v1",
 });
 
 function getCapabilities(env = process.env) {

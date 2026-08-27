@@ -93,6 +93,7 @@ const {
   inspectSummaryTriggerControl,
   isTrustedTriggerEmailsUrl,
   isTrustedTriggerProcessRequest,
+  isTrustedTriggerRedirectRequest,
   isTrustedTriggerRedirectResponse,
   observePortalJavascriptTriggerResponses,
   validatePortalJavascriptTriggerRequest,
@@ -273,6 +274,7 @@ const DEFAULT_TRIGGER_URL = DEFAULT_PREVIEW_URL.replace(
 );
 const TRIGGER_SUCCESS_MESSAGE =
   "Background job has been scheduled. You will receive an email shortly with the logs once the job completes.";
+const DEFAULT_MAIN_FRAME = Object.freeze({ name: "main" });
 const DEFAULT_TRIGGER_POST_DATA = new URLSearchParams({
   participants_list: "1",
   plan: "627",
@@ -307,12 +309,18 @@ function fakeRequest({
   method = "GET",
   postData = null,
   redirectedFrom = null,
+  resourceType = "xhr",
+  isNavigationRequest = false,
+  frame = DEFAULT_MAIN_FRAME,
 }) {
   return {
     url: () => url,
     method: () => method,
     postData: () => postData,
     redirectedFrom: () => redirectedFrom,
+    resourceType: () => resourceType,
+    isNavigationRequest: () => isNavigationRequest,
+    frame: () => frame,
   };
 }
 
@@ -371,6 +379,9 @@ function fakePage({
   triggerHref = DEFAULT_TRIGGER_URL,
   triggerTagName = "A",
   triggerJqueryHandlerMatched = false,
+  triggerJqueryHandlerSourceVersion = triggerJqueryHandlerMatched
+    ? "jquery_post_source_v1"
+    : null,
   triggerDirectClickHandlerCount = 0,
   triggerPlanValue = "627",
   triggerEmailTypeValue = "summary_annual_notice",
@@ -382,6 +393,7 @@ function fakePage({
   previewUrlAtClick = previewUrl,
   triggerLookupError = null,
   preClickStateChanged = false,
+  postRedirectRequest = null,
   postClickUrl = "https://employer.forusall.com/trigger_emails",
 } = {}) {
   const clicks = [];
@@ -397,6 +409,7 @@ function fakePage({
   let abortedRequestCount = 0;
   let dialogHandler = null;
   let triggerClicked = false;
+  let postRedirectRequestInjected = false;
 
   return {
     clicks,
@@ -416,10 +429,31 @@ function fakePage({
     selectionState,
     selectionStates,
     waitForAllRowsError,
+    mainFrame() {
+      return DEFAULT_MAIN_FRAME;
+    },
     async selectOption() {
       if (selectError) throw selectError;
     },
-    async waitForTimeout() {},
+    async waitForTimeout() {
+      if (
+        triggerClicked &&
+        postRedirectRequest &&
+        processRouteHandler &&
+        !postRedirectRequestInjected
+      ) {
+        postRedirectRequestInjected = true;
+        await processRouteHandler({
+          request: () => postRedirectRequest,
+          continue: async () => {
+            continuedRequestCount += 1;
+          },
+          abort: async () => {
+            abortedRequestCount += 1;
+          },
+        });
+      }
+    },
     once(event, handler) {
       registeredListeners.push(event);
       if (event === "dialog") dialogHandler = handler;
@@ -516,7 +550,14 @@ function fakePage({
             });
             shouldEmit = continued;
           }
-          if (!shouldEmit) continue;
+          if (!shouldEmit) {
+            if (
+              response.request().url().includes("/trigger_email_process")
+            ) {
+              break;
+            }
+            continue;
+          }
           for (const handler of [...responseHandlers]) handler(response);
         }
         return undefined;
@@ -525,6 +566,7 @@ function fakePage({
         tagName: triggerTagName,
         href: triggerHref,
         jqueryHandlerMatched: triggerJqueryHandlerMatched,
+        jqueryHandlerSourceVersion: triggerJqueryHandlerSourceVersion,
         directClickHandlerCount: triggerDirectClickHandlerCount,
         planValue: triggerPlanValue,
         emailTypeValue: triggerEmailTypeValue,
@@ -653,20 +695,60 @@ function atomicClickFixture({
     expectedPostValues: Object.fromEntries(
       new URLSearchParams(DEFAULT_TRIGGER_POST_DATA)
     ),
+    jqueryHandlerSourceVersion:
+      triggerContractVersion === "jquery_post_v1"
+        ? "jquery_post_source_v1"
+        : null,
   };
-  const jqueryHandler =
-    jqueryHandlerMode === "paper"
-      ? function () {
-          confirm("Are you sure?");
-          const params = commTriggerParams();
-          params.comm_method = "paper";
-          $.post("/trigger_email_process");
-        }
-      : function () {
-          confirm("Are you sure?");
-          commTriggerParams();
-          $.post("/trigger_email_process");
-        };
+  let jqueryHandler;
+  if (jqueryHandlerMode === "paper") {
+    jqueryHandler = function () {
+      confirm("Are you sure?");
+      const params = commTriggerParams();
+      params.comm_method = "paper";
+      $.post("/trigger_email_process");
+    };
+  } else if (jqueryHandlerMode === "alternate") {
+    jqueryHandler = function () {
+      if (confirm('Are you sure you want to send this email?')) {
+        var params = commTriggerParams()
+        fetch('/alternate_email_process');
+        $.extend(params, );
+        $.post('/trigger_email_process',
+          params,
+          'script'
+        );
+      } else {
+        return false;
+      }
+    };
+  } else if (jqueryHandlerMode === "spaced-path") {
+    jqueryHandler = function () {
+      if (confirm('Are you sure you want to send this email?')) {
+        var params = commTriggerParams()
+        $.extend(params, );
+        $.post('/trigger_email_ process',
+          params,
+          'script'
+        );
+      } else {
+        return false;
+      }
+    };
+  } else {
+    jqueryHandler = function () {
+      if (confirm('Are you sure you want to send this email?')) {
+        var params = commTriggerParams()
+        $.extend(params, );
+        $.post('/trigger_email_process',
+          params,
+          'script'
+        );
+      } else {
+        return false;
+      }
+    };
+  }
   const jquery = {
     _data: () => ({
       click: jqueryHandlerMatched
@@ -705,7 +787,7 @@ function runAtomicClickFixture(options) {
   };
   global.confirm = () => true;
   global.commTriggerParams = () => ({});
-  global.$ = { post: fixture.recordJqueryPost };
+  global.$ = { extend: () => {}, post: fixture.recordJqueryPost };
   try {
     clickVerifiedSummaryTrigger(fixture.element, fixture.expected);
     return options?.returnDetails
@@ -797,6 +879,22 @@ test("atomic trigger click accepts only the verified portal jQuery POST handler"
       }),
     { message: "SAR_TRIGGER_BINDING_CHANGED" }
   );
+  assert.throws(
+    () =>
+      runAtomicClickFixture({
+        triggerContractVersion: "jquery_post_v1",
+        jqueryHandlerMode: "alternate",
+      }),
+    { message: "SAR_TRIGGER_BINDING_CHANGED" }
+  );
+  assert.throws(
+    () =>
+      runAtomicClickFixture({
+        triggerContractVersion: "jquery_post_v1",
+        jqueryHandlerMode: "spaced-path",
+      }),
+    { message: "SAR_TRIGGER_BINDING_CHANGED" }
+  );
 });
 
 test("trigger control inspection never exposes handler source", () => {
@@ -810,6 +908,10 @@ test("trigger control inspection never exposes handler source", () => {
   try {
     const inspected = inspectSummaryTriggerControl(fixture.element);
     assert.equal(inspected.jqueryHandlerMatched, true);
+    assert.equal(
+      inspected.jqueryHandlerSourceVersion,
+      "jquery_post_source_v1"
+    );
     assert.equal(inspected.directClickHandlerCount, 1);
     assert.equal(inspected.planValue, "627");
     assert.equal(inspected.emailTypeValue, "summary_annual_notice");
@@ -824,6 +926,7 @@ test("trigger control inspection never exposes handler source", () => {
     global.window = { jQuery: paperFixture.jquery };
     const paperInspected = inspectSummaryTriggerControl(paperFixture.element);
     assert.equal(paperInspected.jqueryHandlerMatched, false);
+    assert.equal(paperInspected.jqueryHandlerSourceVersion, null);
     assert.equal(paperInspected.directClickHandlerCount, 1);
   } finally {
     global.document = originalDocument;
@@ -853,6 +956,13 @@ test("post-click URL trust requires the exact employer origin and path", () => {
 test("portal JavaScript trigger response is bound to POST identity and exact success", async () => {
   const responses = successfulJavascriptTriggerResponses();
   assert.equal(isTrustedTriggerProcessRequest(responses.processRequest), true);
+  assert.equal(
+    isTrustedTriggerRedirectRequest(
+      responses.redirectRequest,
+      responses.processRequest
+    ),
+    true
+  );
   assert.equal(
     isTrustedTriggerRedirectResponse(responses.redirectResponse),
     true
@@ -985,6 +1095,7 @@ test("portal request guard permits one exact POST and blocks a duplicate before 
   let installed = null;
   let removed = null;
   const page = {
+    mainFrame: () => DEFAULT_MAIN_FRAME,
     async route(pattern, handler) {
       installed = { pattern, handler };
     },
@@ -1018,14 +1129,18 @@ test("portal request guard permits one exact POST and blocks a duplicate before 
   await installed.handler(route);
   assert.deepEqual(guard.snapshot(), {
     allowedRequestCount: 1,
+    redirectObserved: false,
     blockedRequestCount: 0,
+    suppressedAfterRedirectCount: 0,
   });
 
   await installed.handler(route);
   assert.equal(await guard.blocked, "trigger_request_duplicate");
   assert.deepEqual(guard.snapshot(), {
     allowedRequestCount: 1,
+    redirectObserved: false,
     blockedRequestCount: 1,
+    suppressedAfterRedirectCount: 0,
   });
   assert.equal(continued, 1);
   assert.equal(aborted, 1);
@@ -1033,6 +1148,221 @@ test("portal request guard permits one exact POST and blocks a duplicate before 
   await guard.remove();
   assert.equal(removed.pattern, installed.pattern);
   assert.equal(removed.handler, installed.handler);
+});
+
+test("portal request guard binds the exact POST to XHR in the main frame", async (t) => {
+  const cases = [
+    { name: "fetch", request: { resourceType: "fetch" } },
+    {
+      name: "navigation",
+      request: { resourceType: "document", isNavigationRequest: true },
+    },
+    { name: "subframe", request: { frame: { name: "subframe" } } },
+  ];
+
+  for (const scenario of cases) {
+    await t.test(scenario.name, async () => {
+      let installed = null;
+      const page = {
+        mainFrame: () => DEFAULT_MAIN_FRAME,
+        async route(pattern, handler) {
+          installed = { pattern, handler };
+        },
+        async unroute() {},
+      };
+      const guard = await installPortalJavascriptTriggerRequestGuard(
+        page,
+        expectedJavascriptTriggerBinding()
+      );
+      const request = fakeRequest({
+        url: "https://employer.forusall.com/trigger_email_process",
+        method: "POST",
+        postData: DEFAULT_TRIGGER_POST_DATA,
+        ...scenario.request,
+      });
+      let continued = 0;
+      let aborted = 0;
+      await installed.handler({
+        request: () => request,
+        continue: async () => {
+          continued += 1;
+        },
+        abort: async () => {
+          aborted += 1;
+        },
+      });
+
+      assert.equal(await guard.blocked, "trigger_request_initiator_mismatch");
+      assert.equal(continued, 0);
+      assert.equal(aborted, 1);
+      assert.deepEqual(guard.snapshot(), {
+        allowedRequestCount: 0,
+        redirectObserved: false,
+        blockedRequestCount: 1,
+        suppressedAfterRedirectCount: 0,
+      });
+      await guard.remove();
+    });
+  }
+});
+
+test("portal request guard blocks an alternate route until the exact redirect", async () => {
+  let installed = null;
+  const page = {
+    mainFrame: () => DEFAULT_MAIN_FRAME,
+    async route(pattern, handler) {
+      installed = { pattern, handler };
+    },
+    async unroute() {},
+  };
+  const guard = await installPortalJavascriptTriggerRequestGuard(
+    page,
+    expectedJavascriptTriggerBinding()
+  );
+  const processRequest = fakeRequest({
+    url: "https://employer.forusall.com/trigger_email_process",
+    method: "POST",
+    postData: DEFAULT_TRIGGER_POST_DATA,
+  });
+  const continued = [];
+  const aborted = [];
+  const routeFor = (request) => ({
+    request: () => request,
+    continue: async () => continued.push(request.url()),
+    abort: async () => aborted.push(request.url()),
+  });
+
+  assert.equal(installed.pattern, "**/*");
+  await installed.handler(routeFor(processRequest));
+  const alternateRequest = fakeRequest({
+    url: "https://employer.forusall.com/alternate_email_process",
+    method: "POST",
+    postData: DEFAULT_TRIGGER_POST_DATA,
+  });
+  await installed.handler(routeFor(alternateRequest));
+
+  assert.equal(await guard.blocked, "trigger_request_contract_mismatch");
+  assert.deepEqual(continued, [processRequest.url()]);
+  assert.deepEqual(aborted, [alternateRequest.url()]);
+  assert.deepEqual(guard.snapshot(), {
+    allowedRequestCount: 1,
+    redirectObserved: false,
+    blockedRequestCount: 1,
+    suppressedAfterRedirectCount: 0,
+  });
+  await guard.remove();
+});
+
+test("portal request guard binds the observed redirect and suppresses safe page assets", async () => {
+  let installed = null;
+  const page = {
+    mainFrame: () => DEFAULT_MAIN_FRAME,
+    async route(pattern, handler) {
+      installed = { pattern, handler };
+    },
+    async unroute() {},
+  };
+  const guard = await installPortalJavascriptTriggerRequestGuard(
+    page,
+    expectedJavascriptTriggerBinding()
+  );
+  const processRequest = fakeRequest({
+    url: "https://employer.forusall.com/trigger_email_process",
+    method: "POST",
+    postData: DEFAULT_TRIGGER_POST_DATA,
+  });
+  const redirectRequest = fakeRequest({
+    url: "https://employer.forusall.com/trigger_emails?plan=627",
+    redirectedFrom: processRequest,
+  });
+  const resourceRequest = fakeRequest({
+    url: "https://employer.forusall.com/assets/application.js",
+    resourceType: "script",
+  });
+  let continued = 0;
+  let aborted = 0;
+  const routeFor = (request) => ({
+    request: () => request,
+    continue: async () => {
+      continued += 1;
+    },
+    abort: async () => {
+      aborted += 1;
+    },
+  });
+
+  await installed.handler(routeFor(processRequest));
+  const redirectResponse = fakeResponse({
+    url: redirectRequest.url(),
+    request: redirectRequest,
+  });
+  assert.equal(guard.markRedirectObserved(redirectResponse), true);
+  await installed.handler(routeFor(resourceRequest));
+
+  assert.deepEqual(guard.snapshot(), {
+    allowedRequestCount: 1,
+    redirectObserved: true,
+    blockedRequestCount: 0,
+    suppressedAfterRedirectCount: 1,
+  });
+  assert.equal(continued, 1);
+  assert.equal(aborted, 1);
+  await guard.remove();
+});
+
+test("portal request guard blocks a side-effect request after the redirect response", async () => {
+  let installed = null;
+  const page = {
+    mainFrame: () => DEFAULT_MAIN_FRAME,
+    async route(pattern, handler) {
+      installed = { pattern, handler };
+    },
+    async unroute() {},
+  };
+  const guard = await installPortalJavascriptTriggerRequestGuard(
+    page,
+    expectedJavascriptTriggerBinding()
+  );
+  const processRequest = fakeRequest({
+    url: "https://employer.forusall.com/trigger_email_process",
+    method: "POST",
+    postData: DEFAULT_TRIGGER_POST_DATA,
+  });
+  const redirectRequest = fakeRequest({
+    url: "https://employer.forusall.com/trigger_emails?plan=627",
+    redirectedFrom: processRequest,
+  });
+  const routeFor = (request) => ({
+    request: () => request,
+    continue: async () => {},
+    abort: async () => {},
+  });
+
+  await installed.handler(routeFor(processRequest));
+  assert.equal(
+    guard.markRedirectObserved(
+      fakeResponse({ url: redirectRequest.url(), request: redirectRequest })
+    ),
+    true
+  );
+  await installed.handler(
+    routeFor(
+      fakeRequest({
+        url: "https://employer.forusall.com/alternate_email_process",
+        method: "POST",
+        postData: DEFAULT_TRIGGER_POST_DATA,
+      })
+    )
+  );
+
+  assert.equal(await guard.blocked, "trigger_request_contract_mismatch");
+  assert.deepEqual(guard.snapshot(), {
+    allowedRequestCount: 1,
+    redirectObserved: true,
+    blockedRequestCount: 1,
+    suppressedAfterRedirectCount: 0,
+  });
+  await guard.remove();
 });
 
 test("summary annual validates the configured report year", async () => {
@@ -1372,6 +1702,36 @@ test("summary annual aborts a mode-changing POST before it reaches the portal", 
   assert.equal(result.details.stage, "pre-network-request-contract");
   assert.equal(result.details.failureCode, "trigger_request_shape_mismatch");
   assert.equal(page.continuedRequestCount, 0);
+  assert.equal(page.abortedRequestCount, 1);
+  assert.equal(page.requestGuardRoutes.length, 1);
+  assert.equal(page.removedRequestGuardRoutes.length, 1);
+});
+
+test("summary annual fails closed on a side-effect request after the redirect", async () => {
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
+  const responses = successfulJavascriptTriggerResponses();
+  const page = fakePage({
+    triggerHref: "/preview",
+    triggerJqueryHandlerMatched: true,
+    triggerDirectClickHandlerCount: 1,
+    triggerResponses: [responses.processResponse, responses.redirectResponse],
+    postRedirectRequest: fakeRequest({
+      url: "https://employer.forusall.com/alternate_email_process",
+      method: "POST",
+      postData: DEFAULT_TRIGGER_POST_DATA,
+    }),
+  });
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Unknown Outcome");
+  assert.equal(result.details.stage, "post-click-request-count");
+  assert.equal(result.details.failureCode, "trigger_request_count_mismatch");
+  assert.equal(page.continuedRequestCount, 1);
   assert.equal(page.abortedRequestCount, 1);
   assert.equal(page.requestGuardRoutes.length, 1);
   assert.equal(page.removedRequestGuardRoutes.length, 1);

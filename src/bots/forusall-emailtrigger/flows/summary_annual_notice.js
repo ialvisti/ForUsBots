@@ -27,9 +27,10 @@ const {
 const TRUSTED_TRIGGER_EMAILS_ORIGIN = "https://employer.forusall.com";
 const TRUSTED_TRIGGER_EMAILS_PATH = "/trigger_emails";
 const TRUSTED_TRIGGER_PROCESS_PATH = "/trigger_email_process";
-const TRIGGER_PROCESS_ROUTE_PATTERN = "**/trigger_email_process*";
+const TRIGGER_CLICK_ROUTE_PATTERN = "**/*";
 const TRIGGER_CONTRACT_QUERY = "force_send_query_v1";
 const TRIGGER_CONTRACT_JQUERY = "jquery_post_v1";
+const TRIGGER_JQUERY_HANDLER_SOURCE_VERSION = "jquery_post_source_v1";
 const TRIGGER_SUCCESS_MESSAGE =
   "Background job has been scheduled. You will receive an email shortly with the logs once the job completes.";
 const MAX_TRIGGER_RESPONSE_BYTES = 2_000_000;
@@ -91,26 +92,40 @@ function isTrustedTriggerProcessRequest(request) {
   }
 }
 
-function isTrustedTriggerRedirectResponse(response) {
+function isTrustedTriggerRedirectRequest(request, processRequest) {
   try {
-    const url = new URL(response.url());
-    const request = response.request();
-    const redirectedFrom = request.redirectedFrom();
+    const url = new URL(request.url());
     return (
       request.method() === "GET" &&
       !url.username &&
       !url.password &&
       url.origin === TRUSTED_TRIGGER_EMAILS_ORIGIN &&
       url.pathname === TRUSTED_TRIGGER_EMAILS_PATH &&
-      redirectedFrom &&
-      isTrustedTriggerProcessRequest(redirectedFrom)
+      request.redirectedFrom() === processRequest &&
+      isTrustedTriggerProcessRequest(processRequest)
     );
   } catch {
     return false;
   }
 }
 
-function observePortalJavascriptTriggerResponses(page, { timeout = 60000 } = {}) {
+function isTrustedTriggerRedirectResponse(response) {
+  try {
+    const request = response.request();
+    const redirectedFrom = request.redirectedFrom();
+    return Boolean(
+      redirectedFrom &&
+        isTrustedTriggerRedirectRequest(request, redirectedFrom)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function observePortalJavascriptTriggerResponses(
+  page,
+  { timeout = 60000, onTrustedRedirectResponse = null } = {}
+) {
   let processResponse = null;
   let settled = false;
   let timeoutHandle = null;
@@ -138,6 +153,13 @@ function observePortalJavascriptTriggerResponses(page, { timeout = 60000 } = {})
       isTrustedTriggerRedirectResponse(response) &&
       response.request().redirectedFrom() === processResponse.request()
     ) {
+      if (
+        typeof onTrustedRedirectResponse === "function" &&
+        onTrustedRedirectResponse(response) !== true
+      ) {
+        settle(rejectWait, new Error("SAR_TRIGGER_REDIRECT_GUARD_MISMATCH"));
+        return;
+      }
       settle(resolveWait, { processResponse, redirectResponse: response });
     }
   };
@@ -211,8 +233,15 @@ function validatePortalJavascriptTriggerRequest(request, expected) {
 }
 
 async function installPortalJavascriptTriggerRequestGuard(page, expected) {
+  const mainFrame = page.mainFrame?.();
+  if (!mainFrame) {
+    throw new Error("SAR_TRIGGER_MAIN_FRAME_UNAVAILABLE");
+  }
   let allowedRequestCount = 0;
   let blockedRequestCount = 0;
+  let suppressedAfterRedirectCount = 0;
+  let allowedProcessRequest = null;
+  let redirectObserved = false;
   let removed = false;
   let notifyBlocked;
   const blocked = new Promise((resolve) => {
@@ -220,22 +249,50 @@ async function installPortalJavascriptTriggerRequestGuard(page, expected) {
   });
   const handler = async (route) => {
     try {
-      const contract = validatePortalJavascriptTriggerRequest(
-        route.request(),
-        expected
-      );
+      const request = route.request();
+      const initiatorMatched =
+        request.resourceType?.() === "xhr" &&
+        request.isNavigationRequest?.() === false &&
+        request.frame?.() === mainFrame;
+      const contract = initiatorMatched
+        ? validatePortalJavascriptTriggerRequest(request, expected)
+        : {
+            matched: false,
+            failureCode: "trigger_request_initiator_mismatch",
+          };
       if (
         contract.matched &&
         allowedRequestCount === 0 &&
         blockedRequestCount === 0
       ) {
         allowedRequestCount += 1;
+        allowedProcessRequest = request;
         await route.continue();
         return;
       }
+
+      if (redirectObserved) {
+        const resourceType = String(request.resourceType?.() || "");
+        const safePageResource =
+          ["font", "image", "media", "script", "stylesheet"].includes(
+            resourceType
+          ) && ["GET", "HEAD"].includes(request.method());
+        if (safePageResource) {
+          suppressedAfterRedirectCount += 1;
+          await route.abort("blockedbyclient");
+          return;
+        }
+      }
+
       blockedRequestCount += 1;
       await route.abort("blockedbyclient");
-      notifyBlocked(contract.failureCode || "trigger_request_duplicate");
+      notifyBlocked(
+        (contract.matched && "trigger_request_duplicate") ||
+          contract.failureCode ||
+          (allowedProcessRequest
+            ? "trigger_unexpected_request_before_redirect"
+            : "trigger_unexpected_request_before_post")
+      );
     } catch {
       blockedRequestCount += 1;
       await route.abort("blockedbyclient").catch(() => {});
@@ -243,16 +300,33 @@ async function installPortalJavascriptTriggerRequestGuard(page, expected) {
     }
   };
 
-  await page.route(TRIGGER_PROCESS_ROUTE_PATTERN, handler);
+  await page.route(TRIGGER_CLICK_ROUTE_PATTERN, handler);
   return {
     blocked,
+    markRedirectObserved(response) {
+      if (
+        redirectObserved ||
+        !allowedProcessRequest ||
+        !isTrustedTriggerRedirectResponse(response) ||
+        response.request().redirectedFrom() !== allowedProcessRequest
+      ) {
+        return false;
+      }
+      redirectObserved = true;
+      return true;
+    },
     snapshot() {
-      return { allowedRequestCount, blockedRequestCount };
+      return {
+        allowedRequestCount,
+        redirectObserved,
+        blockedRequestCount,
+        suppressedAfterRedirectCount,
+      };
     },
     async remove() {
       if (removed) return;
       removed = true;
-      await page.unroute(TRIGGER_PROCESS_ROUTE_PATTERN, handler);
+      await page.unroute(TRIGGER_CLICK_ROUTE_PATTERN, handler);
     },
   };
 }
@@ -328,35 +402,55 @@ async function validatePortalJavascriptTriggerResponse(
 function inspectSummaryTriggerControl(element) {
   let jqueryHandlerMatched = false;
   let directClickHandlerCount = 0;
+  let jqueryHandlerSourceVersion = null;
   try {
     const events = window.jQuery?._data?.(element, "events") || {};
     const clickHandlers = Array.isArray(events.click) ? events.click : [];
     const directHandlers = clickHandlers.filter((entry) => !entry?.selector);
     directClickHandlerCount = directHandlers.length;
-    jqueryHandlerMatched = directHandlers.length === 1 && directHandlers.some((entry) => {
-      const source = Function.prototype.toString
-        .call(entry.handler)
-        .replace(/\s+/g, "");
-      const occurrenceCount = (needle) => source.split(needle).length - 1;
-      const forbiddenSourceMarkers = [
-        "comm_method",
-        "is_preview",
-        "paper_only",
-        "triggerPaper",
-      ];
-      return (
-        occurrenceCount("commTriggerParams") === 1 &&
-        occurrenceCount("/trigger_email_process") === 1 &&
-        occurrenceCount("$.post(") === 1 &&
-        occurrenceCount("confirm(") === 1 &&
-        forbiddenSourceMarkers.every((marker) => !source.includes(marker))
-      );
-    });
+    const canonicalizeSource = (rawSource) => {
+      let canonical = "";
+      let quote = null;
+      let escaped = false;
+      for (const character of String(rawSource || "")) {
+        if (quote) {
+          canonical += character;
+          if (escaped) escaped = false;
+          else if (character === "\\") escaped = true;
+          else if (character === quote) quote = null;
+          continue;
+        }
+        if (["'", '"', "`"].includes(character)) {
+          quote = character;
+          canonical += character;
+        } else if (!/\s/u.test(character)) {
+          canonical += character;
+        }
+      }
+      return quote || escaped ? null : canonical;
+    };
+    const trustedSource =
+      "function(){if(confirm('Are you sure you want to send this email?')){" +
+      "varparams=commTriggerParams()$.extend(params,);" +
+      "$.post('/trigger_email_process',params,'script');}" +
+      "else{returnfalse;}}";
+    jqueryHandlerMatched =
+      directHandlers.length === 1 &&
+      directHandlers.some((entry) => {
+        const source = canonicalizeSource(
+          Function.prototype.toString.call(entry.handler)
+        );
+        return source === trustedSource;
+      });
+    if (jqueryHandlerMatched) {
+      jqueryHandlerSourceVersion = "jquery_post_source_v1";
+    }
   } catch {}
   return {
     tagName: element.tagName,
     href: element.getAttribute("href"),
     jqueryHandlerMatched,
+    jqueryHandlerSourceVersion,
     directClickHandlerCount,
     planValue: document.querySelector("#plan")?.value ?? null,
     emailTypeValue: document.querySelector("#email_type")?.value ?? null,
@@ -404,28 +498,40 @@ function clickVerifiedSummaryTrigger(element, expected) {
       if (directHandlers.length === 1) {
         verifiedJqueryHandler = directHandlers[0]?.handler || null;
       }
+      const canonicalizeSource = (rawSource) => {
+        let canonical = "";
+        let quote = null;
+        let escaped = false;
+        for (const character of String(rawSource || "")) {
+          if (quote) {
+            canonical += character;
+            if (escaped) escaped = false;
+            else if (character === "\\") escaped = true;
+            else if (character === quote) quote = null;
+            continue;
+          }
+          if (["'", '"', "`"].includes(character)) {
+            quote = character;
+            canonical += character;
+          } else if (!/\s/u.test(character)) {
+            canonical += character;
+          }
+        }
+        return quote || escaped ? null : canonical;
+      };
+      const trustedSource =
+        "function(){if(confirm('Are you sure you want to send this email?')){" +
+        "varparams=commTriggerParams()$.extend(params,);" +
+        "$.post('/trigger_email_process',params,'script');}" +
+        "else{returnfalse;}}";
       jqueryHandlerMatched = Boolean(
         verifiedJqueryHandler &&
+          expected.jqueryHandlerSourceVersion === "jquery_post_source_v1" &&
           directHandlers.some((entry) => {
-            const source = Function.prototype.toString
-              .call(entry.handler)
-              .replace(/\s+/g, "");
-            const occurrenceCount = (needle) => source.split(needle).length - 1;
-            const forbiddenSourceMarkers = [
-              "comm_method",
-              "is_preview",
-              "paper_only",
-              "triggerPaper",
-            ];
-            return (
-              occurrenceCount("commTriggerParams") === 1 &&
-              occurrenceCount("/trigger_email_process") === 1 &&
-              occurrenceCount("$.post(") === 1 &&
-              occurrenceCount("confirm(") === 1 &&
-              forbiddenSourceMarkers.every(
-                (marker) => !source.includes(marker)
-              )
+            const source = canonicalizeSource(
+              Function.prototype.toString.call(entry.handler)
             );
+            return source === trustedSource;
           })
       );
       const planInputs = document.querySelectorAll("#plan");
@@ -770,6 +876,8 @@ module.exports = async function runSummaryAnnualNotice({
       };
       if (
         !triggerControl.jqueryHandlerMatched ||
+        triggerControl.jqueryHandlerSourceVersion !==
+          TRIGGER_JQUERY_HANDLER_SOURCE_VERSION ||
         triggerControl.directClickHandlerCount !== 1
       ) {
         throw error;
@@ -853,6 +961,10 @@ module.exports = async function runSummaryAnnualNotice({
       expectedEmailType: "summary_annual_notice",
       expectedPreviewYear: previewYearValues[0],
       expectedPostValues,
+      jqueryHandlerSourceVersion:
+        triggerContractVersion === TRIGGER_CONTRACT_JQUERY
+          ? triggerControl.jqueryHandlerSourceVersion
+          : null,
     };
   } catch {
     jobCtx?.setStage?.(
@@ -899,7 +1011,10 @@ module.exports = async function runSummaryAnnualNotice({
     if (triggerBinding.triggerContractVersion === TRIGGER_CONTRACT_JQUERY) {
       triggerRequestGuard =
         await installPortalJavascriptTriggerRequestGuard(page, triggerBinding);
-      triggerResponseObserver = observePortalJavascriptTriggerResponses(page);
+      triggerResponseObserver = observePortalJavascriptTriggerResponses(page, {
+        onTrustedRedirectResponse: (response) =>
+          triggerRequestGuard.markRedirectObserved(response),
+      });
     }
     // Comprobar y activar el mismo nodo dentro de una única tarea del browser
     // evita que el DOM cambie el href o la Preview entre la barrera y el click.
@@ -932,20 +1047,6 @@ module.exports = async function runSummaryAnnualNotice({
       const { capturedResponses } = observed;
       if (!capturedResponses) throw new Error("SAR_TRIGGER_RESPONSE_CANCELLED");
       const { processResponse, redirectResponse } = capturedResponses;
-      const requestGuardState = triggerRequestGuard.snapshot();
-      if (
-        requestGuardState.allowedRequestCount !== 1 ||
-        requestGuardState.blockedRequestCount !== 0
-      ) {
-        return {
-          result: "Unknown Outcome",
-          reason: "Portal trigger emitted an unexpected number of requests",
-          details: {
-            stage: "post-click-request-count",
-            failureCode: "trigger_request_count_mismatch",
-          },
-        };
-      }
       const responseContract = await validatePortalJavascriptTriggerResponse(
         processResponse,
         redirectResponse,
@@ -963,6 +1064,22 @@ module.exports = async function runSummaryAnnualNotice({
           details: {
             stage: "post-click-response-contract",
             failureCode: responseContract.failureCode,
+          },
+        };
+      }
+      await page.waitForTimeout?.(100);
+      const requestGuardState = triggerRequestGuard.snapshot();
+      if (
+        requestGuardState.allowedRequestCount !== 1 ||
+        requestGuardState.redirectObserved !== true ||
+        requestGuardState.blockedRequestCount !== 0
+      ) {
+        return {
+          result: "Unknown Outcome",
+          reason: "Portal trigger emitted an unexpected number of requests",
+          details: {
+            stage: "post-click-request-count",
+            failureCode: "trigger_request_count_mismatch",
           },
         };
       }
@@ -1130,6 +1247,7 @@ module.exports.clickVerifiedSummaryTrigger = clickVerifiedSummaryTrigger;
 module.exports.inspectSummaryTriggerControl = inspectSummaryTriggerControl;
 module.exports.isTrustedTriggerEmailsUrl = isTrustedTriggerEmailsUrl;
 module.exports.isTrustedTriggerProcessRequest = isTrustedTriggerProcessRequest;
+module.exports.isTrustedTriggerRedirectRequest = isTrustedTriggerRedirectRequest;
 module.exports.isTrustedTriggerRedirectResponse = isTrustedTriggerRedirectResponse;
 module.exports.observePortalJavascriptTriggerResponses =
   observePortalJavascriptTriggerResponses;
