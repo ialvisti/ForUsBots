@@ -68,6 +68,7 @@ test("rollout probes HTTP health with bounded retries", () => {
   assert.match(rolloutScript, /for attempt in \$\$?\(seq 1 [1-9][0-9]*\)/);
   assert.match(rolloutScript, /curl -fsS/);
   assert.match(rolloutScript, /\/health/);
+  assert.match(rolloutScript, /emailTriggerPortalPostGuard/);
   assert.match(rolloutScript, /sleep [1-9][0-9]*/);
   assert.match(rolloutScript, /HTTP health probe failed/);
 });

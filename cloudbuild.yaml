@@ -107,6 +107,7 @@ steps:
             )"
             if printf '%s\n' "$$response" | grep -Eq '"ok"[[:space:]]*:[[:space:]]*true' && \
               printf '%s\n' "$$response" | grep -Eq '"emailTriggerReplayOnly"[[:space:]]*:[[:space:]]*"v1"' && \
+              printf '%s\n' "$$response" | grep -Eq '"emailTriggerPortalPostGuard"[[:space:]]*:[[:space:]]*"v1"' && \
               printf '%s\n' "$$response" | grep -Eq '"emailTriggerPreviewDocumentGate"[[:space:]]*:[[:space:]]*"v1"'; then
               echo "HTTP health probe succeeded ($$probe_label) on attempt $$attempt"
               return 0
