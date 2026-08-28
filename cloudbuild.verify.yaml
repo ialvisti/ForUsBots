@@ -17,6 +17,7 @@ steps:
       - forusbots-verify:$BUILD_ID
       - .
 
+serviceAccount: projects/forusbots/serviceAccounts/forusbots-cloudbuild@forusbots.iam.gserviceaccount.com
 options:
   logging: CLOUD_LOGGING_ONLY
   machineType: E2_HIGHCPU_8
