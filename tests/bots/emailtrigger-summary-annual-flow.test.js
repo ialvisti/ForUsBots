@@ -59,17 +59,28 @@ require.cache[documentGatePath] = {
       `selection:${JSON.stringify(values)}`,
     getDocumentGateConfig: () => ({ maxDocuments: 20, timeoutMs: 1000 }),
     normalizePreviewManifest: (manifest) => manifest,
-    verifyPreviewDocuments: async () => ({
-      manifestFingerprint: "manifest-fingerprint",
-      objects: [{ opaque: true }],
-      documentGate: {
-        version: "v1",
-        verified: true,
-        documentCount: 1,
-        pdfSha256s: ["a".repeat(64)],
-        aggregateSha256: "b".repeat(64),
-      },
-    }),
+    verifyPreviewDocuments: async ({ manifest }) => {
+      if (
+        manifest.some(({ fileName }) =>
+          String(fileName || "").includes("OCR_REJECT")
+        )
+      ) {
+        const error = new Error("SAR preview document verification failed");
+        error.code = "SAR_DOCUMENT_IDENTITY_MISMATCH";
+        throw error;
+      }
+      return {
+        manifestFingerprint: "manifest-fingerprint",
+        objects: [{ opaque: true }],
+        documentGate: {
+          version: "v1",
+          verified: true,
+          documentCount: 1,
+          pdfSha256s: ["a".repeat(64)],
+          aggregateSha256: "b".repeat(64),
+        },
+      };
+    },
   },
 };
 
@@ -1428,6 +1439,96 @@ test("summary annual rejects a filename bound to another plan id", async () => {
   assert.equal(result.details.invalidFiles[0].hasReportYear, true);
   assert.doesNotMatch(JSON.stringify(result.details), /Acme_628/);
   assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual verify_only defers an unmatched filename plan id to OCR", async () => {
+  previewFileNames = ["Summary_Annual_Report_Acme_2025.pdf"];
+  const page = fakePage();
+  const stages = [];
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025, mode: "verify_only" },
+    jobCtx: {
+      setStage: (...args) => stages.push(args),
+    },
+  });
+
+  assert.equal(result.result, "Succeeded");
+  assert.equal(result.details.mode, "verify_only");
+  assert.equal(result.details.emailTriggered, false);
+  assert.equal(result.details.filenamePlanIdUnmatchedCount, 1);
+  assert.deepEqual(
+    stages.find(([name]) =>
+      name.includes("filename-plan-id-unmatched-advisory")
+    ),
+    ["summary-annual:filename-plan-id-unmatched-advisory", { count: 1 }]
+  );
+  assert.doesNotMatch(JSON.stringify(stages), /Summary_Annual_Report_Acme/);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual verify_only never lets the filename advisory override OCR", async () => {
+  previewFileNames = ["Summary_Annual_Report_OCR_REJECT_2025.pdf"];
+  const page = fakePage();
+
+  await assert.rejects(
+    runSummaryAnnualNotice({
+      page,
+      selectors: {},
+      meta: { planId: 627, reportYear: 2025, mode: "verify_only" },
+      jobCtx: null,
+    }),
+    { code: "SAR_DOCUMENT_IDENTITY_MISMATCH" }
+  );
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual verify_only sends a contradictory filename plan id to OCR only", async () => {
+  previewFileNames = ["Summary_Annual_Report_OCR_REJECT_628_2025.pdf"];
+  const page = fakePage();
+
+  await assert.rejects(
+    runSummaryAnnualNotice({
+      page,
+      selectors: {},
+      meta: { planId: 627, reportYear: 2025, mode: "verify_only" },
+      jobCtx: null,
+    }),
+    { code: "SAR_DOCUMENT_IDENTITY_MISMATCH" }
+  );
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual send keeps filename plan id binding fail-closed", async () => {
+  previewFileNames = ["Summary_Annual_Report_Acme_2025.pdf"];
+  const page = fakePage();
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025, mode: "send" },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Failed");
+  assert.equal(result.details.invalidFiles[0].hasPlanId, false);
+  assert.deepEqual(page.clicks, []);
+});
+
+test("summary annual send accepts the expanded document phrase with exact plan binding", async () => {
+  previewFileNames = ["Summary_Annual_Report_Acme_627_2025.pdf"];
+  const page = fakePage();
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025, mode: "send" },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Succeeded");
+  assert.equal(result.details.emailTriggered, true);
+  assert.equal(result.details.filenamePlanIdUnmatchedCount, 0);
+  assert.deepEqual(page.clicks, ["#triggerEmail"]);
 });
 
 test("summary annual rejects the batch when a later row is invalid", async () => {

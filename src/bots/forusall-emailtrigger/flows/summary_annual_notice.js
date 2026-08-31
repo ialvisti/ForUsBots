@@ -665,19 +665,26 @@ module.exports = async function runSummaryAnnualNotice({
   // falla cerrada; ni los nombres ni las URLs salen de este scope.
   jobCtx?.setStage?.("summary-annual:capture-preview-manifest");
   const manifest = await getPreviewManifest(page);
-  const invalidFiles = manifest
-    .map((entry, index) => {
-      const validation = validateSummaryAnnualFileName(
-        entry?.fileName,
-        reportYear,
-        meta.planId
-      );
-      return { rowNumber: index + 1, ...validation };
-    })
-    .filter(
-      ({ hasSar, hasReportYear, hasPlanId }) =>
-        !(hasSar && hasReportYear && hasPlanId)
+  const fileNameValidations = manifest.map((entry, index) => {
+    const validation = validateSummaryAnnualFileName(
+      entry?.fileName,
+      reportYear,
+      meta.planId
     );
+    return { rowNumber: index + 1, ...validation };
+  });
+  // verify_only may continue without a plan id in the filename so the stronger
+  // content gate can classify the exact PDF. Live send remains strict until a
+  // collision audit proves that portal identity + EIN + year is unique.
+  const requireFileNamePlanId = meta?.mode !== "verify_only";
+  const invalidFiles = fileNameValidations.filter(
+    ({ hasSar, hasReportYear, hasPlanId }) =>
+      !(hasSar && hasReportYear && (hasPlanId || !requireFileNamePlanId))
+  );
+  const filenamePlanIdUnmatchedCount = fileNameValidations.filter(
+    ({ hasSar, hasReportYear, hasPlanId }) =>
+      hasSar && hasReportYear && !hasPlanId
+  ).length;
   const countMatches = manifest.length === expectedTotal;
   const hasMissingFileName = manifest.some((entry) => !entry?.fileName);
   const hasMissingReference = manifest.some((entry) => !entry?.fileUrl);
@@ -706,6 +713,12 @@ module.exports = async function runSummaryAnnualNotice({
         invalidFiles,
       },
     };
+  }
+
+  if (meta?.mode === "verify_only" && filenamePlanIdUnmatchedCount > 0) {
+    jobCtx?.setStage?.("summary-annual:filename-plan-id-unmatched-advisory", {
+      count: filenamePlanIdUnmatchedCount,
+    });
   }
 
   const selection = await getPreviewParticipantSelections(page);
@@ -953,6 +966,7 @@ module.exports = async function runSummaryAnnualNotice({
         emailTriggered: false,
         reportYear,
         fileCount: manifest.length,
+        filenamePlanIdUnmatchedCount,
         triggerContractMatched: true,
         triggerContractVersion: triggerBinding.triggerContractVersion,
         documentGate,
@@ -1164,6 +1178,7 @@ module.exports = async function runSummaryAnnualNotice({
         emailTriggered: true,
         reportYear,
         fileCount: manifest.length,
+        filenamePlanIdUnmatchedCount,
         successConfirmed: true,
         triggerContractMatched: true,
         triggerContractVersion: triggerBinding.triggerContractVersion,

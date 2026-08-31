@@ -247,6 +247,29 @@ test("SAR filename validation binds numeric plan id and report year tokens", () 
     validateSummaryAnnualFileName("Acme_1627_SAR_2025.pdf", 2025, 627),
     { hasSar: true, hasReportYear: true, hasPlanId: false }
   );
+  assert.deepEqual(
+    validateSummaryAnnualFileName(
+      "Summary_Annual_Report_Acme_2025.pdf",
+      2025,
+      627
+    ),
+    { hasSar: true, hasReportYear: true, hasPlanId: false }
+  );
+  assert.deepEqual(
+    validateSummaryAnnualFileName("Annual_Report_Acme_2025.pdf", 2025, 627),
+    { hasSar: false, hasReportYear: true, hasPlanId: false }
+  );
+  for (const fileName of [
+    "Summary_Annual_Reporting_Acme_627_2025.pdf",
+    "Summary_X_Annual_Report_Acme_627_2025.pdf",
+    "Annual_Summary_Report_Acme_627_2025.pdf",
+  ]) {
+    assert.deepEqual(validateSummaryAnnualFileName(fileName, 2025, 627), {
+      hasSar: false,
+      hasReportYear: true,
+      hasPlanId: true,
+    });
+  }
 });
 
 test("fingerprint includes normalized common and only relevant conditional payload", () => {

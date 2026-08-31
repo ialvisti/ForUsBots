@@ -344,7 +344,11 @@ function validateSummaryAnnualFileName(fileName, reportYear, planId) {
   const year = String(reportYear || "");
   const normalizedPlanId = Number(planId);
   const plan = String(normalizedPlanId);
-  const hasSar = /(^|[^a-z0-9])sar([^a-z0-9]|$)/i.test(value);
+  const hasSar =
+    /(^|[^a-z0-9])sar([^a-z0-9]|$)/i.test(value) ||
+    /(^|[^a-z0-9])summary[^a-z0-9]+annual[^a-z0-9]+report([^a-z0-9]|$)/i.test(
+      value
+    );
   const hasReportYear =
     /^\d{4}$/.test(year) &&
     new RegExp(`(^|\\D)${year}(\\D|$)`).test(value);
