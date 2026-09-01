@@ -80,10 +80,119 @@ test("SAR gate failures expose only an allowlisted code and fixed message", asyn
 });
 
 test("unknown SAR-like codes are not promoted into the public code contract", () => {
-  const source = new Error("Internal failure");
+  const source = new Error("Plan name, EIN 12-3456789 and private stack");
   source.code = "SAR_NEW_UNREVIEWED_FAILURE";
   const normalized = normalizeFlowError(source);
   assert.equal(normalized.code, "EMAILTRIGGER_FAILED");
+  assert.equal(
+    normalized.message,
+    "Email trigger failed before a confirmed send"
+  );
+  assert.doesNotMatch(normalized.message, /Plan name|123456789|stack/);
+});
+
+for (const scenario of [
+  {
+    code: "SAR_PLAN_NOT_AVAILABLE",
+    message: "The plan ID is not available in the ForUsAll plan selector",
+  },
+  {
+    code: "SAR_PREVIEW_FILENAME_MISMATCH",
+    message:
+      "A Preview filename does not match the expected SAR plan ID and report year",
+  },
+  {
+    code: "SAR_PREVIEW_TABLE_TIMEOUT",
+    message:
+      "The Preview participant table did not finish loading before the timeout",
+  },
+]) {
+  test(`${scenario.code} exposes a distinct fixed message without raw details`, () => {
+    const normalized = normalizeFlowError(
+      Object.assign(new Error("private plan name, filename and OCR text"), {
+        code: scenario.code,
+        details: { private: "must not escape" },
+      })
+    );
+    assert.equal(normalized.code, scenario.code);
+    assert.equal(normalized.message, scenario.message);
+    assert.equal(normalized.details, undefined);
+    assert.doesNotMatch(normalized.message, /private|filename and OCR/);
+  });
+}
+
+test("structured flow results preserve only an allowlisted SAR cause", () => {
+  assert.throws(
+    () =>
+      assertFlowSucceeded({
+        result: "Failed",
+        code: "SAR_PREVIEW_FILENAME_MISMATCH",
+        reason: "private filename and plan name",
+        details: { invalidFiles: [{ rowNumber: 1 }] },
+      }),
+    (error) => {
+      assert.equal(error.code, "SAR_PREVIEW_FILENAME_MISMATCH");
+      assert.equal(
+        error.message,
+        "A Preview filename does not match the expected SAR plan ID and report year"
+      );
+      assert.deepEqual(error.details, { invalidFiles: [{ rowNumber: 1 }] });
+      assert.doesNotMatch(error.message, /private filename|plan name/);
+      return true;
+    }
+  );
+});
+
+test("structured generic failures never expose a raw reason", () => {
+  assert.throws(
+    () =>
+      assertFlowSucceeded({
+        result: "Failed",
+        code: "SAR_NEW_UNREVIEWED_FAILURE",
+        reason: "Plan name, EIN 12-3456789 and private portal response",
+        details: { diagnostic: "retained internally" },
+      }),
+    (error) => {
+      assert.equal(error.code, "EMAILTRIGGER_FAILED");
+      assert.equal(
+        error.message,
+        "Email trigger failed before a confirmed send"
+      );
+      assert.deepEqual(error.details, { diagnostic: "retained internally" });
+      assert.doesNotMatch(error.message, /Plan name|123456789|portal response/);
+      return true;
+    }
+  );
+});
+
+test("an allowlisted failure code cannot downgrade an unknown outcome", () => {
+  assert.throws(
+    () =>
+      assertFlowSucceeded({
+        result: "Unknown Outcome",
+        code: "SAR_PLAN_NOT_AVAILABLE",
+        reason: "private response after the trigger click",
+      }),
+    (error) => {
+      assert.equal(error.code, "EMAILTRIGGER_UNKNOWN_OUTCOME");
+      assert.equal(error.message, "Email trigger outcome could not be confirmed");
+      assert.doesNotMatch(error.message, /private response|trigger click/);
+      return true;
+    }
+  );
+});
+
+test("pre-coded generic errors are re-sanitized", () => {
+  const normalized = normalizeFlowError(
+    Object.assign(new Error("private plan and stack"), {
+      code: "EMAILTRIGGER_FAILED",
+      details: { diagnostic: "retained internally" },
+    })
+  );
+  assert.equal(normalized.code, "EMAILTRIGGER_FAILED");
+  assert.equal(normalized.message, "Email trigger failed before a confirmed send");
+  assert.deepEqual(normalized.details, { diagnostic: "retained internally" });
+  assert.doesNotMatch(normalized.message, /private plan|stack/);
 });
 
 for (const scenario of [
@@ -91,16 +200,19 @@ for (const scenario of [
     flowResult: "Failed",
     reason: "SAR filename mismatch",
     code: "EMAILTRIGGER_FAILED",
+    message: "Email trigger failed before a confirmed send",
   },
   {
     flowResult: "Empty Plan",
     reason: "No Participants were found in such plan.",
     code: "EMAILTRIGGER_EMPTY_PLAN",
+    message: "No participants were found for the selected plan",
   },
   {
     flowResult: "Unknown Outcome",
     reason: "No success confirmation after click",
     code: "EMAILTRIGGER_UNKNOWN_OUTCOME",
+    message: "Email trigger outcome could not be confirmed",
   },
 ]) {
   test(`${scenario.flowResult} becomes a failed job with a public code`, async () => {
@@ -140,7 +252,7 @@ for (const scenario of [
       state: "failed",
       error: {
         code: scenario.code,
-        message: scenario.reason,
+        message: scenario.message,
       },
     });
   });

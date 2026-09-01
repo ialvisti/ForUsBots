@@ -127,6 +127,7 @@ test("health documents the hardened email-trigger capabilities", () => {
       "emailTriggerIdempotency",
       "emailTriggerReplayOnly",
       "emailTriggerTerminalSemantics",
+      "emailTriggerFailureTaxonomy",
       "emailTriggerReportYear",
       "emailTriggerPortalPostGuard",
     ]);

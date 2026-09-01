@@ -1417,6 +1417,7 @@ test("summary annual validates the configured report year", async () => {
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PREVIEW_FILENAME_MISMATCH");
   assert.match(result.reason, /expected SAR plan and report year/);
   assert.equal(result.details.invalidFiles[0].hasReportYear, false);
   assert.equal(result.details.invalidFiles[0].hasPlanId, true);
@@ -1434,6 +1435,7 @@ test("summary annual rejects a filename bound to another plan id", async () => {
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PREVIEW_FILENAME_MISMATCH");
   assert.equal(result.details.invalidFiles[0].hasPlanId, false);
   assert.equal(result.details.invalidFiles[0].hasSar, true);
   assert.equal(result.details.invalidFiles[0].hasReportYear, true);
@@ -1600,6 +1602,7 @@ test("summary annual rejects a row-count race before clicking", async () => {
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PREVIEW_MANIFEST_CHANGED");
   assert.equal(result.reason, "Preview row count changed after selecting All");
   assert.equal(result.details.expectedTotal, 2);
   assert.equal(result.details.fileCount, 1);
@@ -1618,6 +1621,7 @@ test("summary annual rejects a row without a filename", async () => {
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PREVIEW_MANIFEST_INVALID");
   assert.equal(result.details.countMatches, true);
   assert.equal(result.details.hasMissingFileName, true);
   assert.deepEqual(page.clicks, []);
@@ -1641,6 +1645,7 @@ test("summary annual rejects an unchecked participant before OCR/click", async (
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PREVIEW_SELECTION_INVALID");
   assert.equal(result.details.checkedCount, 1);
   assert.deepEqual(page.clicks, []);
 });
@@ -1663,6 +1668,7 @@ test("summary annual rejects a disabled participant before OCR/click", async () 
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PREVIEW_SELECTION_INVALID");
   assert.equal(result.details.enabledCount, 0);
   assert.deepEqual(page.clicks, []);
 });
@@ -1961,6 +1967,7 @@ test("summary annual rejects hostile trigger URLs before verify_only or send", a
       });
 
       assert.equal(result.result, "Failed");
+      assert.equal(result.code, "SAR_TRIGGER_CONTRACT_MISMATCH");
       assert.match(
         result.reason,
         /^Trigger Email control did not match the verified portal contract \([a-z_]+\)$/
@@ -2011,6 +2018,7 @@ test("summary annual refuses a trigger binding that changes before the atomic cl
       });
 
       assert.equal(result.result, "Failed");
+      assert.equal(result.code, "SAR_TRIGGER_CONTRACT_MISMATCH");
       assert.equal(
         result.reason,
         "Trigger Email control changed after portal validation"
@@ -2037,6 +2045,7 @@ test("summary annual refuses manifest or selection drift at the atomic click", a
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PREVIEW_MANIFEST_CHANGED");
   assert.equal(
     result.reason,
     "Preview state changed after document verification"
@@ -2082,6 +2091,7 @@ test("summary annual rejects an explicit error alert after redirect", async () =
   });
 
   assert.equal(result.result, "Failed");
+  assert.equal(result.code, "SAR_PORTAL_TRIGGER_REJECTED");
   assert.equal(result.reason, "Email trigger failed with error alert");
   assert.deepEqual(result.details, { portalErrorDetected: true });
   assert.doesNotMatch(JSON.stringify(result.details), /Email delivery rejected/);

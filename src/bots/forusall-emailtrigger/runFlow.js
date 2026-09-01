@@ -71,6 +71,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
     if (!hasPlan) {
       return assertFlowSucceeded({
         result: "Failed",
+        code: "SAR_PLAN_NOT_AVAILABLE",
         reason: `PlanId '${planId}' not available in the plan selector`,
         details: {
           selector: planSel,

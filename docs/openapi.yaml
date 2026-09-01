@@ -1437,12 +1437,14 @@ components:
             - emailTriggerIdempotency
             - emailTriggerReplayOnly
             - emailTriggerTerminalSemantics
+            - emailTriggerFailureTaxonomy
             - emailTriggerReportYear
             - emailTriggerPortalPostGuard
           properties:
             emailTriggerIdempotency: { type: string, enum: [v1] }
             emailTriggerReplayOnly: { type: string, enum: [v1] }
             emailTriggerTerminalSemantics: { type: string, enum: [v1] }
+            emailTriggerFailureTaxonomy: { type: string, enum: [v1] }
             emailTriggerReportYear: { type: string, enum: [v1] }
             emailTriggerPortalPostGuard: { type: string, enum: [v1] }
             emailTriggerPreviewDocumentGate:

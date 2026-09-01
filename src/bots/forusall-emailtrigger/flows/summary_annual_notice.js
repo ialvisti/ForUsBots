@@ -607,6 +607,7 @@ module.exports = async function runSummaryAnnualNotice({
   if (reportYear === null) {
     return {
       result: "Failed",
+      code: "SAR_DOCUMENT_EXPECTATION_INVALID",
       reason: "Invalid reportYear for summary annual notice",
     };
   }
@@ -622,6 +623,7 @@ module.exports = async function runSummaryAnnualNotice({
   if (!ok) {
     return {
       result: "Failed",
+      code: "SAR_PREVIEW_LOAD_TIMEOUT",
       reason:
         "Preview didn't load within the configured timeout (slow plan load).",
       details: { waitedMs: tookMs },
@@ -647,6 +649,7 @@ module.exports = async function runSummaryAnnualNotice({
   if (tableState.state === "timeout") {
     return {
       result: "Failed",
+      code: "SAR_PREVIEW_TABLE_TIMEOUT",
       reason:
         "Preview table did not resolve to rows or empty within the timeout window.",
       details: { waitedMs: tableState.waitedMs },
@@ -697,11 +700,18 @@ module.exports = async function runSummaryAnnualNotice({
   ) {
     return {
       result: "Failed",
+      code: !countMatches
+        ? "SAR_PREVIEW_MANIFEST_CHANGED"
+        : hasMissingReference || hasMissingFileName
+        ? "SAR_PREVIEW_MANIFEST_INVALID"
+        : "SAR_PREVIEW_FILENAME_MISMATCH",
       reason:
         !countMatches
           ? "Preview row count changed after selecting All"
           : hasMissingReference
           ? "One or more preview rows has no document reference"
+          : hasMissingFileName
+          ? "One or more preview rows has no filename"
           : "One or more file names do not match the expected SAR plan and report year",
       details: {
         reportYear,
@@ -737,6 +747,7 @@ module.exports = async function runSummaryAnnualNotice({
   if (!selectionCountsMatch || !selectionFingerprint) {
     return {
       result: "Failed",
+      code: "SAR_PREVIEW_SELECTION_INVALID",
       reason: "Preview participant selection is incomplete or ambiguous",
       details: {
         expectedTotal,
@@ -948,6 +959,7 @@ module.exports = async function runSummaryAnnualNotice({
     );
     return {
       result: "Failed",
+      code: "SAR_TRIGGER_CONTRACT_MISMATCH",
       reason: `Trigger Email control did not match the verified portal contract (${triggerContractDiagnostic.failureCode})`,
       details: {
         triggerContractMatched: false,
@@ -1154,6 +1166,7 @@ module.exports = async function runSummaryAnnualNotice({
     if (alertState.errorMessage) {
       return {
         result: "Failed",
+        code: "SAR_PORTAL_TRIGGER_REJECTED",
         reason: "Email trigger failed with error alert",
         details: { portalErrorDetected: true },
       };
@@ -1189,6 +1202,7 @@ module.exports = async function runSummaryAnnualNotice({
     if (String(error?.message || "").includes("SAR_PRE_CLICK_STATE_CHANGED")) {
       return {
         result: "Failed",
+        code: "SAR_PREVIEW_MANIFEST_CHANGED",
         reason: "Preview state changed after document verification",
         details: {
           manifestStable: false,
@@ -1200,6 +1214,7 @@ module.exports = async function runSummaryAnnualNotice({
     if (String(error?.message || "").includes("SAR_TRIGGER_BINDING_CHANGED")) {
       return {
         result: "Failed",
+        code: "SAR_TRIGGER_CONTRACT_MISMATCH",
         reason: "Trigger Email control changed after portal validation",
         details: { triggerContractMatched: false },
       };

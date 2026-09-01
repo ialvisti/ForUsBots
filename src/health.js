@@ -6,6 +6,7 @@ const BASE_CAPABILITIES = Object.freeze({
   emailTriggerIdempotency: "v1",
   emailTriggerReplayOnly: "v1",
   emailTriggerTerminalSemantics: "v1",
+  emailTriggerFailureTaxonomy: "v1",
   emailTriggerReportYear: "v1",
   emailTriggerPortalPostGuard: "v1",
 });
