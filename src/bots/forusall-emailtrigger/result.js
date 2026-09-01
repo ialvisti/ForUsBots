@@ -9,6 +9,7 @@ const PUBLIC_EMPTY_PLAN_MESSAGE =
   "No participants were found for the selected plan";
 const PUBLIC_UNKNOWN_OUTCOME_MESSAGE =
   "Email trigger outcome could not be confirmed";
+const POST_CLICK_UNKNOWN_OUTCOME_CODE = "SAR_PORTAL_TRIGGER_REJECTED";
 const PUBLIC_SAR_FAILURE_MESSAGE =
   "SAR preview document verification failed";
 const PUBLIC_SAR_FAILURE_CODES = Object.freeze([
@@ -21,7 +22,6 @@ const PUBLIC_SAR_FAILURE_CODES = Object.freeze([
   "SAR_DOCUMENT_VERIFIER_RESPONSE_INVALID",
   "SAR_PLAN_NOT_AVAILABLE",
   "SAR_PLAN_IDENTITY_FAILED",
-  "SAR_PORTAL_TRIGGER_REJECTED",
   "SAR_PREVIEW_CONTEXT_MISMATCH",
   "SAR_PREVIEW_DOWNLOAD_FAILED",
   "SAR_PREVIEW_FILENAME_MISMATCH",
@@ -44,8 +44,6 @@ const publicSarFailureCodeSet = new Set(PUBLIC_SAR_FAILURE_CODES);
 const PUBLIC_SAR_FAILURE_MESSAGES = Object.freeze({
   SAR_PLAN_NOT_AVAILABLE:
     "The plan ID is not available in the ForUsAll plan selector",
-  SAR_PORTAL_TRIGGER_REJECTED:
-    "ForUsAll returned an error instead of confirming the SAR email trigger",
   SAR_PREVIEW_FILENAME_MISMATCH:
     "A Preview filename does not match the expected SAR plan ID and report year",
   SAR_PREVIEW_LOAD_TIMEOUT:
@@ -84,12 +82,18 @@ function sanitizedSarFailure(error) {
 
 function createFlowError(result) {
   const status = String(result?.result || "Failed");
+  const postClickUnknownOutcome =
+    result?.code === POST_CLICK_UNKNOWN_OUTCOME_CODE;
   const requestedCode =
-    status === "Failed" && isPublicSarFailureCode(result?.code)
+    !postClickUnknownOutcome &&
+    status === "Failed" &&
+    isPublicSarFailureCode(result?.code)
       ? result.code
       : null;
   const code =
-    status === "Empty Plan"
+    postClickUnknownOutcome
+      ? UNKNOWN_OUTCOME_CODE
+      : status === "Empty Plan"
       ? EMPTY_PLAN_CODE
       : status === "Unknown Outcome"
       ? UNKNOWN_OUTCOME_CODE
@@ -105,7 +109,8 @@ function createFlowError(result) {
   const error = new Error(message);
   error.name = "EmailTriggerFlowError";
   error.code = code;
-  error.flowResult = status;
+  error.flowResult =
+    code === UNKNOWN_OUTCOME_CODE ? "Unknown Outcome" : status;
   if (result?.details !== undefined) error.details = result.details;
   return error;
 }
@@ -125,6 +130,13 @@ function normalizeFlowError(error) {
   if (knownStatus) {
     return createFlowError({
       result: knownStatus,
+      details: error.details,
+    });
+  }
+  if (error?.code === POST_CLICK_UNKNOWN_OUTCOME_CODE) {
+    return createFlowError({
+      result: "Unknown Outcome",
+      code: POST_CLICK_UNKNOWN_OUTCOME_CODE,
       details: error.details,
     });
   }

@@ -182,6 +182,43 @@ test("an allowlisted failure code cannot downgrade an unknown outcome", () => {
   );
 });
 
+test("a post-click portal rejection code is always an unknown outcome", () => {
+  assert.throws(
+    () =>
+      assertFlowSucceeded({
+        result: "Failed",
+        code: "SAR_PORTAL_TRIGGER_REJECTED",
+        reason: "private portal error alert",
+        details: {
+          stage: "post-click-error-alert",
+          failureCode: "SAR_PORTAL_TRIGGER_REJECTED",
+        },
+      }),
+    (error) => {
+      assert.equal(error.code, "EMAILTRIGGER_UNKNOWN_OUTCOME");
+      assert.equal(error.flowResult, "Unknown Outcome");
+      assert.equal(error.message, "Email trigger outcome could not be confirmed");
+      assert.deepEqual(error.details, {
+        stage: "post-click-error-alert",
+        failureCode: "SAR_PORTAL_TRIGGER_REJECTED",
+      });
+      assert.doesNotMatch(error.message, /private portal|error alert/);
+      return true;
+    }
+  );
+
+  const normalized = normalizeFlowError(
+    Object.assign(new Error("private post-click portal response"), {
+      code: "SAR_PORTAL_TRIGGER_REJECTED",
+      details: { stage: "post-click-error-alert" },
+    })
+  );
+  assert.equal(normalized.code, "EMAILTRIGGER_UNKNOWN_OUTCOME");
+  assert.equal(normalized.flowResult, "Unknown Outcome");
+  assert.equal(normalized.message, "Email trigger outcome could not be confirmed");
+  assert.deepEqual(normalized.details, { stage: "post-click-error-alert" });
+});
+
 test("pre-coded generic errors are re-sanitized", () => {
   const normalized = normalizeFlowError(
     Object.assign(new Error("private plan and stack"), {

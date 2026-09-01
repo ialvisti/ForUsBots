@@ -1165,10 +1165,14 @@ module.exports = async function runSummaryAnnualNotice({
 
     if (alertState.errorMessage) {
       return {
-        result: "Failed",
-        code: "SAR_PORTAL_TRIGGER_REJECTED",
-        reason: "Email trigger failed with error alert",
-        details: { portalErrorDetected: true },
+        result: "Unknown Outcome",
+        reason:
+          "ForUsAll returned an error after the email trigger was initiated",
+        details: {
+          stage: "post-click-error-alert",
+          failureCode: "SAR_PORTAL_TRIGGER_REJECTED",
+          portalErrorDetected: true,
+        },
       };
     }
 
@@ -1225,7 +1229,9 @@ module.exports = async function runSummaryAnnualNotice({
       details: { stage: "post-click-exception" },
     };
   } finally {
-    triggerResponseObserver?.cancel();
+    try {
+      triggerResponseObserver?.cancel();
+    } catch {}
     if (triggerRequestGuard) {
       await triggerRequestGuard.remove().catch(() => {});
     }

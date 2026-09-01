@@ -101,6 +101,9 @@ require.cache[planIdentityPath] = {
 
 const runSummaryAnnualNotice = require("../../src/bots/forusall-emailtrigger/flows/summary_annual_notice");
 const {
+  assertFlowSucceeded,
+} = require("../../src/bots/forusall-emailtrigger/result");
+const {
   clickVerifiedSummaryTrigger,
   inspectSummaryTriggerControl,
   isTrustedTriggerEmailsUrl,
@@ -421,6 +424,7 @@ function fakePage({
   preClickStateChanged = false,
   postRedirectRequest = null,
   postClickUrl = "https://employer.forusall.com/trigger_emails",
+  responseObserverCleanupError = null,
 } = {}) {
   const clicks = [];
   const dialogAccepts = [];
@@ -500,6 +504,9 @@ function fakePage({
       removedListeners.push(event);
       if (event === "dialog" && dialogHandler === handler) dialogHandler = null;
       if (event === "response") responseHandlers.delete(handler);
+      if (event === "response" && responseObserverCleanupError) {
+        throw responseObserverCleanupError;
+      }
     },
     async click(selector) {
       clicks.push(selector);
@@ -2077,7 +2084,7 @@ test("summary annual never accepts a success alert from another origin", async (
   assert.doesNotMatch(JSON.stringify(result), /Succeeded/);
 });
 
-test("summary annual rejects an explicit error alert after redirect", async () => {
+test("summary annual treats an explicit error alert after click as unknown", async () => {
   previewFileNames = ["Acme_627_SAR_2025.pdf"];
   const page = fakePage({
     alertType: "error",
@@ -2090,11 +2097,57 @@ test("summary annual rejects an explicit error alert after redirect", async () =
     jobCtx: null,
   });
 
-  assert.equal(result.result, "Failed");
-  assert.equal(result.code, "SAR_PORTAL_TRIGGER_REJECTED");
-  assert.equal(result.reason, "Email trigger failed with error alert");
-  assert.deepEqual(result.details, { portalErrorDetected: true });
+  assert.equal(result.result, "Unknown Outcome");
+  assert.equal(result.code, undefined);
+  assert.equal(
+    result.reason,
+    "ForUsAll returned an error after the email trigger was initiated"
+  );
+  assert.deepEqual(result.details, {
+    stage: "post-click-error-alert",
+    failureCode: "SAR_PORTAL_TRIGGER_REJECTED",
+    portalErrorDetected: true,
+  });
   assert.doesNotMatch(JSON.stringify(result.details), /Email delivery rejected/);
+  assert.throws(
+    () => assertFlowSucceeded(result),
+    (error) => {
+      assert.equal(error.code, "EMAILTRIGGER_UNKNOWN_OUTCOME");
+      assert.equal(error.flowResult, "Unknown Outcome");
+      assert.deepEqual(error.details, result.details);
+      return true;
+    }
+  );
+});
+
+test("response observer cleanup cannot overwrite a post-click outcome", async () => {
+  previewFileNames = ["Acme_627_SAR_2025.pdf"];
+  const responses = successfulJavascriptTriggerResponses({
+    postData: `${DEFAULT_TRIGGER_POST_DATA}&comm_method=paper`,
+  });
+  const page = fakePage({
+    triggerHref: "/preview",
+    triggerJqueryHandlerMatched: true,
+    triggerDirectClickHandlerCount: 1,
+    triggerResponses: [responses.processResponse, responses.redirectResponse],
+    responseObserverCleanupError: new Error("observer cleanup failed"),
+  });
+
+  const result = await runSummaryAnnualNotice({
+    page,
+    selectors: {},
+    meta: { planId: 627, reportYear: 2025 },
+    jobCtx: null,
+  });
+
+  assert.equal(result.result, "Unknown Outcome");
+  assert.deepEqual(result.details, {
+    stage: "pre-network-request-contract",
+    failureCode: "trigger_request_shape_mismatch",
+  });
+  assert.equal(page.abortedRequestCount, 1);
+  assert.deepEqual(page.removedListeners, ["response", "dialog"]);
+  assert.equal(page.removedRequestGuardRoutes.length, 1);
 });
 
 test("summary annual rejects a redirect without a success confirmation", async () => {
