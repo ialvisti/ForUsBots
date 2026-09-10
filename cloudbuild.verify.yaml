@@ -6,7 +6,8 @@ steps:
       - -ceu
       - |
         npm ci
-        npm test
+        npm exec --no -- playwright install --with-deps chromium
+        FORUSBOTS_REQUIRE_DOM_TESTS=1 npm test
         npm run lint
 
   - id: container-build

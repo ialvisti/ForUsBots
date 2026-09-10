@@ -1,5 +1,7 @@
 // src/extractors/forusall-participant/modules/savings_rate.js
 
+const { money, balance } = require("../valueContracts");
+
 // Campos soportados (nombres EXACTOS como se mostrarán en el JSON)
 const SUPPORTED_FIELDS = [
   "Current Pre-tax Percent",
@@ -150,43 +152,31 @@ async function extractSavingsRate(page, opts = {}) {
   let data = result.data || {};
   const warnings = [];
 
-  // 1) Account Balance → separa "(as of ...)" y crea Account Balance As Of
-  if (typeof data["Account Balance"] === 'string') {
-    const raw = data["Account Balance"];
-    let asOf = null;
-    const m = raw.match(/\(\s*as of\s*([^)]+?)\s*\)\s*$/i);
-    if (m) {
-      asOf = m[1].trim();
-    } else {
-      const m2 = raw.match(/\(\s*([^)]+?)\s*\)\s*$/);
-      if (m2) asOf = m2[1].trim();
-    }
-    const main = raw.replace(/\s*\([^)]*\)\s*$/, '').trim();
-    data["Account Balance"] = main;
-    if (asOf) data["Account Balance As Of"] = asOf;
+  const diagnostics = { dataState: "ok", fields: {}, completeness: {
+    complete: true, truncated: false, observedCount: Object.keys(data).length, returnedCount: 0,
+  } };
+  if (Object.prototype.hasOwnProperty.call(data, "Account Balance")) {
+    const parsed = balance(data["Account Balance"]);
+    data["Account Balance"] = parsed.amount;
+    data["Account Balance As Of"] = parsed.asOf;
+    diagnostics.fields["Account Balance"] = { dataState: parsed.dataState, sourceAsOf: parsed.asOf };
   }
-
-  // 2) Employer Match Balance → extrae "(... vested)" y crea Employer Match Vested Balance
-  if (typeof data["Employer Match Balance"] === 'string') {
+  if (typeof data["Employer Match Balance"] === "string") {
     const raw = data["Employer Match Balance"];
-    const vestedMatch = raw.match(/\(\s*(\$\s*[\d,]+(?:\.\d{2})?)\s*vested\s*\)/i);
-    if (vestedMatch) {
-      data["Employer Match Vested Balance"] = vestedMatch[1].replace(/\s+/g, '');
-    }
-    data["Employer Match Balance"] = raw.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    const vested = raw.match(/\(\s*(\$\s*[\d,]+(?:\.\d{1,2})?)\s*vested\s*\)/i);
+    data["Employer Match Balance"] = money(raw.replace(/\s*\([^)]*\)\s*$/, ""));
+    data["Employer Match Vested Balance"] = vested ? money(vested[1]) : null;
   }
-
-  // 3) Normaliza a número TODO valor que traiga "$"
-  const toNumber = (s) => {
-    const num = parseFloat(String(s).replace(/[^0-9.-]/g, ''));
-    return Number.isFinite(num) ? num : s;
-    // (dejamos el valor original si no es parseable)
-  };
-
-  for (const [k, v] of Object.entries({ ...data })) {
-    if (typeof v === 'string' && v.includes('$')) {
-      data[k] = toNumber(v);
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === "string" && value.includes("$")) data[key] = money(value);
+    if (/Balance$/.test(key)) {
+      diagnostics.fields[key] ||= { dataState: data[key] === null ? "missing" : "ok", sourceAsOf: null };
+      if (data[key] === null) diagnostics.completeness.complete = false;
     }
+  }
+  if (Object.values(diagnostics.fields).some(field => field.dataState !== "ok")) {
+    diagnostics.completeness.complete = false;
+    diagnostics.completeness.reason = "balance_value_unavailable";
   }
 
   // Filtrado por campos solicitados (si 'fields' viene en la request)
@@ -203,7 +193,8 @@ async function extractSavingsRate(page, opts = {}) {
     data = filtered;
   }
 
-  return { data, warnings, unknownFields };
+  diagnostics.completeness.returnedCount = Object.keys(data).length;
+  return { data, warnings, unknownFields, diagnostics };
 }
 
 module.exports = Object.assign(extractSavingsRate, { SUPPORTED_FIELDS });

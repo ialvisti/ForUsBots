@@ -6,8 +6,10 @@ module.exports = function formatPublic(result) {
 
   const out = { planId: result.data.planId || null };
 
+  const modules = {};
   for (const m of result.data.modules || []) {
-    if (m && m.status === "ok" && m.data && m.key) {
+    if (m?.key && m.diagnostics) modules[m.key] = m.diagnostics;
+    if (m && ["ok", "partial"].includes(m.status) && m.data && m.key) {
       out[m.key] = m.data;
     }
   }
@@ -19,6 +21,8 @@ module.exports = function formatPublic(result) {
   if (result.data.planHistory != null) {
     out.planHistory = result.data.planHistory;
   }
+
+  if (Object.keys(modules).length) out.extractionDiagnostics = { schemaVersion: 1, modules };
 
   return out;
 };

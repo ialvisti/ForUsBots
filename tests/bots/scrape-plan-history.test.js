@@ -154,3 +154,23 @@ test("public formatter preserves legacy notes and structured plan history", () =
   assert.deepEqual(result.notes, ["This plan will terminate/deconvert"]);
   assert.deepEqual(result.planHistory, planHistory);
 });
+
+test('history declares limits, records all panel counts, and keeps timeline separate', async () => {
+ const notes=Array.from({length:24},(_,i)=>historyEntry([`The snapshot is updated on 2025-10-${String(i+1).padStart(2,'0')} with the following changes`,`Notes: Deconversion administrative fact ${i}`]));
+ const timeline=historyPanel('Timeline',[historyEntry(['Effective on 2020-09-01 with the following changes','Changes: active : true to false'])]);
+ const result=await scrapePlanFlow.extractPlanHistory(pageFor({panels:[historyPanel('Notes',notes),timeline]}));
+ assert.equal(result.completeness.complete,false);
+ assert.equal(result.completeness.truncated,true);
+ assert.equal(result.completeness.observedCount,25);
+ assert.equal(result.completeness.panels.notes.observedCount,24);
+ assert.equal(result.completeness.panels.timeline.returnedCount,1);
+ assert.equal(result.entries.some(e=>e.source==='timeline'),true);
+ const note=result.entries.find(e=>e.source==='notes');
+ assert.equal(note.recordedAt,note.occurredAt);
+ assert.equal(note.effectiveOn,undefined);
+});
+test('unrecognized history rows are parsing failures, not empty history',async()=>{
+ const result=await scrapePlanFlow.extractPlanHistory(pageFor({panels:[historyPanel('Notes',[historyEntry(['Loading failed'])])]}));
+ assert.equal(result.extractionStatus,'parse_error');
+ assert.equal(result.completeness.complete,false);
+});

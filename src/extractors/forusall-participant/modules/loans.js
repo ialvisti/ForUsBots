@@ -1,5 +1,7 @@
 // src/extractors/forusall-participant/modules/loans.js
 
+const { money, balance } = require("../valueContracts");
+
 // Campos soportados (nombres EXACTOS como se mostrarán en el JSON)
 const SUPPORTED_FIELDS = [
   "Participant Site",
@@ -128,26 +130,33 @@ async function extractLoans(page, opts = {}) {
     const historyBlock = blocks[blocks.length - 1] || null; // el segundo form-bound (después de los pares)
 
     const historyKey = "Loan History";
+    let historyState = "panel_missing";
+    let observedCount = 0;
+    let returnedCount = 0;
+    data[historyKey] = null;
 
     if (historyBlock) {
       // (A) Caso SIN historial: el bloque contiene explícitamente el string
       const hasNoHistoryLiteral = Array
         .from(historyBlock.querySelectorAll(".col-md-12"))
-        .some(el => /(^|\s)No\s+loan\s+history\s+found(\s|$)/i.test(tidy(el.textContent || "")));
+        .some(el => /(?:^|\s)(?:No\s+loan\s+history\s+found|There's no Loan History for this Participant)(?:\s|$)/i.test(tidy(el.textContent || "")));
 
       if (hasNoHistoryLiteral) {
         data[historyKey] = "There's no Loan History for this Participant";
+        historyState = "empty";
       } else {
         // (B) Caso CON historial: parsear filas con 6 .col-md-2 sin <label>
         const candidateRows = Array.from(historyBlock.querySelectorAll(".row.field.form-group"))
           .filter((row) => {
             if (row.querySelector("label")) return false; // descarta el header de labels
-            const cols = row.querySelectorAll(".col-md-2");
-            return cols.length >= 6;
+            const cols = getImmediateCols(row).filter(col => /\bcol-md-2\b/.test(col.className));
+            return cols.length > 0;
           });
 
+        observedCount = candidateRows.length;
         const records = candidateRows.map((row) => {
-          const cols = Array.from(row.querySelectorAll(".col-md-2")).slice(0, 6);
+          const cols = getImmediateCols(row).filter(col => /\bcol-md-2\b/.test(col.className));
+          if (cols.length !== 6) return null;
           const colText = (i) => colValueWithoutLabels(cols[i] || null);
           const obj = {
             "Start Date": colText(0),
@@ -161,25 +170,37 @@ async function extractLoans(page, opts = {}) {
           return Object.values(obj).some(v => v !== "") ? obj : null;
         }).filter(Boolean);
 
-        data[historyKey] = records.length ? records : "There's no Loan History for this Participant";
+        data[historyKey] = records.length ? records : null;
+        returnedCount = records.length;
+        historyState = records.length && records.length === observedCount ? "ok" : "parse_error";
       }
     } // si no hay bloque, simplemente no seteamos la key
 
-    return { data };
+    // A visible next-page control means the current DOM is only a slice.
+    // Do not infer no outstanding loans from the slice already loaded.
+    const hasNextPage = Array.from(root.querySelectorAll('.paginate_button.next, .pagination .next, a[rel="next"]'))
+      .some(el => !el.classList.contains('disabled') && el.getAttribute('aria-disabled') !== 'true');
+    const complete = ["ok", "empty"].includes(historyState) && !hasNextPage;
+    return { data, diagnostics: {
+      dataState: complete ? "ok" : historyState,
+      completeness: { complete, truncated: hasNextPage, observedCount, returnedCount,
+        ...(!complete ? { reason: hasNextPage ? "loan_history_pagination_pending" : "loan_history_not_confirmed" } : {}) },
+      fields: { [historyKey]: { dataState: historyState } },
+    } };
   }, { scopeSel: scope });
 
   // ---------- Post-procesamiento: normalización numérica para valores con "$" ----------
   let data = result.data || {};
   const warnings = [];
 
-  const toNumber = (s) => {
-    const num = parseFloat(String(s).replace(/[^0-9.-]/g, ''));
-    return Number.isFinite(num) ? num : s;
-  };
-
-  // Top-level: Account Balance (si trae $)
-  if (typeof data["Account Balance"] === "string" && data["Account Balance"].includes("$")) {
-    data["Account Balance"] = toNumber(data["Account Balance"]);
+  const diagnostics = result.diagnostics;
+  if (Object.prototype.hasOwnProperty.call(data, "Account Balance")) {
+    const parsed = balance(data["Account Balance"]);
+    data["Account Balance"] = parsed.amount;
+    diagnostics.fields["Account Balance"] = {
+      dataState: parsed.dataState, sourceAsOf: data["Account Balance As Of"] || parsed.asOf,
+    };
+    if (parsed.asOf) data["Account Balance As Of"] = parsed.asOf;
   }
 
   // Loan History: convertir montos a número si existe array
@@ -187,8 +208,12 @@ async function extractLoans(page, opts = {}) {
     data["Loan History"] = data["Loan History"].map(rec => {
       if (rec && typeof rec === 'object') {
         for (const key of ["Repayment Amount", "Principal", "Outstanding Balance"]) {
-          if (typeof rec[key] === "string" && rec[key].includes("$")) {
-            rec[key] = toNumber(rec[key]);
+          rec[key] = money(rec[key]);
+          if (rec[key] === null) {
+            diagnostics.fields["Loan History"].dataState = "parse_error";
+            diagnostics.dataState = "parse_error";
+            diagnostics.completeness.complete = false;
+            diagnostics.completeness.reason = "invalid_loan_amount";
           }
         }
       }
@@ -210,7 +235,16 @@ async function extractLoans(page, opts = {}) {
     data = filtered;
   }
 
-  return { data, warnings, unknownFields };
+  if (fields && !fields.includes("Loan History")) {
+    delete diagnostics.fields["Loan History"];
+    const complete = !unknownFields.length && Object.values(data).every(value => value !== null);
+    diagnostics.dataState = complete ? "ok" : "missing";
+    diagnostics.completeness = {
+      complete, truncated: false, observedCount: Object.keys(data).length, returnedCount: Object.keys(data).length,
+      scope: { fields },
+    };
+  }
+  return { data, warnings, unknownFields, diagnostics };
 }
 
 module.exports = Object.assign(extractLoans, { SUPPORTED_FIELDS });

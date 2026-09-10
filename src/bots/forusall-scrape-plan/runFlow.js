@@ -10,6 +10,7 @@ const {
   gotoFast,
 } = require("../../engine/sharedContext");
 const { saveEvidence } = require("../../engine/evidence");
+const runModule = require("../../extractors/runModule");
 const { getSpec } = require("../../providers/forusall/planMap");
 const {
   getExtractor,
@@ -133,10 +134,12 @@ async function extractPlanHistory(page) {
     current: { status: null, active: null, statusAsOf: null },
     entries: [],
     notes: [],
+    completeness: { complete: false, truncated: false, observedCount: 0, returnedCount: 0, reason: status },
   });
 
   try {
     return await page.evaluate(() => {
+      // Per-panel limits prevent Notes from crowding Timeline out.
       const MAX_ENTRIES = 20;
       const MAX_NOTES = 20;
       const MAX_NOTE_CHARS = 500;
@@ -233,7 +236,7 @@ async function extractPlanHistory(page) {
         ).toLowerCase();
         if (heading !== "notes" && heading !== "timeline") continue;
         const body = panel.querySelector(".notes-panel");
-        if (body) historyPanels.push({ source: heading, body });
+        if (body) historyPanels.push({ source: heading, body, panel });
       }
       historyPanels.sort((left, right) => {
         if (left.source === right.source) return 0;
@@ -251,46 +254,78 @@ async function extractPlanHistory(page) {
           },
           entries: [],
           notes: [],
+          completeness: { complete: false, truncated: false, observedCount: 0, returnedCount: 0, reason: "panel_missing" },
         };
       }
 
       const notes = [];
       const entries = [];
-      for (const { source, body } of historyPanels) {
+      const completeness = {
+        complete: true, truncated: false, observedCount: 0, returnedCount: 0,
+        ordering: "recorded_desc_per_source_then_timeline_effective_desc", panels: {},
+      };
+      let parseErrors = 0;
+      let noteTruncated = false;
+      for (const { source, body, panel } of historyPanels) {
         const eventNodes = [...body.querySelectorAll(":scope > .scrollbar > div")];
+        const parsedEntries = [];
+        const parsedNotes = [];
+        const hasNextPage = !!panel.querySelector?.(".paginate_button.next:not(.disabled), a[rel='next'], [aria-busy='true']");
+        const panelCount = { observedCount: eventNodes.length, returnedCount: 0, hasNextPage };
+        completeness.panels[source] = panelCount;
+        completeness.observedCount += eventNodes.length;
+        if (hasNextPage) {
+          completeness.complete = false;
+          completeness.reason = "unread_page_or_loading";
+        }
+        // A present container with unrecognized content is not an empty list.
+        if (!eventNodes.length && tidy(body.textContent, 3000)) parseErrors += 1;
         for (const eventNode of eventNodes) {
           const items = [...eventNode.querySelectorAll("li")]
-            .map((li) => tidy(li.textContent, 3000))
-            .filter(Boolean);
-          if (!items.length) continue;
+            .map((li) => tidy(li.textContent, 3000)).filter(Boolean);
           const noteItem = items.find((item) => /^Notes\s*:/i.test(item));
-          const note = noteItem
-            ? tidy(noteItem.replace(/^Notes\s*:\s*/i, ""), MAX_NOTE_CHARS)
-            : null;
-          if (source === "notes" && note && !notes.includes(note) && notes.length < MAX_NOTES) {
-            notes.push(note);
-          }
           const changesItem = items.find((item) => /^Changes\s*:/i.test(item));
-          const changes = changesItem ? parseChanges(changesItem) : [];
-          const lifecycleNote = !!note && /terminat|deconvert|last payroll|force[ -]?out|freeze|conversion/i.test(note);
-          if (!changes.length && !lifecycleNote) continue;
           const date = eventDate(items, source);
-          const entry = {
-            source,
-            note,
-            changes,
-          };
-          if (source === "notes") entry.occurredAt = date;
+          if (!noteItem && !changesItem && !date) { parseErrors += 1; continue; }
+          const rawNote = noteItem ? noteItem.replace(/^Notes\s*:\s*/i, "") : "";
+          const note = rawNote ? tidy(rawNote, MAX_NOTE_CHARS) : null;
+          if (rawNote.length > MAX_NOTE_CHARS) noteTruncated = true;
+          if (source === "notes" && note) parsedNotes.push({ note, date });
+          const changes = changesItem ? parseChanges(changesItem) : [];
+          const lifecycleNote = !!note && /terminat|deconvert|last payroll|force[ -]?out|freeze|conversion|transfer|custodi|record[ -]?keeper|distribution.*hold|hold.*distribution/i.test(note);
+          if (!changes.length && !lifecycleNote) continue;
+          const entry = { source, note, changes, noteTruncated: rawNote.length > MAX_NOTE_CHARS };
+          if (source === "notes") { entry.occurredAt = date; entry.recordedAt = date; }
           if (source === "timeline") entry.effectiveOn = date;
-          entries.push(entry);
-          if (entries.length >= MAX_ENTRIES) break;
+          parsedEntries.push(entry);
         }
-        if (entries.length >= MAX_ENTRIES) break;
+        parsedEntries.sort((a, b) => (b.recordedAt || b.effectiveOn || "").localeCompare(a.recordedAt || a.effectiveOn || ""));
+        parsedNotes.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        const selected = parsedEntries.slice(0, MAX_ENTRIES);
+        entries.push(...selected);
+        panelCount.returnedCount = selected.length;
+        panelCount.eligibleCount = parsedEntries.length;
+        if (parsedEntries.length > MAX_ENTRIES || parsedNotes.length > MAX_NOTES) {
+          completeness.complete = false;
+          completeness.truncated = true;
+          completeness.reason = "entry_limit";
+        }
+        for (const item of parsedNotes.slice(0, MAX_NOTES)) {
+          if (!notes.includes(item.note)) notes.push(item.note);
+        }
+      }
+      completeness.returnedCount = entries.length;
+      if (parseErrors || noteTruncated) {
+        completeness.complete = false;
+        completeness.truncated = completeness.truncated || noteTruncated;
+        completeness.reason = parseErrors ? "unparsed_records" : "note_length_limit";
+        completeness.unparsedCount = parseErrors;
       }
 
       return {
         schemaVersion: 1,
-        extractionStatus: entries.length || notes.length ? "ok" : "empty",
+        extractionStatus: entries.length || notes.length ? "ok" : (parseErrors ? "parse_error" : "empty"),
+        completeness,
         current: {
           status: readControl("#status"),
           active: readControl("#active"),
@@ -468,68 +503,19 @@ async function runFlow({ meta, jobCtx }) {
       jobCtx?.setStage?.(`module:${key}`, { action: "locate-panel" });
 
       const panelSel = spec.panelSelector;
-      let source = "static"; // OPTIMIZATION: All data is pre-loaded, no navigation needed
-      let panelOk = true; // OPTIMIZATION: Always true since all panels exist in DOM
-
-      // OPTIMIZATION: All tab content is pre-loaded in DOM, no need to check visibility or navigate
-      // All form fields are accessible via document.querySelector() regardless of active tab
-      
-      // Verificar que el panel existe en el DOM (quick check)
-      if (panelSel) {
-        try {
-          await page.waitForSelector(panelSel, {
-            timeout: 800, // OPTIMIZATION: Reduced from 1200ms
-            state: "attached",
-          });
-        } catch {}
-      }
-
-      // OPTIMIZATION: Verificar selector ready si existe (sin waits adicionales)
-      if (spec.ready?.selector) {
-        try {
-          await page.waitForSelector(spec.ready.selector, {
-            timeout: 800, // OPTIMIZATION: Reduced from 3000ms
-            state: "attached",
-          });
-        } catch {}
-      }
-
-      if (!panelOk && !getExtractor(key)) {
-        out.modules.push({
-          key,
-          status: "error",
-          source,
-          error: "panel_not_found",
-        });
+      const moduleResult = await runModule(page, {
+        key, spec, requestedFields, extractor: getExtractor(key), openModule,
+        timeoutMs: PANEL_WAIT_MS, allowSnapshotOnly: returnMode !== "data",
+      });
+      const panelOk = moduleResult.status !== "error";
+      if (!panelOk) {
+        out.ok = false;
+        out.errors.push({ key, error: moduleResult.error });
+        out.modules.push(moduleResult);
         continue;
       }
-
-      // Data
-      jobCtx?.setStage?.(`module:${key}`, { action: "extract-data" });
-      
-      // OPTIMIZATION: No need to wait, data is already in DOM
-      
-      let data;
-      let extractorWarnings = [];
-      let unknownFields = [];
-      const extractor = getExtractor(key);
-      if (extractor) {
-        try {
-          const r = await extractor(page, {
-            scope: panelSel || null,
-            fields: requestedFields || null,
-          });
-          data = (r && r.data) || undefined;
-          extractorWarnings = (r && r.warnings) || [];
-          unknownFields =
-            r && Array.isArray(r.unknownFields) ? r.unknownFields : [];
-        } catch (e) {
-          out.errors.push({
-            key,
-            error: "extractor_failed",
-            message: String((e && e.message) || e),
-          });
-        }
+      if (moduleResult.status === "partial") {
+        out.warnings.push({ key, type: "partial_extraction" });
       }
 
       // Snapshot (si aplica)
@@ -558,13 +544,7 @@ async function runFlow({ meta, jobCtx }) {
       }
 
       out.modules.push({
-        key,
-        status: "ok",
-        source,
-        requestedFields: requestedFields || null,
-        unknownFields: unknownFields.length ? unknownFields : undefined,
-        data,
-        extractorWarnings,
+        ...moduleResult,
         html,
         text,
         evidencePath: shot,

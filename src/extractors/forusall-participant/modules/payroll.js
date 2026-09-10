@@ -6,7 +6,7 @@
 //   ["years:all"]             → todos los disponibles
 //   ["Payroll 2024"]          → tabla del 2024 (campos dinámicos)
 // Si NO se especifica nada de años, se devuelve únicamente el año más reciente
-// (primer .payroll-year-group del DOM).
+// (año máximo disponible). Latest Payroll se calcula por fecha máxima del alcance leído.
 
 // Campos soportados "estáticos"
 const SUPPORTED_FIELDS = [
@@ -121,17 +121,20 @@ async function extractPayroll(page, opts = {}) {
       if (a && tidy(a.textContent)) return tidy(a.textContent);
       return tidy(el.innerText || el.textContent || "");
     }
+    let invalidValues = 0;
     function moneyToNumber(s) {
       const t = tidy(s).replace(/\$/g, "").replace(/,/g, "");
-      if (t === "" || t === "-") return 0;
+      if (t === "" || t === "-") return null;
       const n = Number(t);
-      return Number.isFinite(n) ? n : 0;
+      if (!Number.isFinite(n)) { invalidValues += 1; return null; }
+      return n;
     }
     function num(s) {
       const t = tidy(s).replace(/,/g, "");
-      if (t === "" || t === "-") return 0;
+      if (t === "" || t === "-") return null;
       const n = Number(t);
-      return Number.isFinite(n) ? n : 0;
+      if (!Number.isFinite(n)) { invalidValues += 1; return null; }
+      return n;
     }
     function getImmediateCols(row) {
       return Array.from(row.children).filter((c) => {
@@ -198,6 +201,7 @@ async function extractPayroll(page, opts = {}) {
         if (m) availableYears.push(m[1]);
       });
     }
+    availableYears.sort((a, b) => Number(b) - Number(a));
     if (availableYears.length) data["Available Years"] = availableYears.slice();
 
     // -------- 3) Determinar años a procesar --------
@@ -216,12 +220,8 @@ async function extractPayroll(page, opts = {}) {
       );
       yearsToProcess = yearsRequest.filter((y) => setAvail.has(y));
     } else {
-      // Por defecto: el primer grupo en DOM (más reciente)
-      const first = allGroups[0];
-      if (first) {
-        const m = first.id.match(/(\d{4})/);
-        if (m) yearsToProcess = [m[1]];
-      }
+      // Preserve the default single-year payload, selecting the newest year.
+      yearsToProcess = availableYears.slice(0, 1);
     }
 
     // -------- 4) Parseo de cada año --------
@@ -259,10 +259,15 @@ async function extractPayroll(page, opts = {}) {
         if (r === totalsRow) continue;
         const c = getImmediateCols(r);
         if (c.length < 7) continue;
+        // Header labels are not payroll records and do not indicate a parse failure.
+        if (c[0]?.querySelector('label') && /^Pay Date$/i.test(tidy(c[0].textContent))) continue;
 
         const payDateLink = c[0] ? c[0].querySelector("a") : null;
         const payDate = payDateLink ? tidy(payDateLink.textContent) : tidy(c[0].innerText || c[0].textContent);
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(payDate)) continue;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(payDate) || Number.isNaN(Date.parse(payDate)) || new Date(payDate).toISOString().slice(0, 10) !== payDate) {
+          invalidValues += 1;
+          continue;
+        }
 
         yearData.Rows.push({
           "Pay Date":       payDate,
@@ -286,21 +291,32 @@ async function extractPayroll(page, opts = {}) {
       }
     }
 
-    // -------- 5) Latest Payroll: first detail row from most recent year --------
-    const latestGroup = allGroups[0];
-    if (latestGroup) {
-      const latestYear = (latestGroup.id.match(/(\d{4})/) || [])[1];
-      const parsed = data[`Payroll ${latestYear}`] || parseYearGroup(latestYear);
-      if (parsed && parsed.Rows && parsed.Rows.length) {
-        data["Latest Payroll"] = parsed.Rows[0];
-      } else {
-        data["Latest Payroll"] = null;
-      }
-    } else {
-      data["Latest Payroll"] = null;
+    // Latest means the maximum date, never DOM order. If years were explicitly
+    // requested, report that restricted scope rather than claiming all history.
+    const scopeYears = (Array.isArray(yearsRequest) ? yearsRequest : availableYears).slice().sort((a, b) => Number(b) - Number(a));
+    const missingYears = [];
+    const rows = [];
+    for (const year of scopeYears) {
+      const parsed = data[`Payroll ${year}`] || parseYearGroup(year);
+      if (!parsed) missingYears.push(year);
+      else rows.push(...parsed.Rows);
     }
-
-    return { data };
+    rows.sort((a, b) => b["Pay Date"].localeCompare(a["Pay Date"]));
+    data["Latest Payroll"] = rows[0] || null;
+    const hasNextPage = !!root.querySelector(".paginate_button.next:not(.disabled), a[rel='next'], [aria-busy='true']");
+    const explicitEmpty = /no payroll (?:history|data|records)(?: found)?/i.test(tidy(root.textContent));
+    const complete = !missingYears.length && !hasNextPage && !invalidValues && (rows.length > 0 || explicitEmpty);
+    const latestState = complete ? (rows.length ? "ok" : "empty") : "unavailable";
+    return { data, diagnostics: {
+      dataState: latestState === "empty" ? "empty" : (complete ? "ok" : "unavailable"),
+      fields: { "Latest Payroll": { dataState: latestState, sourceAsOf: rows[0]?.["Pay Date"] || null } },
+      completeness: {
+        complete, truncated: hasNextPage, observedCount: rows.length, returnedCount: rows.length,
+        scope: { years: scopeYears, availableYears, kind: Array.isArray(yearsRequest) ? "requested_years" : "all_available_years" },
+        missingYears, invalidValueCount: invalidValues,
+        ...(!complete ? { reason: missingYears.length ? "year_not_loaded" : hasNextPage ? "unread_page_or_loading" : invalidValues ? "invalid_payroll_value" : "empty_not_confirmed" } : {}),
+      },
+    } };
   }, { scopeSel: scope, yearsRequest });
 
   // ---------- Post-procesamiento en Node ----------
@@ -370,7 +386,14 @@ async function extractPayroll(page, opts = {}) {
     unknownFields = nonTokenRequested.filter((f) => !Object.prototype.hasOwnProperty.call(result.data || {}, f));
   }
 
-  return { data, warnings, unknownFields };
+  const returnedRows = Object.entries(data)
+    .filter(([key]) => /^Payroll \d{4}$/.test(key))
+    .flatMap(([, value]) => value.Rows || []);
+  if (data['Latest Payroll'] && !returnedRows.some(row => row['Pay Date'] === data['Latest Payroll']['Pay Date'])) {
+    returnedRows.push(data['Latest Payroll']);
+  }
+  result.diagnostics.completeness.returnedCount = returnedRows.length;
+  return { data, warnings, unknownFields, diagnostics: result.diagnostics };
 }
 
 module.exports = Object.assign(extractPayroll, {

@@ -7,6 +7,7 @@ const {
 } = require("../../engine/sharedContext");
 const { TOTP_STEP_SECONDS } = require("../../config");
 const { saveEvidence } = require("../../engine/evidence");
+const runModule = require("../../extractors/runModule");
 const { getSpec } = require("../../providers/forusall/participantMap");
 const {
   getExtractor,
@@ -347,92 +348,19 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       jobCtx?.setStage?.(`module:${key}`, { action: "locate-panel" });
 
       const panelSel = spec.panelSelector;
-      let source = "panel";
-      let panelOk = false;
-
-      if (panelSel) {
-        try {
-          await page.waitForSelector(panelSel, {
-            timeout: 1200,
-            state: "attached",
-          });
-          panelOk = true;
-        } catch {}
-      }
-
-      if (!panelOk || spec.forceNav) {
-        jobCtx?.setStage?.(`module:${key}`, { action: "fallback-open" });
-        const opened = await openModule(page, spec, {
-          timeoutMs: OPEN_MODULE_TIMEOUT_MS,
-        });
-        if (opened) {
-          source = "nav";
-          try {
-            await page.waitForTimeout(180);
-          } catch {}
-          if (panelSel) {
-            try {
-              await page.waitForSelector(panelSel, {
-                timeout: 1500,
-                state: "attached",
-              });
-              panelOk = true;
-            } catch {}
-          } else {
-            panelOk = true;
-          }
-        }
-      }
-
-      if (spec.ready?.selector) {
-        try {
-          await page.waitForSelector(spec.ready.selector, {
-            timeout: 1400,
-            state: "attached",
-          });
-        } catch {}
-      } else if (spec.ready?.textRegex) {
-        const loc = page
-          .getByText(spec.ready.textRegex, { exact: false })
-          .first();
-        try {
-          await loc.waitFor({ timeout: 1200 });
-        } catch {}
-      }
-
-      if (!panelOk && !getExtractor(key)) {
-        out.modules.push({
-          key,
-          status: "error",
-          source,
-          error: "panel_not_found",
-        });
+      const moduleResult = await runModule(page, {
+        key, spec, requestedFields, extractor: getExtractor(key), openModule,
+        timeoutMs: PANEL_WAIT_MS, allowSnapshotOnly: returnMode !== "data",
+      });
+      const panelOk = moduleResult.status !== "error";
+      if (!panelOk) {
+        out.ok = false;
+        out.errors.push({ key, error: moduleResult.error });
+        out.modules.push(moduleResult);
         continue;
       }
-
-      // Data
-      jobCtx?.setStage?.(`module:${key}`, { action: "extract-data" });
-      let data;
-      let extractorWarnings = [];
-      let unknownFields = [];
-      const extractor = getExtractor(key);
-      if (extractor) {
-        try {
-          const r = await extractor(page, {
-            scope: panelSel || null,
-            fields: requestedFields || null,
-          });
-          data = (r && r.data) || undefined;
-          extractorWarnings = (r && r.warnings) || [];
-          unknownFields =
-            r && Array.isArray(r.unknownFields) ? r.unknownFields : [];
-        } catch (e) {
-          out.errors.push({
-            key,
-            error: "extractor_failed",
-            message: String((e && e.message) || e),
-          });
-        }
+      if (moduleResult.status === "partial") {
+        out.warnings.push({ key, type: "partial_extraction" });
       }
 
       // Snapshot (si aplica)
@@ -461,13 +389,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       }
 
       out.modules.push({
-        key,
-        status: "ok",
-        source,
-        requestedFields: requestedFields || null,
-        unknownFields: unknownFields.length ? unknownFields : undefined,
-        data,
-        extractorWarnings,
+        ...moduleResult,
         html,
         text,
         evidencePath: shot,
