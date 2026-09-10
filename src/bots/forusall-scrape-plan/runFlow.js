@@ -120,51 +120,192 @@ async function getPanelSnapshot(page, panelSelector, returnMode) {
   return { html, text };
 }
 
-/** Extrae notes como array desde el panel de Notes */
-async function extractNotes(page) {
-  return await page.evaluate(() => {
-    function tidy(s) {
-      return String(s == null ? "" : s)
-        .replace(/\u00A0|\u2007|\u202F/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-
-    const notes = [];
-    
-    // Buscar todos los paneles y encontrar el que tiene heading "Notes"
-    const panels = document.querySelectorAll(".panel");
-    let notesPanel = null;
-    
-    for (const panel of panels) {
-      const heading = panel.querySelector(".panel-heading h4");
-      if (heading && tidy(heading.textContent) === "Notes") {
-        notesPanel = panel.querySelector(".notes-panel");
-        break;
-      }
-    }
-    
-    if (!notesPanel) return [];
-
-    // Buscar todos los <li> que contienen "Notes:"
-    const listItems = notesPanel.querySelectorAll("li");
-    for (const li of listItems) {
-      const text = tidy(li.textContent || "");
-      // Buscar líneas que empiecen con "Notes:"
-      if (text.startsWith("Notes:")) {
-        // Extraer el texto después de "Notes:"
-        const noteText = text.replace(/^Notes:\s*/, "").trim();
-        if (noteText && noteText.length > 0) {
-          notes.push(noteText);
-        }
-      }
-    }
-
-    return notes;
+/**
+ * Extract a bounded, internal-safe lifecycle view from the real Notes and
+ * Timeline panels.  `notes` remains a string[] for wire compatibility while
+ * `entries` preserves the event date and lifecycle transitions needed for
+ * plan-status decisions.
+ */
+async function extractPlanHistory(page) {
+  const empty = (status) => ({
+    schemaVersion: 1,
+    extractionStatus: status,
+    current: { status: null, active: null, statusAsOf: null },
+    entries: [],
+    notes: [],
   });
+
+  try {
+    return await page.evaluate(() => {
+      const MAX_ENTRIES = 20;
+      const MAX_NOTES = 20;
+      const MAX_NOTE_CHARS = 500;
+      const MAX_VALUE_CHARS = 160;
+      const LIFECYCLE_FIELDS = [
+        "active",
+        "status",
+        "terminated_status_as_of",
+        "actively_managed_status_as_of",
+      ];
+
+      function tidy(value, limit = MAX_NOTE_CHARS) {
+        const withoutControls = Array.from(String(value == null ? "" : value))
+          .filter((character) => {
+            const codePoint = character.codePointAt(0);
+            return codePoint === 9 || codePoint === 10 || codePoint === 13
+              || (codePoint >= 32 && codePoint !== 127);
+          })
+          .join("");
+        return withoutControls
+          .replace(/\u00A0|\u2007|\u202F/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, limit);
+      }
+
+      function readControl(...selectors) {
+        for (const selector of selectors) {
+          const el = document.querySelector(selector);
+          if (!el) continue;
+          const tag = String(el.tagName || "").toLowerCase();
+          const type = String(el.type || "").toLowerCase();
+          if (type === "checkbox" || type === "radio") return !!el.checked;
+          const normalize = (value) => {
+            const cleaned = tidy(value, MAX_VALUE_CHARS);
+            if (selector === "#active") {
+              if (cleaned.toLowerCase() === "true") return true;
+              if (cleaned.toLowerCase() === "false") return false;
+            }
+            return cleaned || null;
+          };
+          if (tag === "select") {
+            const option = el.options && el.options[el.selectedIndex];
+            return normalize(option ? option.textContent : el.value);
+          }
+          return normalize(el.value);
+        }
+        return null;
+      }
+
+      function parseChanges(raw) {
+        const text = tidy(raw, 3000).replace(/^Changes:\s*/i, "");
+        const lifecycleFields = new Set(LIFECYCLE_FIELDS);
+        // Every portal field starts a new change segment.  Use all field labels
+        // as boundaries, then publish only the lifecycle allowlist below.  If
+        // we look only for lifecycle labels, an unrelated trailing change is
+        // incorrectly appended to the final lifecycle value.
+        const matcher = /(?:^|\s)([A-Za-z][A-Za-z0-9_]*)\s*:\s*/g;
+        const starts = [];
+        let match;
+        while ((match = matcher.exec(text)) !== null) {
+          starts.push({ field: match[1].toLowerCase(), valueStart: matcher.lastIndex, index: match.index });
+        }
+        const changes = [];
+        for (let index = 0; index < starts.length; index += 1) {
+          const start = starts[index];
+          if (!lifecycleFields.has(start.field)) continue;
+          const end = starts[index + 1] ? starts[index + 1].index : text.length;
+          const value = text.slice(start.valueStart, end).trim();
+          const separator = value.match(/\s+to\s+/i);
+          if (!separator || separator.index == null) continue;
+          const from = tidy(value.slice(0, separator.index), MAX_VALUE_CHARS);
+          const to = tidy(value.slice(separator.index + separator[0].length), MAX_VALUE_CHARS);
+          if (from || to) changes.push({ field: start.field, from, to });
+        }
+        return changes;
+      }
+
+      function eventDate(items, source) {
+        const prefix = source === "notes" ? /(?:updated|created)\s+on\s+(\d{4}-\d{2}-\d{2})/i : /effective\s+on\s+(\d{4}-\d{2}-\d{2})/i;
+        for (const item of items) {
+          const found = item.match(prefix);
+          if (found) return found[1];
+        }
+        return null;
+      }
+
+      const panels = [...document.querySelectorAll(".panel")];
+      const historyPanels = [];
+      for (const panel of panels) {
+        const heading = tidy(
+          panel.querySelector(".panel-heading h4, .panel-heading")?.textContent,
+          80
+        ).toLowerCase();
+        if (heading !== "notes" && heading !== "timeline") continue;
+        const body = panel.querySelector(".notes-panel");
+        if (body) historyPanels.push({ source: heading, body });
+      }
+      historyPanels.sort((left, right) => {
+        if (left.source === right.source) return 0;
+        return left.source === "notes" ? -1 : 1;
+      });
+
+      if (!historyPanels.length) {
+        return {
+          schemaVersion: 1,
+          extractionStatus: "panel_missing",
+          current: {
+            status: readControl("#status"),
+            active: readControl("#active"),
+            statusAsOf: readControl("#status_as_of", "#terminated_status_as_of"),
+          },
+          entries: [],
+          notes: [],
+        };
+      }
+
+      const notes = [];
+      const entries = [];
+      for (const { source, body } of historyPanels) {
+        const eventNodes = [...body.querySelectorAll(":scope > .scrollbar > div")];
+        for (const eventNode of eventNodes) {
+          const items = [...eventNode.querySelectorAll("li")]
+            .map((li) => tidy(li.textContent, 3000))
+            .filter(Boolean);
+          if (!items.length) continue;
+          const noteItem = items.find((item) => /^Notes\s*:/i.test(item));
+          const note = noteItem
+            ? tidy(noteItem.replace(/^Notes\s*:\s*/i, ""), MAX_NOTE_CHARS)
+            : null;
+          if (source === "notes" && note && !notes.includes(note) && notes.length < MAX_NOTES) {
+            notes.push(note);
+          }
+          const changesItem = items.find((item) => /^Changes\s*:/i.test(item));
+          const changes = changesItem ? parseChanges(changesItem) : [];
+          const lifecycleNote = !!note && /terminat|deconvert|last payroll|force[ -]?out|freeze|conversion/i.test(note);
+          if (!changes.length && !lifecycleNote) continue;
+          const date = eventDate(items, source);
+          const entry = {
+            source,
+            note,
+            changes,
+          };
+          if (source === "notes") entry.occurredAt = date;
+          if (source === "timeline") entry.effectiveOn = date;
+          entries.push(entry);
+          if (entries.length >= MAX_ENTRIES) break;
+        }
+        if (entries.length >= MAX_ENTRIES) break;
+      }
+
+      return {
+        schemaVersion: 1,
+        extractionStatus: entries.length || notes.length ? "ok" : "empty",
+        current: {
+          status: readControl("#status"),
+          active: readControl("#active"),
+          statusAsOf: readControl("#status_as_of", "#terminated_status_as_of"),
+        },
+        entries,
+        notes,
+      };
+    });
+  } catch {
+    return empty("parse_error");
+  }
 }
 
-module.exports = async function runFlow({ meta, jobCtx }) {
+async function runFlow({ meta, jobCtx }) {
   const account = jobCtx && jobCtx.account;
   if (!account || !account.siteUser || !account.sitePass || !account.totpSecret) {
     throw new Error(
@@ -193,6 +334,7 @@ module.exports = async function runFlow({ meta, jobCtx }) {
     modulesRequested: modules,
     modules: [],
     notes: [],
+    planHistory: null,
     full: null,
     errors: [],
     warnings: invalidModules.length
@@ -299,8 +441,9 @@ module.exports = async function runFlow({ meta, jobCtx }) {
         const e = await saveEvidence(page, `scrape-full-plan-${planId}`);
         shot = e.path || null;
       }
-      // Extraer notes
-      out.notes = await extractNotes(page);
+      const history = await extractPlanHistory(page);
+      out.notes = history.notes;
+      out.planHistory = history;
       out.full = {
         html: returnMode === "text" || returnMode === "data" ? undefined : html,
         text: returnMode === "html" || returnMode === "data" ? undefined : text,
@@ -428,14 +571,17 @@ module.exports = async function runFlow({ meta, jobCtx }) {
       });
     }
 
-    // Extraer notes al final
+    // Extraer Notes + Timeline al final.
     jobCtx?.setStage?.("extract-notes");
-    out.notes = await extractNotes(page);
+    const history = await extractPlanHistory(page);
+    out.notes = history.notes;
+    out.planHistory = history;
 
     jobCtx?.setStage?.("done");
     return out;
   } finally {
     if (page) await releasePage(page);
   }
-};
+}
 
+module.exports = Object.assign(runFlow, { extractPlanHistory });

@@ -1,0 +1,31 @@
+{
+  "source_build": "5e85166e-47bc-45bc-b67d-c2005ba3ec63",
+  "source_generation": "1788885065023320",
+  "files": [
+    {
+      "path": "src/extractors/forusall-plan/modules/basic_info.js",
+      "sha256": "cf88cc0ff0cb2fb7fc2eb9f2a34f7494c5c8b3bb0f6ebf1105b9bc1b2b91fb3c",
+      "source": "deployed-build-archive-match"
+    },
+    {
+      "path": "src/bots/forusall-scrape-plan/runFlow.js",
+      "sha256": "e399f7a2a713f2b33809ab537273809af265ad325614e1add6c3ab15faa224eb",
+      "source": "deployed-build-archive-match"
+    },
+    {
+      "path": "src/bots/forusall-scrape-plan/formatPublic.js",
+      "sha256": "9456cc764d153a6619f40b0270911696e117a55d973ef8141f71e6d30f6eb108",
+      "source": "deployed-build-archive-match"
+    },
+    {
+      "path": "tests/extractors/plan-basic-info.test.js",
+      "sha256": "bdf130725a4d818a783eef8d0250d1f269a78da3adf7506e65a907770f058967",
+      "source": "preexisting-local-test"
+    },
+    {
+      "path": "tests/bots/scrape-plan-history.test.js",
+      "sha256": "0063968eedbde554231dfe80efe0414eba6ba5e00c3dee5364ea827455dc7fa3",
+      "source": "preexisting-local-test"
+    }
+  ]
+}

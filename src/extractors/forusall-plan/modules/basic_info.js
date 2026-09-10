@@ -1,6 +1,6 @@
 // src/extractors/forusall-plan/modules/basic_info.js
 
-const SUPPORTED_FIELDS = [
+const LEGACY_SUPPORTED_FIELDS = [
   "plan_id",
   "version_id",
   "Short Name",
@@ -38,6 +38,19 @@ const FIELD_MAP = {
   "ein": "EIN",
   "effective_date": "Effective Date",
 };
+
+// Requests historically used the human-readable DOM labels while the
+// extractor response has always used API keys.  Accept both vocabularies and
+// canonicalize every selected field to the response key.
+const FIELD_ALIASES = new Map();
+for (const [apiKey, label] of Object.entries(FIELD_MAP)) {
+  FIELD_ALIASES.set(apiKey.toLowerCase(), apiKey);
+  FIELD_ALIASES.set(label.toLowerCase(), apiKey);
+}
+
+const SUPPORTED_FIELDS = [
+  ...new Set([...LEGACY_SUPPORTED_FIELDS, ...Object.keys(FIELD_MAP)]),
+];
 
 /**
  * Extrae información básica del plan (top-level fields antes de los tabs)
@@ -167,13 +180,20 @@ async function extractBasicInfo(page, opts = {}) {
   let data = result.data || {};
   const warnings = [];
 
+  if (typeof data.active === "string") {
+    const normalizedActive = data.active.trim().toLowerCase();
+    if (normalizedActive === "true") data.active = true;
+    if (normalizedActive === "false") data.active = false;
+  }
+
   // Filtrado por fields (si se pidió)
   let unknownFields = [];
   if (fields) {
     const filtered = {};
     for (const f of fields) {
-      if (Object.prototype.hasOwnProperty.call(data, f)) {
-        filtered[f] = data[f];
+      const canonicalField = FIELD_ALIASES.get(String(f).trim().toLowerCase());
+      if (canonicalField && Object.prototype.hasOwnProperty.call(data, canonicalField)) {
+        filtered[canonicalField] = data[canonicalField];
       } else {
         unknownFields.push(f);
       }

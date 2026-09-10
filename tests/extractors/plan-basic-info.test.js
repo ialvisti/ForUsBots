@@ -89,3 +89,87 @@ test("empty controls stay empty while display-only plan rows use text fallback",
     }
   );
 });
+
+test("legacy field labels and API keys return the same canonical basic-info fields", async () => {
+  function makeControl({ tagName = "INPUT", type = "text", value = "", checked = false, options = [] }) {
+    return {
+      tagName,
+      type,
+      value,
+      checked,
+      selectedIndex: 0,
+      options,
+      getAttribute(name) {
+        return name === "type" ? type : null;
+      },
+    };
+  }
+
+  function makeRow(labelText, control) {
+    return {
+      offsetParent: {},
+      querySelector(selector) {
+        if (selector === "label") return { textContent: labelText };
+        if (selector === "input, select, textarea") return control;
+        return null;
+      },
+    };
+  }
+
+  const rows = [
+    makeRow("Active", makeControl({ type: "checkbox", checked: false })),
+    makeRow("Status", makeControl({
+      tagName: "SELECT",
+      value: "terminated",
+      options: [{ textContent: "Terminated" }],
+    })),
+    makeRow("Status as of", makeControl({ value: "2024-10-24" })),
+  ];
+  const root = { querySelectorAll: () => rows };
+  const documentStub = {
+    querySelector(selector) {
+      if (selector === "#bitemporal-plan-attrs") return root;
+      return null;
+    },
+  };
+  const page = {
+    async evaluate(callback, options) {
+      const previousDocument = global.document;
+      const previousWindow = global.window;
+      global.document = documentStub;
+      global.window = {
+        getComputedStyle: () => ({
+          display: "block",
+          visibility: "visible",
+          opacity: "1",
+          position: "static",
+        }),
+      };
+      try {
+        return callback(options);
+      } finally {
+        global.document = previousDocument;
+        global.window = previousWindow;
+      }
+    },
+  };
+
+  const expected = {
+    data: {
+      status: "Terminated",
+      status_as_of: "2024-10-24",
+      active: false,
+    },
+    warnings: [],
+    unknownFields: [],
+  };
+
+  assert.deepEqual(
+    await extractBasicInfo(page, { fields: ["Status", "Status as of", "Active"] }),
+    expected
+  );
+  assert.deepEqual(
+    await extractBasicInfo(page, { fields: ["status", "status_as_of", "active"] }),
+    expected
+  );
+});
