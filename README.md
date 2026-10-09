@@ -1,9 +1,12 @@
 # ForUsBots – API (v2.6.0)
 
+Guía para entender, ejecutar y actualizar el proyecto: [DOCUMENTACION.md](DOCUMENTACION.md).
+
 Service with **9 Playwright automation bots** for the ForUsAll employer portal:
 vault uploads, participant and plan scraping, participant search, participant
 MFA reset, participant and plan updates, email triggers, and portal user
-management. Login uses TOTP when needed. OpenAPI is the API source of truth.
+management. Login uses TOTP when needed. OpenAPI defines the documented API
+contract; some ancillary routes are currently present only in code.
 
 - English API docs: `/docs/api`
 - Spanish API docs: `/docs/api/es`
